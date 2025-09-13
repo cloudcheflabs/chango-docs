@@ -116,6 +116,9 @@
 ### Chango Spark Thrift Server
 - 10000: Server
 
+### Spark Thrift Server for Iceberg Table Maintenance
+- 11000: Server
+
 ### Chango Spark SQL Runner
 - 29080: Server
 
