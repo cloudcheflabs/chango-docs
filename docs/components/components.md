@@ -22,6 +22,7 @@
 | Chango Streaming     | 2.6.0              | 
 | Chango Streaming Tx  | 2.6.0              | 
 | Chango Spark Thrift Server   | 2.6.0              | 
+| ITM(Spark Thrift Server for Iceberg Table Maintenance) | 2.6.0              | 
 | Chango Spark SQL Runner      | 2.6.0              | 
 | Chango Data API      | 2.6.0              | 
 | Chango Trino Gateway | 2.6.0              | 
@@ -116,7 +117,7 @@
 ### Chango Spark Thrift Server
 - 10000: Server
 
-### Spark Thrift Server for Iceberg Table Maintenance
+### ITM
 - 11000: Server
 
 ### Chango Spark SQL Runner
