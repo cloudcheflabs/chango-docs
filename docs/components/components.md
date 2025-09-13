@@ -4,32 +4,33 @@
 ## Component Version
 
 
-| Component                  | Version            | 
-|:---------------------------|:-------------------| 
-| Apache Ozone               | 1.3.0              | 
-| Kafka                      | 3.6.x              | 
-| Zookeeper                  | 3.6.4              | 
-| Schema Registry            | 7.6.1              | 
-| Spark                      | 3.4.3 / Scala 2.12 | 
-| Livy                       | 0.8.0-incubating   | 
-| Trino                      | 452                | 
-| Iceberg                    | 1.5.2              | 
-| Open JDK                   | 8 / 17 / 22        | 
-| Azkaban                    | 3.90.0             | 
-| Azkaban CLI                | 0.9.14             |
-| Superset                   | 0.38.1             |
-| OpenSearch                 | 2.19.3              |
-| Chango Admin               | 2.7.0              | 
-| Chango Streaming           | 2.7.0              | 
-| Chango Streaming Tx        | 2.7.0              | 
-| Chango Spark Thrift Server | 2.7.0              | 
-| Chango Spark SQL Runner    | 2.7.0              | 
-| Chango Data API            | 2.7.0              | 
-| Chango Trino Gateway       | 2.7.0              | 
-| Chango Authorizer          | 2.7.0              | 
-| Chango REST Catalog        | 2.7.0              |
-| Chango Query Exec          | 2.7.0              |
-| Chango MCP Server          | 2.7.0              |
+| Component                                              | Version            | 
+|:-------------------------------------------------------|:-------------------| 
+| Apache Ozone                                           | 1.3.0              | 
+| Kafka                                                  | 3.6.x              | 
+| Zookeeper                                              | 3.6.4              | 
+| Schema Registry                                        | 7.6.1              | 
+| Spark                                                  | 3.4.3 / Scala 2.12 | 
+| Livy                                                   | 0.8.0-incubating   | 
+| Trino                                                  | 452                | 
+| Iceberg                                                | 1.5.2              | 
+| Open JDK                                               | 8 / 17 / 22        | 
+| Azkaban                                                | 3.90.0             | 
+| Azkaban CLI                                            | 0.9.14             |
+| Superset                                               | 0.38.1             |
+| OpenSearch                                             | 2.19.3              |
+| Chango Admin                                           | 2.7.0              | 
+| Chango Streaming                                       | 2.7.0              | 
+| Chango Streaming Tx                                    | 2.7.0              | 
+| Chango Spark Thrift Server                             | 2.7.0              | 
+| ITM(Spark Thrift Server for Iceberg Table Maintenance) | 2.7.0              | 
+| Chango Spark SQL Runner                                | 2.7.0              | 
+| Chango Data API                                        | 2.7.0              | 
+| Chango Trino Gateway                                   | 2.7.0              | 
+| Chango Authorizer                                      | 2.7.0              | 
+| Chango REST Catalog                                    | 2.7.0              |
+| Chango Query Exec                                      | 2.7.0              |
+| Chango MCP Server                                      | 2.7.0              |
 
 ## Component Ports
 
@@ -123,7 +124,7 @@
 ### Chango Spark Thrift Server
 - 10000: Server
 
-### Spark Thrift Server for Iceberg Table Maintenance
+### ITM
 - 11000: Server
 
 ### Chango Spark SQL Runner
