@@ -1,0 +1,1823 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/branch-2.7.0/install/install-component/">
+      
+      
+        <link rel="prev" href="../install-admin/">
+      
+      
+        <link rel="next" href="../run-first-ctas/">
+      
+      <link rel="icon" href="../../images/chango-logo.png">
+      <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
+    
+    
+      
+        <title>Install Chango Components - Chango</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.eebd395e.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ecc896b0.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+
+<!-- Google tag (gtag.js) --> <script async src="https://www.googletagmanager.com/gtag/js?id=AW-419279658"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'AW-419279658'); </script>
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#install-chango-components" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Chango" class="md-header__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/chango-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Chango
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Install Chango Components
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+            
+              <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+              </label>
+            
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+            
+              <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+              </label>
+            
+          
+        </form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../intro/intro/" class="md-tabs__link">
+        What is Chango?
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../install-admin/" class="md-tabs__link md-tabs__link--active">
+        Getting Started
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../features/rbac/" class="md-tabs__link">
+        Features
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../user-guide/cred/" class="md-tabs__link">
+        User Guide
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../components/components/" class="md-tabs__link">
+        Components
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Chango" class="md-nav__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/chango-logo.png" alt="logo">
+
+    </a>
+    Chango
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+          What is Chango?
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_1">
+          <span class="md-nav__icon md-icon"></span>
+          What is Chango?
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../intro/intro/" class="md-nav__link">
+        What is Chango?
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          Getting Started
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          Getting Started
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../install-admin/" class="md-nav__link">
+        Install Chango Admin
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Install Chango Components
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Install Chango Components
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#initialize-chango" class="md-nav__link">
+    Initialize Chango
+  </a>
+  
+    <nav class="md-nav" aria-label="Initialize Chango">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configure-hosts-and-ssh-private-key" class="md-nav__link">
+    Configure Hosts and SSH Private Key
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-lvm" class="md-nav__link">
+    Configure LVM
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-mysql" class="md-nav__link">
+    Configure MySQL
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-object-storage" class="md-nav__link">
+    Configure Object Storage
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-chango-authorizer" class="md-nav__link">
+    Configure Chango Authorizer
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-chango-rest-catalog" class="md-nav__link">
+    Configure Chango REST Catalog
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-configured-components" class="md-nav__link">
+    Install Configured Components
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#show-log" class="md-nav__link">
+    Show Log
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chango-authorizer" class="md-nav__link">
+    Chango Authorizer
+  </a>
+  
+    <nav class="md-nav" aria-label="Chango Authorizer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scale-server" class="md-nav__link">
+    Scale Server
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chango-rest-catalog" class="md-nav__link">
+    Chango REST Catalog
+  </a>
+  
+    <nav class="md-nav" aria-label="Chango REST Catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scale-server_1" class="md-nav__link">
+    Scale Server
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apache-kafka" class="md-nav__link">
+    Apache Kafka
+  </a>
+  
+    <nav class="md-nav" aria-label="Apache Kafka">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-kafka" class="md-nav__link">
+    Install Kafka
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-broker" class="md-nav__link">
+    Scale Broker
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-kafka" class="md-nav__link">
+    Configure Kafka
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apache-spark" class="md-nav__link">
+    Apache Spark
+  </a>
+  
+    <nav class="md-nav" aria-label="Apache Spark">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-spark" class="md-nav__link">
+    Install Spark
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-worker" class="md-nav__link">
+    Scale Worker
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ui" class="md-nav__link">
+    UI
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trino" class="md-nav__link">
+    Trino
+  </a>
+  
+    <nav class="md-nav" aria-label="Trino">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-trino" class="md-nav__link">
+    Install Trino
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-worker_1" class="md-nav__link">
+    Scale Worker
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-trino" class="md-nav__link">
+    Configure Trino
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ui_1" class="md-nav__link">
+    UI
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chango-trino-gateway" class="md-nav__link">
+    Chango Trino Gateway
+  </a>
+  
+    <nav class="md-nav" aria-label="Chango Trino Gateway">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-chango-trino-gateway" class="md-nav__link">
+    Install Chango Trino Gateway
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-server_2" class="md-nav__link">
+    Scale Server
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apache-superset" class="md-nav__link">
+    Apache Superset
+  </a>
+  
+    <nav class="md-nav" aria-label="Apache Superset">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-superset" class="md-nav__link">
+    Install Superset
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ui_2" class="md-nav__link">
+    UI
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#azkaban" class="md-nav__link">
+    Azkaban
+  </a>
+  
+    <nav class="md-nav" aria-label="Azkaban">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-azkaban" class="md-nav__link">
+    Install Azkaban
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ui_3" class="md-nav__link">
+    UI
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#azkaban-cli" class="md-nav__link">
+    Azkaban CLI
+  </a>
+  
+    <nav class="md-nav" aria-label="Azkaban CLI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-azkaban-cli" class="md-nav__link">
+    Install Azkaban CLI
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chango-data-api" class="md-nav__link">
+    Chango Data API
+  </a>
+  
+    <nav class="md-nav" aria-label="Chango Data API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-chango-data-api" class="md-nav__link">
+    Install Chango Data API
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-server_3" class="md-nav__link">
+    Scale Server
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chango-streaming" class="md-nav__link">
+    Chango Streaming
+  </a>
+  
+    <nav class="md-nav" aria-label="Chango Streaming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-chango-streaming" class="md-nav__link">
+    Install Chango Streaming
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-chango-streaming-tx" class="md-nav__link">
+    Install Chango Streaming Tx
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chango-spark-thrift-server" class="md-nav__link">
+    Chango Spark Thrift Server
+  </a>
+  
+    <nav class="md-nav" aria-label="Chango Spark Thrift Server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-chango-spark-thrift-server" class="md-nav__link">
+    Install Chango Spark Thrift Server
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chango-spark-sql-runner" class="md-nav__link">
+    Chango Spark SQL Runner
+  </a>
+  
+    <nav class="md-nav" aria-label="Chango Spark SQL Runner">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-chango-spark-sql-runner" class="md-nav__link">
+    Install Chango Spark SQL Runner
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chango-query-exec" class="md-nav__link">
+    Chango Query Exec
+  </a>
+  
+    <nav class="md-nav" aria-label="Chango Query Exec">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-chango-query-exec" class="md-nav__link">
+    Install Chango Query Exec
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-server_4" class="md-nav__link">
+    Scale Server
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../run-first-ctas/" class="md-nav__link">
+        Run First Trino Query
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../load-external-files/" class="md-nav__link">
+        Load Your Files to Iceberg Tables
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Features
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Features
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/rbac/" class="md-nav__link">
+        Storage Security
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/catalog/" class="md-nav__link">
+        Data Catalog
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/ingestion/" class="md-nav__link">
+        Data Ingestion
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/realtime/" class="md-nav__link">
+        Realtime Analytics
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/trino-gw/" class="md-nav__link">
+        Trino Gateway
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/transform/" class="md-nav__link">
+        Data Transformation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/query-audit/" class="md-nav__link">
+        Query Audit
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/mcp-server/" class="md-nav__link">
+        MCP Server
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          User Guide
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          User Guide
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/cred/" class="md-nav__link">
+        Get Chango Credential
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/s3-cred/" class="md-nav__link">
+        Get S3 Credential
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/load-files/" class="md-nav__link">
+        Load Files to Iceberg Tables using SQL
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/streaming/" class="md-nav__link">
+        Send Streaming Events
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/upload/" class="md-nav__link">
+        Upload Files
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/upload-excel/" class="md-nav__link">
+        Upload Excel
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/connect-trino-gw/" class="md-nav__link">
+        Connect to Chango Trino Gateway with Trino Clients
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/rest-in-spark/" class="md-nav__link">
+        Create Iceberg REST Catalog in Spark
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/azkaban-cli/" class="md-nav__link">
+        Create Azkaban Project using CLI
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/spark-azkaban/" class="md-nav__link">
+        Run Spark Jobs with Azkaban
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/trino-azkaban/" class="md-nav__link">
+        Run Trino ETL Jobs with Azkaban
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/spark-sql-azkaban/" class="md-nav__link">
+        Run Spark SQL ETL Jobs with Azkaban
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/azkaban-user-management/" class="md-nav__link">
+        Azkaban User Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/kafka-topic/" class="md-nav__link">
+        Create Kafka Topic
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/schema-reg/" class="md-nav__link">
+        Configure Schema Registry URL
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/chango-log/" class="md-nav__link">
+        Reading Log Files Using Chango Log
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/chango-cdc/" class="md-nav__link">
+        Change Data Capture Using Chango CDC
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/query-exec/" class="md-nav__link">
+        Data Transformation Using Chango Query Exec
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/standalone-query-exec/" class="md-nav__link">
+        Data Transformation Using Standalone Chango Query Exec
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/tx-streaming/" class="md-nav__link">
+        Transactional Streaming
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/auto-maintain-iceberg/" class="md-nav__link">
+        Automatic Iceberg Table Maintenance
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/maintain-iceberg/" class="md-nav__link">
+        Maintain Iceberg Tables
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/hidden-partition/" class="md-nav__link">
+        Create Hidden Partitioned Iceberg Tables
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/livy/" class="md-nav__link">
+        Run Spark Applications using Livy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/resource-group/" class="md-nav__link">
+        Configure Resource Groups
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/connect-mcp/" class="md-nav__link">
+        Connect MCP Server
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          Components
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_5">
+          <span class="md-nav__icon md-icon"></span>
+          Components
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/components/" class="md-nav__link">
+        Components
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="install-chango-components">Install Chango Components</h1>
+<p>There are several components supported by Chango.</p>
+<p>See <a href="../../intro/intro">What is Chango?</a> for more details.</p>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> If Chango initialization failed or you want to reset Chango, then you need to move to 
+<code>http://[admin-host]:8123/cp-reset.html</code> to reset Chango.</p>
+</blockquote>
+<h2 id="initialize-chango">Initialize Chango</h2>
+<p>If you have not initialized Chango, you will get the following picture to initialze Chango.</p>
+<p><img width="900" src="../../images/init/init-chango.png" /></p>
+<p>There are mandatory Chango Components like <code>MySQL</code>, <code>Object Storage</code>, <code>Chango Authorizer</code>, and 
+<code>Chango REST Catalog</code> which must be installed when Chango is initialized. 
+The other optional compoents can be installed after Chango initialization.</p>
+<h3 id="configure-hosts-and-ssh-private-key">Configure Hosts and SSH Private Key</h3>
+<p>All the <code>Chango Component Nodes</code> need to be registered, and SSH private key on <code>Chango Admin Node</code> need to be added to access <code>Chango Component Nodes</code> from 
+the host of <code>Chango Admin Node</code>.</p>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> Take a note that you need to register all the nodes of <code>Chango Component Nodes</code> <strong>except</strong> <code>Chango Admin Node</code>.</p>
+</blockquote>
+<p>Get SSH private key on <code>Chango Admin Node</code> with the following command, and paste it to the text box <code>SSH Private Key</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cat ~/.ssh/id_rsa
+</code></pre></div>
+<p><img width="900" src="../../images/init/hosts-ssh-key.png" /></p>
+<h3 id="configure-lvm">Configure LVM</h3>
+<p>Raw disks attached to the <code>Chango Component Nodes</code> in comma separated list need to be added to mount as logical volume.</p>
+<p>If the disks attached are same on all the nodes, use this.</p>
+<p><img width="900" src="../../images/init/lvm-all.png" /></p>
+<p>If the disks attached are different on every node, use this.</p>
+<p><img width="900" src="../../images/init/lvm-indiv.png" /></p>
+<h3 id="configure-mysql">Configure MySQL</h3>
+<p><code>MySQL</code> is used by open source components like <code>Apache Superset</code> and <code>Apache Ozone</code> in Chango.
+Select the host on which <code>MySQL</code> will be installed.</p>
+<p><img width="900" src="../../images/init/mysql.png" /></p>
+<h3 id="configure-object-storage">Configure Object Storage</h3>
+<p>Select the options for object storage. <code>Apache Ozone</code> is default object storage provided by Chango, 
+which will be used in disconnected environment in most cases.
+In public, you may select the external object storage like AWS S3, MinIO, OCI Object Storage.</p>
+<p>If Apache Ozone is used as object storage, enter the values this below.
+<img width="900" src="../../images/init/s3-ozone.png" /></p>
+<p>If external object storage is used, enter values of S3 credentials.
+<img width="900" src="../../images/init/s3-external.png" /></p>
+<h3 id="configure-chango-authorizer">Configure Chango Authorizer</h3>
+<p><code>Chango Authorizer</code> is used to authenticate and authorize all the data access to Chango.</p>
+<p><img width="900" src="../../images/init/authorizer.png" /></p>
+<h3 id="configure-chango-rest-catalog">Configure Chango REST Catalog</h3>
+<p><code>Chango REST Catalog</code> is used as data catalog in Chango.</p>
+<p><img width="900" src="../../images/init/rest-catalog.png" /></p>
+<p>For now, the components you configured are mandatory.  After configuring mandatory components, you can skip configuration.</p>
+<p><img width="900" src="../../images/init/skip.png" /></p>
+<p>You can install other optional components later after finishing Chango initialization.</p>
+<h3 id="install-configured-components">Install Configured Components</h3>
+<p>Install all the configured components.</p>
+<p><img width="900" src="../../images/init/install.png" /></p>
+<p>When the installation is finished, press the button of <code>Installation Finished</code>.</p>
+<p><img width="900" src="../../images/init/install-finished.png" /></p>
+<p>Then, you will move to the main page.</p>
+<p><img width="900" src="../../images/index/overview.png" /></p>
+<h3 id="show-log">Show Log</h3>
+<p>You can see current log produced by installed components.</p>
+<p><img width="900" src="../../images/navi/metrics-status.png" /></p>
+<p>Click the host name of components in <code>Status</code> to show log.</p>
+<p><img width="900" src="../../images/navi/show-log.png" /></p>
+<h2 id="chango-authorizer">Chango Authorizer</h2>
+<h3 id="scale-server">Scale Server</h3>
+<p>Chango Authorizer can be scaled out or unscaled.</p>
+<p><img width="900" src="../../images/authorizer/scale.png" /></p>
+<p>First, select hosts for scaling out or unscaling Authorizer servers, and then, press the button of <code>Scale Out Server</code> to scale out Authorizer servers
+or press the button of <code>Unscale Server</code> to unscale Authorizer servers.</p>
+<h2 id="chango-rest-catalog">Chango REST Catalog</h2>
+<h3 id="scale-server_1">Scale Server</h3>
+<p>Chango REST Catalog can be scaled out or unscaled.</p>
+<p><img width="900" src="../../images/rest-catalog/scale.png" /></p>
+<p>First, select hosts for scaling out or unscaling REST Catalog servers, and then, press the button of <code>Scale Out Server</code> to scale out REST Catalog servers
+or press the button of <code>Unscale Server</code> to unscale REST Catalog servers.</p>
+<h2 id="apache-kafka">Apache Kafka</h2>
+<p><code>Apache Kafka</code> is used as event streaming platform in Chango.
+Multiple Kafka clusters are supported by Chango, that is, you can install kafka clusters as many as you want.</p>
+<h3 id="install-kafka">Install Kafka</h3>
+<p>If you want to install <code>Apache Kafka</code>, press <code>Go to Install</code> button.</p>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> If you have not installed any kafka cluster, then, enter <code>default</code> for the cluster name.</p>
+</blockquote>
+<p><img width="900" src="../../images/kafka/install.png" /></p>
+<p>After installing kafka, you will see kafka page like this.</p>
+<p><img width="900" src="../../images/kafka/after-install.png" /></p>
+<p>Because Chango supports multiple kafka clusters, you can install another kafka cluster.</p>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> Because you have already installed default kafka cluster, you can enter anything for the cluster name.</p>
+</blockquote>
+<p><img width="900" src="../../images/kafka/install-another.png" /></p>
+<p>After installing another kafka cluster, new created kafka cluster will be shown in tab list.</p>
+<p><img width="900" src="../../images/kafka/multi-clusters.png" /></p>
+<h3 id="scale-broker">Scale Broker</h3>
+<p>Kafka Broker can be scaled out or unscaled.</p>
+<p><img width="900" src="../../images/kafka/scale-broker.png" /></p>
+<p>First, select hosts for scaling out or unscaling kafka brokers, and then, press the button of <code>Scale Out Broker</code> to scale out brokers 
+or press the button of <code>Unscale Broker</code> to unscale brokers.</p>
+<h3 id="configure-kafka">Configure Kafka</h3>
+<p>You can update kafka configurations like heap memory and <code>server.properties</code>.</p>
+<p>First, select kafka cluster which you want to configure.</p>
+<p><img width="900" src="../../images/kafka/configure-select.png" /></p>
+<p>After modifying configuration, press <code>Update</code> to update the selected kafka cluster.</p>
+<p><img width="900" src="../../images/kafka/update-conf.png" /></p>
+<h2 id="apache-spark">Apache Spark</h2>
+<p><code>Apache Spark</code> is used as computing engine to run batch and streaming jobs in Chango.</p>
+<h3 id="install-spark">Install Spark</h3>
+<p>Select hosts to install master, worker and history server of Spark.
+<img width="900" src="../../images/spark/install.png" /></p>
+<p>After installing Spark, you will see the spark page like this.
+<img width="900" src="../../images/spark/after-install.png" /></p>
+<h3 id="scale-worker">Scale Worker</h3>
+<p>You can scale out and unscale spark workers.</p>
+<p><img width="900" src="../../images/spark/scale-worker.png" /></p>
+<h3 id="ui">UI</h3>
+<p>There are URL links to get Spark Master UI and Spark History Server UI in <code>UI</code> of Spark Page.</p>
+<p>Spark Master UI looks as below.</p>
+<p><img width="900" src="../../images/spark/master-ui.png" /></p>
+<p>Spark History Server UI looks like this.</p>
+<p><img width="900" src="../../images/spark/history-ui.png" /></p>
+<h2 id="trino">Trino</h2>
+<p><code>Trino</code> is used as query engine to run interactive and long running ETL query in Chango. 
+Chango provides multiple trino clusters, so, you can install trino clusers as many as you want.</p>
+<h3 id="install-trino">Install Trino</h3>
+<p>Enter <code>default</code> for the cluser name if default trino cluster is not installed.
+<img width="900" src="../../images/trino/install.png" /></p>
+<p>After installing default trino cluster, trino page looks like this.
+<img width="900" src="../../images/trino/multi-cluster-1.png" /></p>
+<p>If you want to install another trino cluster, enter any name for cluster name.
+<img width="900" src="../../images/trino/install-another.png" /></p>
+<p>After installing another trino cluster, new created trino cluster will be shown in the cluster tab list.
+<img width="900" src="../../images/trino/multi-cluster-2.png" /></p>
+<h3 id="scale-worker_1">Scale Worker</h3>
+<p>You can scale out and unscale trino workers.</p>
+<p><img width="900" src="../../images/trino/scale-worker.png" /></p>
+<h3 id="configure-trino">Configure Trino</h3>
+<p>You can update trino memory configurations and catalogs.</p>
+<p>To update memory properties in trino, select trino cluster.
+<img width="900" src="../../images/trino/configure.png" /></p>
+<p>Update catalogs in trino.
+<img width="900" src="../../images/trino/update-catalog.png" /></p>
+<p>You can also add catalogs.
+<img width="900" src="../../images/trino/add-catalog.png" /></p>
+<h3 id="ui_1">UI</h3>
+<p>You can get Trino UI clicking link in <code>UI</code> of the selected trino cluster.</p>
+<p><img width="900" src="../../images/trino/coordinator-ui.png" /></p>
+<h2 id="chango-trino-gateway">Chango Trino Gateway</h2>
+<p><code>Chango Trino Gateway</code> is used to route trino queries to the backend trino clusters in Chango.</p>
+<p>In addition, <code>Chango Trino Gateway</code> also provides the following functions.
+- authenticate trino users and authorize the queries run by trino users.
+- activate and deactivate the backend trino clusters.</p>
+<h3 id="install-chango-trino-gateway">Install Chango Trino Gateway</h3>
+<p>Select hosts for <code>Chango Trino Gateway</code> servers, host for NGINX proxy, and host for Redis cache.
+<img width="900" src="../../images/trino-gw/install.png" /></p>
+<p>It looks as below after installing it.
+<img width="900" src="../../images/trino-gw/after-install.png" /></p>
+<h3 id="scale-server_2">Scale Server</h3>
+<p>Chango Trino Gateway can be scaled out or unscaled.</p>
+<p><img width="900" src="../../images/trino-gw/scale.png" /></p>
+<p>First, select hosts for scaling out or unscaling Trino Gateway servers, and then, press the button of <code>Scale Out Server</code> to scale out Trino Gateway servers
+or press the button of <code>Unscale Server</code> to unscale Trino Gateway servers.</p>
+<h2 id="apache-superset">Apache Superset</h2>
+<p><code>Apache Superset</code> is used as BI tool in Chango.</p>
+<h3 id="install-superset">Install Superset</h3>
+<p>Select host for superset server.
+<img width="900" src="../../images/superset/install.png" /></p>
+<h3 id="ui_2">UI</h3>
+<p>You can get Superset UI clicking link in <code>UI</code> of superset page.
+<img width="900" src="../../images/superset/ui.png" /></p>
+<h2 id="azkaban">Azkaban</h2>
+<p><code>Azkaban</code> is used as workflow to integrate all the batch jobs like spark ETL jobs and trino ETL jobs in Chango.</p>
+<h3 id="install-azkaban">Install Azkaban</h3>
+<p>Select host for web and hosts for executors.
+<img width="900" src="../../images/azkaban/install.png" /></p>
+<h3 id="ui_3">UI</h3>
+<p>You can get Azkaban UI clicking link in <code>UI</code> of azkaban page.
+<img width="900" src="../../images/azkaban/ui.png" /></p>
+<h2 id="azkaban-cli">Azkaban CLI</h2>
+<p><code>Azkaban CLI</code> is CLI to create and update azkaban project on Azkaban.</p>
+<h3 id="install-azkaban-cli">Install Azkaban CLI</h3>
+<p>Select hosts for azkaban CLI.
+<img width="900" src="../../images/azkaban-cli/install.png" /></p>
+<h2 id="chango-data-api">Chango Data API</h2>
+<p>Chango provides data ingestion especially for streaming events.
+<code>Chango Data API</code> is used to collect streaming events and produce them to kafka.</p>
+<h3 id="install-chango-data-api">Install Chango Data API</h3>
+<p>Select hosts for Chango Data API servers and host for NGINX proxy.
+<img width="900" src="../../images/data-api/install.png" /></p>
+<h3 id="scale-server_3">Scale Server</h3>
+<p>You can scale out and unscale <code>Chango Data API</code> servers.
+<img width="900" src="../../images/data-api/scale-server.png" /></p>
+<h2 id="chango-streaming">Chango Streaming</h2>
+<p><code>Chango Streaming</code> is a spark streaming job and used to consume streaming events from kafka and save them to Iceberg table in Chango.</p>
+<h3 id="install-chango-streaming">Install Chango Streaming</h3>
+<p>Enter spark configurations for <code>Chango Streaming</code> job.
+<img width="900" src="../../images/streaming/install.png" /></p>
+<p>After installation, you will see the driver host of <code>Chango Streaming</code> spark job.
+<img width="900" src="../../images/streaming/driver-host.png" /></p>
+<p>In spark master UI, <code>Chango Streaming</code> job will be found.
+<img width="900" src="../../images/streaming/in-spark-ui.png" /></p>
+<h3 id="install-chango-streaming-tx">Install Chango Streaming Tx</h3>
+<p>This is transactional spark streaming jobs. Enter spark configurations for <code>Chango Streaming Tx</code> job.</p>
+<blockquote>
+<p>You need to enter iceberg <code>schema</code> and <code>table</code> to which streaming messages will be saved.</p>
+</blockquote>
+<p><img width="900" src="../../images/streaming/install-tx.png" /></p>
+<p>After installation, you will see chango streaming tx applications in running status in spark ui.</p>
+<h2 id="chango-spark-thrift-server">Chango Spark Thrift Server</h2>
+<p><code>Chango Spark Thrift Server</code> is a spark streaming job to run spark sql queries. Clients can connect to spark thrift server, 
+for example through JDBC/Thrift.</p>
+<h3 id="install-chango-spark-thrift-server">Install Chango Spark Thrift Server</h3>
+<p>Enter spark configurations for <code>Chango Spark Thrift Server</code> job.
+<img width="900" src="../../images/streaming/install-sts.png" /></p>
+<p>After installation, you will see spark thrift server in running status in spark ui.</p>
+<h2 id="chango-spark-sql-runner">Chango Spark SQL Runner</h2>
+<p><code>Chango Spark SQL Runner</code> is a spark streaming job which exposes REST API to run spark sql queries requested by clients through REST.</p>
+<h3 id="install-chango-spark-sql-runner">Install Chango Spark SQL Runner</h3>
+<p>Enter spark configurations for <code>Chango Spark SQL Runner</code> job.
+<img width="900" src="../../images/streaming/install-sql.png" /></p>
+<p>After installation, you will see spark sql runner in running status in spark ui.</p>
+<h2 id="chango-query-exec">Chango Query Exec</h2>
+<p><code>Chango Query Exec</code> is a REST application to execute trino ETL queries to transform data in Chango. 
+It may be used as alternative to dbt to transform data in Chango.</p>
+<h3 id="install-chango-query-exec">Install Chango Query Exec</h3>
+<p>Select hosts for Chango Query Exec servers and host for NGINX proxy.
+<img width="900" src="../../images/query-exec/install.png" /></p>
+<h3 id="scale-server_4">Scale Server</h3>
+<p>You can scale out and unscale <code>Chango Query Exec</code> servers.
+<img width="900" src="../../images/query-exec/scale-server.png" /></p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+            Back to top
+          </button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      © <script>document.write(new Date().getFullYear())</script> Cloud Chef Labs, Inc. All rights reserved. <a href="mailto:admin@cloudchef-labs.com">admin@cloudchef-labs.com</a>
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy", "header.autohide"], "search": "../../assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "2.2.0", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.220ee61c.min.js"></script>
+      
+        
+          <script src="../../javascripts/extra.js"></script>
+        
+      
+    
+  </body>
+</html>
