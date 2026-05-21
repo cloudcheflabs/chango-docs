@@ -27,68 +27,50 @@ theme:
         name: Switch to light mode
       primary: custom
       accent: lime
-  logo: images/chango-logo.png
-  favicon: images/chango-logo.png
-  custom_dir: overrides
+  logo: images/logo/chango-logo.png
+  favicon: images/logo/chango-logo.png
 
 
 nav:
-  - "What is Chango?":
-      - "What is Chango?": intro/intro.md
-  - "Getting Started":
-      - "Install Chango Admin": install/install-admin.md
-      - "Install Chango Components": install/install-component.md
-      - "Run First Trino Query": install/run-first-ctas.md
-      - "Load Your Files to Iceberg Tables": install/load-external-files.md
+  - "Home": index.md
+  - "Architecture":
+      - "Chango Architecture": architecture/architecture.md
+      - "Component Lifecycle": architecture/component-lifecycle.md
+      - "Internal Protocol": architecture/internal-protocol.md
+  - "Installation":
+      - "Node Preparation": installation/node-preparation.md
+      - "Download & Install": installation/installation.md
+      - "Getting Started": installation/getting-started.md
   - "Features":
-      - "Storage Security": features/rbac.md
-      - "Data Catalog": features/catalog.md
-      - "Data Ingestion": features/ingestion.md
-      - "Realtime Analytics": features/realtime.md
-      - "Trino Gateway": features/trino-gw.md
-      - "Data Transformation": features/transform.md
-      - "Query Audit": features/query-audit.md
-      - "MCP Server": features/mcp-server.md
-  - "User Guide":
-      - "Get Chango Credential": user-guide/cred.md
-      - "Get S3 Credential": user-guide/s3-cred.md
-      - "Load Files to Iceberg Tables using SQL": user-guide/load-files.md
-      - "Send Streaming Events": user-guide/streaming.md
-      - "Upload Files": user-guide/upload.md
-      - "Upload Excel": user-guide/upload-excel.md
-      - "Connect to Chango Trino Gateway with Trino Clients": user-guide/connect-trino-gw.md
-      - "Create Iceberg REST Catalog in Spark": user-guide/rest-in-spark.md
-      - "Create Azkaban Project using CLI": user-guide/azkaban-cli.md
-      - "Run Spark Jobs with Azkaban": user-guide/spark-azkaban.md
-      - "Run Trino ETL Jobs with Azkaban": user-guide/trino-azkaban.md
-      - "Run Spark SQL ETL Jobs with Azkaban": user-guide/spark-sql-azkaban.md
-      - "Azkaban User Management": user-guide/azkaban-user-management.md
-      - "Create Kafka Topic": user-guide/kafka-topic.md
-      - "Configure Schema Registry URL": user-guide/schema-reg.md
-      - "Reading Log Files Using Chango Log": user-guide/chango-log.md
-      - "Change Data Capture Using Chango CDC": user-guide/chango-cdc.md
-      - "Data Transformation Using Chango Query Exec": user-guide/query-exec.md
-      - "Data Transformation Using Standalone Chango Query Exec": user-guide/standalone-query-exec.md
-      - "Transactional Streaming": user-guide/tx-streaming.md
-      - "Automatic Iceberg Table Maintenance": user-guide/auto-maintain-iceberg.md
-      - "Maintain Iceberg Tables": user-guide/maintain-iceberg.md
-      - "Create Hidden Partitioned Iceberg Tables": user-guide/hidden-partition.md
-      - "Run Spark Applications using Livy": user-guide/livy.md
-      - "Configure Resource Groups": user-guide/resource-group.md
-      - "Connect MCP Server": user-guide/connect-mcp.md
+      - "Control Plane": features/control-plane.md
+      - "Cluster Topology": features/topology.md
+      - "Identity & Access Management": features/iam.md
+      - "Encryption & Key Management": features/kms.md
+      - "Port Allocator": features/port-allocator.md
+      - "Hosts Sync": features/hosts-sync.md
+      - "UI Proxy": features/ui-proxy.md
+      - "Monitoring & Metrics": features/monitoring.md
+      - "Logging": features/logging.md
+      - "Backup & Restore": features/backup.md
   - "Components":
-     - "Components": components/components.md
+      - "Catalog": components/catalog.md
+      - "Versions": components/versions.md
+  - "Operations":
+      - "Cluster Operations": operations/cluster-operations.md
+      - "Component Operations": operations/component-operations.md
+      - "Nginx Reverse Proxy": operations/nginx-proxy.md
+      - "Upgrade": operations/upgrade.md
 
 
 extra:
   generator: false
   version:
     provider: mike
-    default: 2.2.0
+    default: 3.0.0
 
 
-extra_javascript:
-  - javascripts/extra.js
+extra_css:
+  - stylesheets/extra.css
 
 
 markdown_extensions:
