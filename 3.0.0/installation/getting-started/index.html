@@ -770,10 +770,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#stopping-and-starting" class="md-nav__link">
+  <a href="#day-2-lifecycle" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stopping and starting
+        Day-2 lifecycle
       
     </span>
   </a>
@@ -1450,7 +1450,7 @@
 
 
 <h1 id="getting-started">Getting Started</h1>
-<p>You have a chango cluster up — every host running the master + node manager, the admin UI reachable on <code>:8080</code>. This page walks through your first login, sanity-checking the topology, and installing the first managed component.</p>
+<p>You have a chango cluster up — the master + bundled ZooKeeper running on the master host, a node manager running on every host. The admin UI is reachable on <code>:8080</code>. This page walks through your first login, sanity-checking the topology, and installing the first managed component.</p>
 <h2 id="first-login">First login</h2>
 <p>Open <code>http://&lt;master-host&gt;:8080/admin/</code> in a browser. Sign in with <code>admin / admin</code>. Chango will require a password change on first login.</p>
 <p>You can also drive everything from the REST API:</p>
@@ -1464,13 +1464,20 @@
 <p>From the admin UI's left sidebar, open <strong>Cluster → Nodes</strong>. You should see:</p>
 <ul>
 <li>One <strong>Master</strong> row with <code>ready = true</code>, <code>isLeader = true</code>.</li>
-<li>One <strong>Node Manager</strong> row per host you listed in the inventory, all <code>ready = true</code>.</li>
+<li>One <strong>Node Manager</strong> row per host listed in the inventory, all <code>ready = true</code>.</li>
 </ul>
 <p>REST equivalent:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/nodes/masters
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/nodes/node-managers
 </code></pre></div>
-<p>If any node is missing, check <code>journalctl -u chango-master</code> or <code>journalctl -u chango-nodemanager</code> on that host.</p>
+<p>If a node is missing, tail its log on the host:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># master host</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>tail<span class="w"> </span>-f<span class="w"> </span>/var/log/chango/master.log
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>tail<span class="w"> </span>-f<span class="w"> </span>/var/log/chango/zookeeper.log
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># any node manager host</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>tail<span class="w"> </span>-f<span class="w"> </span>/var/log/chango/nodemanager.log
+</code></pre></div>
 <h2 id="install-your-first-component-postgresql">Install your first component — PostgreSQL</h2>
 <p>PostgreSQL is the smallest managed component chango ships, and several other layers (Polaris metastore, Trino resource groups, NeoRunBase coordinator catalog) can reuse the same instance.</p>
 <ol>
@@ -1481,12 +1488,12 @@
 </ol>
 <p>The status moves through <code>INSTALLED → STARTING → RUNNING</code>. The pid and live CPU / memory show up within seconds.</p>
 <p>REST equivalent:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-sm<span class="w"> </span><span class="m">240</span><span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;instanceId&quot;:&quot;pg-1&quot;,&quot;nodeId&quot;:&quot;&lt;nm-nodeId&gt;&quot;,&quot;password&quot;:&quot;&lt;strong-password&gt;&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/postgres
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/postgres/pg-1/start
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-sm<span class="w"> </span><span class="m">240</span><span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;instanceId&quot;:&quot;pg-1&quot;,&quot;nodeId&quot;:&quot;&lt;nm-nodeId&gt;&quot;,&quot;password&quot;:&quot;&lt;strong-password&gt;&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/postgres
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/postgres/pg-1/start
 </code></pre></div>
 <p>The component runs as a system user (<code>postgres</code>) and stores its data under <code>/opt/components/pg-1/data</code>. Chango remembers the superuser password and reuses it when another component (Polaris, NeoRunBase, …) asks for a chango-installed PG.</p>
 <h2 id="install-a-lakehouse-stack-ontul-shannonstore-polaris-trino">Install a lakehouse stack — Ontul + ShannonStore + Polaris + Trino</h2>
@@ -1517,6 +1524,10 @@
 <td>Chango master + node manager install dirs</td>
 </tr>
 <tr>
+<td><code>/opt/chango/bin/*.pid</code></td>
+<td>Chango process pid files (master / zk / nodemanager, one per running instance)</td>
+</tr>
+<tr>
 <td><code>/opt/components/&lt;instanceId&gt;</code></td>
 <td>Each managed component's install dir</td>
 </tr>
@@ -1526,17 +1537,13 @@
 </tr>
 <tr>
 <td><code>/var/log/chango</code></td>
-<td>Chango master + NM logs</td>
+<td>Chango master + NM + ZK logs</td>
 </tr>
 </tbody>
 </table>
 <p>Per-component logs live under <code>/opt/components/&lt;instanceId&gt;/logs/</code> (or the component-specific log path) and are also tailable from the admin UI's Logs panel.</p>
-<h2 id="stopping-and-starting">Stopping and starting</h2>
-<ul>
-<li>Stop / start / restart a single component: its panel in the admin UI, or <code>POST /admin/api/&lt;component&gt;/&lt;clusterId&gt;/{stop,start,restart}</code>.</li>
-<li>Stop / start a whole cluster of components: same actions on the cluster-level page (e.g. Trino cluster, Spark cluster).</li>
-<li>Stop / start chango itself: <code>sudo systemctl {stop,start,restart} chango-master</code> on the master host, <code>chango-nodemanager</code> on the NM hosts. Stopping chango does <strong>not</strong> stop managed component processes — the master tracks their pids, so after restart chango re-attaches without bouncing them.</li>
-</ul>
+<h2 id="day-2-lifecycle">Day-2 lifecycle</h2>
+<p>Stop, restart, add another master, add another node manager — all done by the operator running shell scripts directly on the host, not through systemctl. See <a href="../../operations/cluster-operations/">Cluster Operations</a>.</p>
 <h2 id="next-steps">Next steps</h2>
 <ul>
 <li><a href="../../components/catalog/">Component Catalog</a> — what each layer does and how to wire them together.</li>
