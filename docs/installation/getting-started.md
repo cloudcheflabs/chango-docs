@@ -1,6 +1,6 @@
 # Getting Started
 
-You have a chango cluster up — every host running the master + node manager, the admin UI reachable on `:8080`. This page walks through your first login, sanity-checking the topology, and installing the first managed component.
+You have a chango cluster up — the master + bundled ZooKeeper running on the master host, a node manager running on every host. The admin UI is reachable on `:8080`. This page walks through your first login, sanity-checking the topology, and installing the first managed component.
 
 ## First login
 
@@ -22,7 +22,7 @@ The rest of this page uses the admin UI; every action has an equivalent REST cal
 From the admin UI's left sidebar, open **Cluster → Nodes**. You should see:
 
 - One **Master** row with `ready = true`, `isLeader = true`.
-- One **Node Manager** row per host you listed in the inventory, all `ready = true`.
+- One **Node Manager** row per host listed in the inventory, all `ready = true`.
 
 REST equivalent:
 
@@ -31,7 +31,16 @@ curl -s -H "Authorization: Bearer $TOK" $BASE/admin/api/nodes/masters
 curl -s -H "Authorization: Bearer $TOK" $BASE/admin/api/nodes/node-managers
 ```
 
-If any node is missing, check `journalctl -u chango-master` or `journalctl -u chango-nodemanager` on that host.
+If a node is missing, tail its log on the host:
+
+```bash
+# master host
+tail -f /var/log/chango/master.log
+tail -f /var/log/chango/zookeeper.log
+
+# any node manager host
+tail -f /var/log/chango/nodemanager.log
+```
 
 ## Install your first component — PostgreSQL
 
@@ -78,17 +87,16 @@ See [Component Catalog](../components/catalog.md) for the full per-component ins
 | Path on each host | What it is |
 |---|---|
 | `/opt/chango` | Chango master + node manager install dirs |
+| `/opt/chango/bin/*.pid` | Chango process pid files (master / zk / nodemanager, one per running instance) |
 | `/opt/components/<instanceId>` | Each managed component's install dir |
 | `/var/lib/chango` | Chango master's RocksDB stores (KMS, IAM, metadata) |
-| `/var/log/chango` | Chango master + NM logs |
+| `/var/log/chango` | Chango master + NM + ZK logs |
 
 Per-component logs live under `/opt/components/<instanceId>/logs/` (or the component-specific log path) and are also tailable from the admin UI's Logs panel.
 
-## Stopping and starting
+## Day-2 lifecycle
 
-- Stop / start / restart a single component: its panel in the admin UI, or `POST /admin/api/<component>/<clusterId>/{stop,start,restart}`.
-- Stop / start a whole cluster of components: same actions on the cluster-level page (e.g. Trino cluster, Spark cluster).
-- Stop / start chango itself: `sudo systemctl {stop,start,restart} chango-master` on the master host, `chango-nodemanager` on the NM hosts. Stopping chango does **not** stop managed component processes — the master tracks their pids, so after restart chango re-attaches without bouncing them.
+Stop, restart, add another master, add another node manager — all done by the operator running shell scripts directly on the host, not through systemctl. See [Cluster Operations](../operations/cluster-operations.md).
 
 ## Next steps
 
