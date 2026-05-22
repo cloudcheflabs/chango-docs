@@ -8,31 +8,31 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/architecture/internal-protocol/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/installation/">
       
       
-        <link rel="prev" href="../component-lifecycle/">
+        <link rel="prev" href="../architecture/internal-protocol/">
       
       
-        <link rel="next" href="../../installation/">
+        <link rel="next" href="node-preparation/">
       
       
         
       
       
-      <link rel="icon" href="../../images/logo/chango-logo.png">
+      <link rel="icon" href="../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
-        <title>Internal Protocol - Chango</title>
+        <title>Overview - Chango</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,9 +51,9 @@
       
     
     
-      <link rel="stylesheet" href="../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#internal-protocol" class="md-skip">
+        <a href="#installation-overview" class="md-skip">
           Skip to content
         </a>
       
@@ -96,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Chango" class="md-header__button md-logo" aria-label="Chango" data-md-component="logo">
+    <a href=".." title="Chango" class="md-header__button md-logo" aria-label="Chango" data-md-component="logo">
       
-  <img src="../../images/logo/chango-logo.png" alt="logo">
+  <img src="../images/logo/chango-logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Internal Protocol
+              Overview
             
           </span>
         </div>
@@ -216,7 +216,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href=".." class="md-tabs__link">
         
   
   
@@ -233,13 +233,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../architecture/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../architecture/architecture/" class="md-tabs__link">
           
   
   
@@ -255,11 +253,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../installation/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
           
   
   
@@ -279,7 +279,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../features/control-plane/" class="md-tabs__link">
+        <a href="../features/control-plane/" class="md-tabs__link">
           
   
   
@@ -299,7 +299,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../components/catalog/" class="md-tabs__link">
+        <a href="../components/catalog/" class="md-tabs__link">
           
   
   
@@ -319,7 +319,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../operations/cluster-operations/" class="md-tabs__link">
+        <a href="../operations/cluster-operations/" class="md-tabs__link">
           
   
   
@@ -355,9 +355,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Chango" class="md-nav__button md-logo" aria-label="Chango" data-md-component="logo">
+    <a href=".." title="Chango" class="md-nav__button md-logo" aria-label="Chango" data-md-component="logo">
       
-  <img src="../../images/logo/chango-logo.png" alt="logo">
+  <img src="../images/logo/chango-logo.png" alt="logo">
 
     </a>
     Chango
@@ -372,7 +372,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -388,6 +388,149 @@
   
 
       </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chango Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/component-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/internal-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internal Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -417,17 +560,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-    Architecture
+    Installation
   
 
     
@@ -438,72 +581,16 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_2">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Architecture
+    Installation
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Chango Architecture
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../component-lifecycle/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Lifecycle
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -528,7 +615,7 @@
   <span class="md-ellipsis">
     
   
-    Internal Protocol
+    Overview
   
 
     
@@ -546,7 +633,7 @@
   <span class="md-ellipsis">
     
   
-    Internal Protocol
+    Overview
   
 
     
@@ -572,10 +659,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#why-not-grpc-http" class="md-nav__link">
+  <a href="#shared-prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why not gRPC / HTTP
+        Shared prerequisites
       
     </span>
   </a>
@@ -583,76 +670,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#wire-format" class="md-nav__link">
+  <a href="#after-install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Wire format
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#opcodes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Opcodes
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#streaming-installs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Streaming installs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#correlation-retries-timeouts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Correlation, retries, timeouts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#kms-envelope-on-the-wire" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        KMS envelope on the wire
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-to-disable-encryption" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When to disable encryption
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sync-push-pull-cadence" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Sync push + pull cadence
+        After install
       
     </span>
   </a>
@@ -668,65 +689,6 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Installation
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Installation
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
               
                 
   
@@ -734,35 +696,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../installation/node-preparation/" class="md-nav__link">
+      <a href="node-preparation/" class="md-nav__link">
         
   
   
@@ -790,7 +724,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/manual/" class="md-nav__link">
+      <a href="manual/" class="md-nav__link">
         
   
   
@@ -818,7 +752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/automated/" class="md-nav__link">
+      <a href="automated/" class="md-nav__link">
         
   
   
@@ -846,7 +780,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/getting-started/" class="md-nav__link">
+      <a href="getting-started/" class="md-nav__link">
         
   
   
@@ -933,7 +867,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/control-plane/" class="md-nav__link">
+      <a href="../features/control-plane/" class="md-nav__link">
         
   
   
@@ -961,7 +895,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/topology/" class="md-nav__link">
+      <a href="../features/topology/" class="md-nav__link">
         
   
   
@@ -989,7 +923,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/iam/" class="md-nav__link">
+      <a href="../features/iam/" class="md-nav__link">
         
   
   
@@ -1017,7 +951,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/kms/" class="md-nav__link">
+      <a href="../features/kms/" class="md-nav__link">
         
   
   
@@ -1045,7 +979,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/port-allocator/" class="md-nav__link">
+      <a href="../features/port-allocator/" class="md-nav__link">
         
   
   
@@ -1073,7 +1007,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/hosts-sync/" class="md-nav__link">
+      <a href="../features/hosts-sync/" class="md-nav__link">
         
   
   
@@ -1101,7 +1035,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/ui-proxy/" class="md-nav__link">
+      <a href="../features/ui-proxy/" class="md-nav__link">
         
   
   
@@ -1129,7 +1063,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/monitoring/" class="md-nav__link">
+      <a href="../features/monitoring/" class="md-nav__link">
         
   
   
@@ -1157,7 +1091,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/logging/" class="md-nav__link">
+      <a href="../features/logging/" class="md-nav__link">
         
   
   
@@ -1185,7 +1119,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/backup/" class="md-nav__link">
+      <a href="../features/backup/" class="md-nav__link">
         
   
   
@@ -1272,7 +1206,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../components/catalog/" class="md-nav__link">
+      <a href="../components/catalog/" class="md-nav__link">
         
   
   
@@ -1300,7 +1234,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../components/versions/" class="md-nav__link">
+      <a href="../components/versions/" class="md-nav__link">
         
   
   
@@ -1387,7 +1321,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/cluster-operations/" class="md-nav__link">
+      <a href="../operations/cluster-operations/" class="md-nav__link">
         
   
   
@@ -1415,7 +1349,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/component-operations/" class="md-nav__link">
+      <a href="../operations/component-operations/" class="md-nav__link">
         
   
   
@@ -1443,7 +1377,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/nginx-proxy/" class="md-nav__link">
+      <a href="../operations/nginx-proxy/" class="md-nav__link">
         
   
   
@@ -1471,7 +1405,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/upgrade/" class="md-nav__link">
+      <a href="../operations/upgrade/" class="md-nav__link">
         
   
   
@@ -1516,182 +1450,42 @@
 
 
 
-<h1 id="internal-protocol">Internal Protocol</h1>
-<p>Chango's masters and node managers talk over a custom binary protocol on TCP. The protocol is small, length-framed, KMS-envelope-encrypted in flight, and serves a single purpose — let the master ship <code>ComponentInstance</code> lifecycle commands to NMs and pull metrics / log tails back.</p>
-<h2 id="why-not-grpc-http">Why not gRPC / HTTP</h2>
-<ul>
-<li>The admin UI surface is HTTP — chango already serves HTTP on the admin port. The internal protocol is between <strong>chango processes</strong>, not between a client and chango.</li>
-<li>Component install streams large tarballs (4 GB+). A binary length-prefixed protocol with chunked frames was simpler than HTTP/2 over TLS, especially under air-gapped operation where TLS certificate provisioning is its own problem.</li>
-<li>The same protocol carries KMS envelope encryption end-to-end, so the cluster works without TLS on the wire.</li>
-</ul>
-<h2 id="wire-format">Wire format</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>+---------+------+----------------+----------+
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>| length  | code | correlation id | payload  |
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>| 4 bytes | 2 B  | 8 B            | length-12|
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>+---------+------+----------------+----------+
-</code></pre></div>
-<ul>
-<li><code>length</code> — total frame length in bytes, big-endian.</li>
-<li><code>code</code> — <code>OpCode</code> (see below).</li>
-<li><code>correlation id</code> — opaque request / response pairing; the responder echoes the request's id so the caller can match.</li>
-<li><code>payload</code> — opcode-specific. If KMS-envelope encryption is enabled (<code>chango.kms.internal.protocol.encrypt = true</code>, default), the payload is <code>{ wrappedDek || iv || ciphertext || gcmTag }</code>. The wrappedDek is unwrapped by the receiver using the KMS provider, the ciphertext is AES-256-GCM with the unwrapped DEK.</li>
-</ul>
-<h2 id="opcodes">Opcodes</h2>
-<p>The opcode set is small. The ones that matter most:</p>
+<h1 id="installation-overview">Installation Overview</h1>
+<p>Chango ships as a tarball and supports two install paths:</p>
 <table>
 <thead>
 <tr>
-<th>OpCode</th>
-<th>Direction</th>
-<th>Purpose</th>
+<th>Path</th>
+<th>Use when</th>
+<th>What you run</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>PING</code> (1)</td>
-<td>Either</td>
-<td>Keepalive</td>
+<td><a href="manual/">Manual install</a></td>
+<td>Single-host evaluation, a controlled bring-up where you want to see every step, or an air-gapped host you cannot reach with ansible.</td>
+<td>Shell commands directly on each host.</td>
 </tr>
 <tr>
-<td><code>MASTER_LEADER_GET</code> (2)</td>
-<td>NM → master</td>
-<td>Ask any master for the leader's address</td>
-</tr>
-<tr>
-<td><code>KMS_SYNC_PUSH</code> (10)</td>
-<td>Leader → follower / NM</td>
-<td>Push the latest KMS state</td>
-</tr>
-<tr>
-<td><code>IAM_SYNC_PUSH</code> (11)</td>
-<td>Leader → follower / NM</td>
-<td>Push the latest IAM state</td>
-</tr>
-<tr>
-<td><code>METADATA_SYNC_PUSH</code> (12)</td>
-<td>Leader → follower</td>
-<td>Push the latest component-inventory state</td>
-</tr>
-<tr>
-<td><code>KMS_SYNC_PULL_REQ</code> (20)</td>
-<td>Follower / NM → leader</td>
-<td>Pull current KMS snapshot</td>
-</tr>
-<tr>
-<td><code>IAM_SYNC_PULL_REQ</code> (21)</td>
-<td>Follower / NM → leader</td>
-<td>Pull current IAM snapshot</td>
-</tr>
-<tr>
-<td><code>METADATA_SYNC_PULL_REQ</code> (22)</td>
-<td>Follower → leader</td>
-<td>Pull current metadata snapshot</td>
-</tr>
-<tr>
-<td><code>COMPONENT_INSTALL_BEGIN</code> (213)</td>
-<td>Master → NM</td>
-<td>Install header — instanceId, install path, run-as, start / stop commands, env, config files, binary artifacts</td>
-</tr>
-<tr>
-<td><code>COMPONENT_INSTALL_DATA</code> (214)</td>
-<td>Master → NM</td>
-<td>One chunk of the install tarball payload</td>
-</tr>
-<tr>
-<td><code>COMPONENT_INSTALL_END</code> (215)</td>
-<td>Master → NM</td>
-<td>Finish + verify hash</td>
-</tr>
-<tr>
-<td><code>COMPONENT_INSTALL_RES</code> (201)</td>
-<td>NM → master</td>
-<td>Install result (status, install path, pid file, runtime pid if known)</td>
-</tr>
-<tr>
-<td><code>COMPONENT_START</code> (202)</td>
-<td>Master → NM</td>
-<td>Start instance</td>
-</tr>
-<tr>
-<td><code>COMPONENT_STOP</code> (203)</td>
-<td>Master → NM</td>
-<td>Stop instance</td>
-</tr>
-<tr>
-<td><code>COMPONENT_RESTART</code> (204)</td>
-<td>Master → NM</td>
-<td>Restart instance</td>
-</tr>
-<tr>
-<td><code>COMPONENT_DELETE</code> (205)</td>
-<td>Master → NM</td>
-<td>Delete instance + remove install dir</td>
-</tr>
-<tr>
-<td><code>COMPONENT_STATUS_REQ</code> (206)</td>
-<td>Master → NM</td>
-<td>Pull instance status + pid</td>
-</tr>
-<tr>
-<td><code>COMPONENT_METRICS_REQ</code> (208)</td>
-<td>Master → NM</td>
-<td>Pull CPU / memory sample for one instance</td>
-</tr>
-<tr>
-<td><code>LOG_TAIL_REQ</code></td>
-<td>Master → NM</td>
-<td>Stream the last N lines of an instance log</td>
-</tr>
-<tr>
-<td><code>COMPONENT_CONFIG_PUT</code> (212)</td>
-<td>Master → NM</td>
-<td>Update an instance's launch fields (startCommand, stopCommand, pidFile, env, config) without reinstalling</td>
-</tr>
-<tr>
-<td><code>COMPONENT_FILE_GET</code> / <code>_PUT</code> / <code>_DELETE</code></td>
-<td>Master ↔ NM</td>
-<td>Read / write / delete a config file inside the instance's install dir (for the admin UI's Configure panels)</td>
-</tr>
-<tr>
-<td><code>NGINX_APPLY</code> / <code>NGINX_APPLY_MULTI</code> / <code>NGINX_STATUS</code></td>
-<td>Master → NM</td>
-<td>Apply / inspect the component-nginx config on the NM's host</td>
+<td><a href="automated/">Automated install with ansible</a></td>
+<td>Production. Multi-host clusters. Repeatable bring-up and host scale-out.</td>
+<td><code>ansible-playbook install.yml</code> from a controller (typically the future master host).</td>
 </tr>
 </tbody>
 </table>
-<p>The full enum lives in <code>chango-protocol/src/main/java/.../OpCode.java</code>.</p>
-<h2 id="streaming-installs">Streaming installs</h2>
-<p>For a 4 GB component tarball the protocol does not buffer the whole payload in memory. The master issues:</p>
-<ol>
-<li><code>COMPONENT_INSTALL_BEGIN</code> — header (instanceId, install path, run-as, the start / stop scripts, env, and the <em>list of files</em> the NM should extract).</li>
-<li>Many <code>COMPONENT_INSTALL_DATA</code> chunks, each <code>chango.master.component.transfer.chunk.bytes</code> long (default 4 MB), in order.</li>
-<li><code>COMPONENT_INSTALL_END</code> — final SHA-256 check; the NM verifies the assembled tarball matches before extraction.</li>
-</ol>
-<p>The NM writes each chunk straight to a temp file on its <code>/opt</code> volume so the master never needs to hold the bytes in memory either.</p>
-<h2 id="correlation-retries-timeouts">Correlation, retries, timeouts</h2>
+<p>Both paths produce the <strong>same</strong> end state — a chango master + bundled ZooKeeper running on the master host, a node manager running on every node host, no systemd units, the cluster master key held only in the operator's secret manager and in the JVM process environment.</p>
+<h2 id="shared-prerequisites">Shared prerequisites</h2>
+<p>Whichever path you take, every chango host is <strong>Rocky Linux 9.x</strong> with:</p>
 <ul>
-<li>The master assigns a monotonically increasing 64-bit correlation id per request. The NM echoes the id on every response and every install chunk's ack.</li>
-<li>A single operation has a timeout (<code>chango.master.component.op.timeout.ms</code>, default 120 000). If the NM does not ack within that window the master gives up and returns an error to the admin REST caller.</li>
-<li>Long-running ops (install of a multi-GB tarball, slow cluster start) use a longer per-operation timeout configured per provisioner.</li>
+<li>SELinux disabled (or Permissive)</li>
+<li>raised ulimit / sysctl (file descriptors, mmap count, somaxconn)</li>
+<li>a dedicated <code>/opt</code> mount</li>
+<li>passwordless SSH between hosts (only needed for the automated path)</li>
 </ul>
-<h2 id="kms-envelope-on-the-wire">KMS envelope on the wire</h2>
-<p>When <code>chango.kms.internal.protocol.encrypt = true</code> (default), every <code>InternalMessage</code> payload is AES-256-GCM:</p>
-<ol>
-<li>Sender requests a wrapped DEK from chango's KMS provider for the wire key (<code>internal-protocol</code>).</li>
-<li>AES-GCM-encrypts the cleartext payload with the unwrapped DEK and a fresh 96-bit IV.</li>
-<li>Frames the wire payload as <code>wrappedDek || iv || ciphertext || gcmTag</code>.</li>
-<li>Receiver unwraps the DEK and decrypts.</li>
-</ol>
-<p>A wrong key (the cluster root secret diverged between master and NM, for example) fails to decrypt with <code>AEADBadTagException</code>. The NM logs the failure and refuses the message — no plaintext fallback.</p>
-<h2 id="when-to-disable-encryption">When to disable encryption</h2>
-<p><code>chango.kms.internal.protocol.encrypt = false</code> exists for <strong>diagnosis only</strong>. It removes the envelope and sends payloads in cleartext, which lets you tcpdump the wire to see what's actually being sent during a slow install. Never run with this disabled in production.</p>
-<h2 id="sync-push-pull-cadence">Sync push + pull cadence</h2>
-<p>State propagation from leader to followers / NMs is dual:</p>
-<ul>
-<li><strong>Push</strong> — the leader writes a change locally, then fires <code>KMS_SYNC_PUSH</code> / <code>IAM_SYNC_PUSH</code> / <code>METADATA_SYNC_PUSH</code> to every known peer in parallel.</li>
-<li><strong>Pull</strong> — every non-leader runs a periodic <code>*_SYNC_PULL_REQ</code> against the leader on a fixed interval (<code>chango.cluster.sync.pull.interval.ms</code>, default 30 000) to catch any push that was missed (peer was offline, network blip).</li>
-</ul>
-<p>This belt-and-suspenders pattern is what keeps the cached state on every NM consistent without requiring at-least-once delivery on the push path.</p>
+<p>See <a href="node-preparation/">Node Preparation</a> for the exact values. The automated path applies these for you via the <code>node-prep</code> ansible role; the manual path means you run them yourself.</p>
+<h2 id="after-install">After install</h2>
+<p>Whichever path you chose, day-2 operations (stop, restart, add hosts) are described in <a href="../operations/cluster-operations/">Cluster Operations</a>. Stop / restart is always a manual shell action. Host scale-out (add master, add node manager) uses ansible on the automated path and has a manual equivalent for the manual path.</p>
+<p>Once the cluster is up, walk through <a href="getting-started/">Getting Started</a> to install your first managed component.</p>
 
 
 
@@ -1749,10 +1543,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy", "header.autohide"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "3.0.0", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy", "header.autohide"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "3.0.0", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

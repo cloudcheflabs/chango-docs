@@ -257,7 +257,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../installation/node-preparation/" class="md-tabs__link">
+        <a href="../../installation/" class="md-tabs__link">
           
   
   
@@ -594,6 +594,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../installation/node-preparation/" class="md-nav__link">
         
   
@@ -622,14 +650,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/installation/" class="md-nav__link">
+      <a href="../../installation/manual/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Download & Install
+    Manual Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/automated/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Install (Ansible)
   
 
     
@@ -1620,7 +1676,7 @@
 </code></pre></div>
 <p>The master opens the restored RocksDB, decrypts KEKs with the master DEK derived from the supplied root secret, and resumes leader election. Component instances stored in the metadata RocksDB are visible again immediately.</p>
 <h3 id="restoring-node-managers">Restoring node managers</h3>
-<p>NMs do not need to be restored — they have no authoritative state. After the master is back, NMs that are still alive against the same ZooKeeper re-register automatically. NMs that were lost can be reinstalled per <a href="../../installation/installation/">Download &amp; Install</a> — once registered, the leader re-attaches any component instances that were bound to that nodeId.</p>
+<p>NMs do not need to be restored — they have no authoritative state. After the master is back, NMs that are still alive against the same ZooKeeper re-register automatically. NMs that were lost can be reinstalled via <a href="../../installation/automated/#adding-a-node-manager-later-add-nodemanageryml"><code>ansible add-nodemanager.yml</code></a> (or the manual recipe in <a href="../../operations/cluster-operations/#add-another-node-manager">Add another node manager</a>) — once registered, the leader re-attaches any component instances that were bound to that nodeId.</p>
 <h3 id="component-data">Component data</h3>
 <p>Restoring the chango master gives you back the component <strong>inventory</strong> — which instance lives on which NM, with which configuration. It does not bring back component data (Iceberg files, NeoRunBase tables, …) — those are backed up via their own component-specific paths and restored separately. After the inventory is restored and the components are visible in the admin UI, start each component cluster again; the component process reads its own data from its still-present data dir.</p>
 <h2 id="backup-hygiene">Backup hygiene</h2>

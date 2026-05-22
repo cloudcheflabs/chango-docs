@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/installation/node-preparation/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/installation/manual/">
       
       
-        <link rel="prev" href="../">
+        <link rel="prev" href="../node-preparation/">
       
       
-        <link rel="next" href="../manual/">
+        <link rel="next" href="../automated/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>Node Preparation - Chango</title>
+        <title>Manual Install - Chango</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#node-preparation" class="md-skip">
+        <a href="#manual-install" class="md-skip">
           Skip to content
         </a>
       
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Node Preparation
+              Manual Install
             
           </span>
         </div>
@@ -624,6 +624,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../node-preparation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Preparation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -643,7 +671,7 @@
   <span class="md-ellipsis">
     
   
-    Node Preparation
+    Manual Install
   
 
     
@@ -661,7 +689,7 @@
   <span class="md-ellipsis">
     
   
-    Node Preparation
+    Manual Install
   
 
     
@@ -687,10 +715,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-node-prep-does" class="md-nav__link">
+  <a href="#what-you-will-install-on-each-host" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What node-prep does
+        What you will install on each host
       
     </span>
   </a>
@@ -698,10 +726,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ssh-access" class="md-nav__link">
+  <a href="#1-rocky-9-host-prep" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SSH access
+        1. Rocky 9 host prep
       
     </span>
   </a>
@@ -709,10 +737,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#selinux-applied-by-node-prep" class="md-nav__link">
+  <a href="#2-install-java-17-and-java-25" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SELinux (applied by node-prep)
+        2. Install Java 17 and Java 25
       
     </span>
   </a>
@@ -720,10 +748,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ulimit-applied-by-node-prep" class="md-nav__link">
+  <a href="#3-create-the-chango-user-and-base-directories" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ulimit (applied by node-prep)
+        3. Create the chango user and base directories
       
     </span>
   </a>
@@ -731,10 +759,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#kernel-sysctl-applied-by-node-prep" class="md-nav__link">
+  <a href="#4-download-and-extract-chango" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Kernel sysctl (applied by node-prep)
+        4. Download and extract chango
       
     </span>
   </a>
@@ -742,10 +770,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#disk-layout" class="md-nav__link">
+  <a href="#5-generate-the-cluster-master-key" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Disk layout
+        5. Generate the cluster master key
       
     </span>
   </a>
@@ -753,10 +781,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#hostnames" class="md-nav__link">
+  <a href="#6-start-the-master-host" class="md-nav__link">
     <span class="md-ellipsis">
       
-        hostnames
+        6. Start the master host
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Start the master host">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#start-the-bundled-zookeeper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start the bundled ZooKeeper
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#start-the-chango-master" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start the chango master
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-start-each-node-manager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Start each node manager
       
     </span>
   </a>
@@ -764,10 +831,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#verifying-prep" class="md-nav__link">
+  <a href="#8-verify" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Verifying prep
+        8. Verify
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logs-and-pid-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs and pid files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-hosts-manually" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding hosts manually
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
       
     </span>
   </a>
@@ -778,34 +878,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../manual/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Manual Install
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1516,129 +1588,198 @@
 
 
 
-<h1 id="node-preparation">Node Preparation</h1>
-<p>Chango installs onto a fleet of <strong>Rocky Linux 9</strong> hosts (master + node managers). The install playbook ships a <code>node-prep</code> ansible role that runs first against every host and applies SELinux + ulimit + sysctl. You do not need to do those steps by hand — they are listed here for reference, and so operators can run the same commands manually on hosts they prepared before they had ansible access.</p>
-<h2 id="what-node-prep-does">What <code>node-prep</code> does</h2>
+<h1 id="manual-install">Manual Install</h1>
+<p>This page brings up a chango cluster by running shell commands directly on each host — no ansible, no automation. Use it when you want full visibility of every step, when you are evaluating chango on a single host, or when ansible is not available on the controller (truly air-gapped, restricted network policy, etc.).</p>
+<p>The end state is identical to the <a href="../automated/">automated install</a>: a chango master + bundled ZooKeeper on the master host, a node manager on every host, no systemd units, the cluster master key held only in operator-controlled secret storage.</p>
+<h2 id="what-you-will-install-on-each-host">What you will install on each host</h2>
 <table>
 <thead>
 <tr>
 <th>Step</th>
-<th>Where it lands</th>
-<th>Effective</th>
+<th>Master host</th>
+<th>Node-manager host</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>SELinux → <code>disabled</code></td>
-<td><code>/etc/selinux/config</code> (+ immediate <code>setenforce 0</code>)</td>
-<td>Permissive now, fully disabled after the next reboot</td>
+<td>Rocky 9 prep (SELinux / ulimit / sysctl)</td>
+<td>✓</td>
+<td>✓</td>
 </tr>
 <tr>
-<td>ulimit (nofile / nproc)</td>
-<td><code>/etc/security/limits.d/chango.conf</code></td>
-<td>New login sessions / service starts</td>
+<td>Java 17</td>
+<td>✓</td>
+<td>✓</td>
 </tr>
 <tr>
-<td>sysctl (mmap / somaxconn / file-max)</td>
-<td><code>/etc/sysctl.d/99-chango.conf</code> (+ <code>sysctl --system</code>)</td>
-<td>Immediate</td>
+<td>Java 25 (for Trino)</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>chango distribution under <code>/opt/chango</code></td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>chango master + bundled ZK first start</td>
+<td>✓</td>
+<td>—</td>
+</tr>
+<tr>
+<td>chango node manager first start</td>
+<td>—</td>
+<td>✓</td>
 </tr>
 </tbody>
 </table>
-<p>The role is idempotent — re-running <code>install.yml</code> is safe.</p>
-<h2 id="ssh-access">SSH access</h2>
-<p>The ansible controller (typically the master host) reaches every node over SSH as a sudoers user (Rocky 9 default <code>rocky</code>). The SSH key for the playbook user must be the same across all hosts, and <code>sudo</code> must be passwordless.</p>
-<p>Verify before installing:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ssh<span class="w"> </span>-i<span class="w"> </span>~/.ssh/&lt;key&gt;.pem<span class="w"> </span>rocky@&lt;each-host&gt;<span class="w">   </span><span class="s2">&quot;sudo -n true &amp;&amp; echo ok&quot;</span>
+<p>The chango tarball is the same on master and node-manager hosts. Roles are decided by which shell script you run, not which package you install.</p>
+<h2 id="1-rocky-9-host-prep">1. Rocky 9 host prep</h2>
+<p>On <strong>every</strong> host (master + node managers), follow <a href="../node-preparation/">Node Preparation</a> — SELinux disabled, ulimit and sysctl drop-ins, dedicated <code>/opt</code> mount. Quick recap of the manual steps:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># SELinux</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>sudo<span class="w"> </span>setenforce<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>sudo<span class="w"> </span>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;s/^SELINUX=enforcing/SELINUX=disabled/&#39;</span><span class="w"> </span>/etc/selinux/config
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># ulimit</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/security/limits.d/chango.conf<span class="w"> </span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="s">*  soft  nofile  131072</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="s">*  hard  nofile  131072</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="s">*  soft  nproc   128000</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="s">*  hard  nproc   128000</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="s">EOF</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># sysctl</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/sysctl.d/99-chango.conf<span class="w"> </span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="s">vm.max_map_count = 262144</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="s">net.core.somaxconn = 4096</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="s">fs.file-max = 2000000</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="s">EOF</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>sudo<span class="w"> </span>sysctl<span class="w"> </span>--system
 </code></pre></div>
-<h2 id="selinux-applied-by-node-prep">SELinux (applied by <code>node-prep</code>)</h2>
-<p>Chango requires SELinux <strong>disabled</strong>. Rocky 9's default <code>enforcing</code> mode restricts nginx to bind only the <code>http_port_t</code> set (80, 443, 8080) and rejects every other port; chango's per-component nginx bands live well outside that range, and the SELinux policy interferes with the JVM components' RocksDB + mmap usage as well.</p>
-<p><code>node-prep</code> runs the equivalent of:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sudo<span class="w"> </span>setenforce<span class="w"> </span><span class="m">0</span><span class="w">                                                                </span><span class="c1"># Permissive now</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>sudo<span class="w"> </span>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;s/^SELINUX=enforcing/SELINUX=disabled/&#39;</span><span class="w"> </span>/etc/selinux/config<span class="w">         </span><span class="c1"># persist across reboots</span>
+<h2 id="2-install-java-17-and-java-25">2. Install Java 17 and Java 25</h2>
+<p>Chango itself runs on <strong>Java 17</strong>. Trino — deployed later via the admin UI on the node managers — needs <strong>Java 25</strong>. Install both on every host so any host can run any component.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Java 17 — chango master / NM / most components</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>curl<span class="w"> </span>-L<span class="w"> </span>-O<span class="w"> </span>https://github.com/cloudcheflabs/chango-libs/releases/download/chango-comps/openlogic-openjdk-17.0.7+7-linux-x64.tar.gz
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>sudo<span class="w"> </span>tar<span class="w"> </span>-xzf<span class="w"> </span>openlogic-openjdk-17.0.7+7-linux-x64.tar.gz<span class="w"> </span>-C<span class="w"> </span>/opt
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># Java 25 — Trino</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>curl<span class="w"> </span>-L<span class="w"> </span>-O<span class="w"> </span>https://github.com/cloudcheflabs/chango-libs/releases/download/chango-comps/openlogic-openjdk-25.0.3+9-linux-x64.tar.gz
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>sudo<span class="w"> </span>tar<span class="w"> </span>-xzf<span class="w"> </span>openlogic-openjdk-25.0.3+9-linux-x64.tar.gz<span class="w"> </span>-C<span class="w"> </span>/opt
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># Verify</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>/opt/openlogic-openjdk-17.0.7+7-linux-x64/bin/java<span class="w"> </span>-version
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>/opt/openlogic-openjdk-25.0.3+9-linux-x64/bin/java<span class="w"> </span>-version
 </code></pre></div>
-<p><code>setenforce 0</code> takes effect immediately, which is enough to get chango installed and running. The <code>SELINUX=disabled</code> line in <code>/etc/selinux/config</code> makes it permanent — you should reboot the host at the next convenient maintenance window so the kernel reloads in disabled mode.</p>
-<h2 id="ulimit-applied-by-node-prep">ulimit (applied by <code>node-prep</code>)</h2>
-<p>JVM components (Trino, Spark, Flink, ZooKeeper, NeoRunBase, kiok, …) open many file descriptors and threads. <code>node-prep</code> writes a single drop-in:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/security/limits.d/chango.conf<span class="w"> </span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="s">*  soft  nofile  131072</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="s">*  hard  nofile  131072</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="s">*  soft  nproc   128000</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="s">*  hard  nproc   128000</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="s">EOF</span>
+<p>Both JDKs land under <code>/opt/</code>. Chango does <strong>not</strong> want them on <code>PATH</code> or set as the system <code>JAVA_HOME</code> — the start scripts take <code>JAVA_HOME</code> from the environment of the shell that launches them.</p>
+<h2 id="3-create-the-chango-user-and-base-directories">3. Create the <code>chango</code> user and base directories</h2>
+<p>On every host:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span>groupadd<span class="w"> </span>-r<span class="w"> </span>chango<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>sudo<span class="w"> </span>useradd<span class="w"> </span>-r<span class="w"> </span>-g<span class="w"> </span>chango<span class="w"> </span>-s<span class="w"> </span>/bin/bash<span class="w"> </span>-d<span class="w"> </span>/opt/chango<span class="w"> </span>-M<span class="w"> </span>chango<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>sudo<span class="w"> </span>install<span class="w"> </span>-d<span class="w"> </span>-o<span class="w"> </span>chango<span class="w"> </span>-g<span class="w"> </span>chango<span class="w"> </span>/opt/chango<span class="w"> </span>/var/lib/chango<span class="w"> </span>/var/log/chango
 </code></pre></div>
-<p>The values match Trino's recommended limits (it is the largest single consumer in the bundle). The wildcard (<code>*</code>) covers every per-component system user chango creates (<code>chango</code>, <code>trino</code>, <code>spark</code>, <code>flink</code>, <code>postgres</code>, …).</p>
-<h2 id="kernel-sysctl-applied-by-node-prep">Kernel sysctl (applied by <code>node-prep</code>)</h2>
-<p><code>node-prep</code> writes a single drop-in and runs <code>sysctl --system</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/sysctl.d/99-chango.conf<span class="w"> </span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="s">vm.max_map_count = 262144</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="s">net.core.somaxconn = 4096</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="s">fs.file-max = 2000000</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="s">EOF</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>sudo<span class="w"> </span>sysctl<span class="w"> </span>--system
+<p>Grant passwordless sudo for the <code>chango</code> user — chango needs it to deploy components (port allocator, host file sync, component install):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;chango ALL=(ALL) NOPASSWD:ALL&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/sudoers.d/chango
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">0440</span><span class="w"> </span>/etc/sudoers.d/chango
 </code></pre></div>
+<h2 id="4-download-and-extract-chango">4. Download and extract chango</h2>
+<p>On every host:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-L<span class="w"> </span>-O<span class="w"> </span>https://github.com/cloudcheflabs/chango-pack/releases/download/chango-archive/chango-3.0.0.tar.gz
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>sudo<span class="w"> </span>tar<span class="w"> </span>-xzf<span class="w"> </span>chango-3.0.0.tar.gz<span class="w"> </span>-C<span class="w"> </span>/opt/chango<span class="w"> </span>--strip-components<span class="o">=</span><span class="m">1</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>sudo<span class="w"> </span>chown<span class="w"> </span>-R<span class="w"> </span>chango:chango<span class="w"> </span>/opt/chango
+</code></pre></div>
+<p>This is the <strong>lean</strong> distribution — chango master + node-manager binaries, bundled ZooKeeper, admin UI. Component packages (Trino, Spark, Flink, ShannonStore, Ontul, NeoRunBase, ItdaStream, kiok, Mium, …) are pulled separately by the master at component-install time.</p>
+<p>If you want to pre-stage component packages on the master host (faster first install, useful in air-gapped environments), run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>bash<span class="w"> </span>/opt/chango/build-with-comps/download.sh
+</code></pre></div>
+<p>This downloads every component tarball into <code>/opt/chango/components/</code>. The master reads from there when an operator clicks <strong>Install</strong> in the admin UI.</p>
+<h2 id="5-generate-the-cluster-master-key">5. Generate the cluster master key</h2>
+<p>Once, on the master host:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">48</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-c<span class="w"> </span><span class="m">48</span><span class="k">)</span>
+</code></pre></div>
+<p>Treat this value the same way you would treat a root credential — it is the root of trust for every secret chango stores. Keep it in a real secret manager (Vault, AWS Secrets Manager, a hardware-backed password manager). You must re-supply this <strong>exact</strong> value:</p>
 <ul>
-<li><code>vm.max_map_count</code> — RocksDB / Iceberg use mmap heavily.</li>
-<li><code>net.core.somaxconn</code> — nginx + Trino HTTP backlog.</li>
-<li><code>fs.file-max</code> — system-wide FD ceiling for many JVMs on one host.</li>
+<li>on every chango master restart,</li>
+<li>on every node-manager restart,</li>
+<li>when adding any new host later.</li>
 </ul>
-<h2 id="disk-layout">Disk layout</h2>
-<p>Chango defaults its data path to <code>/opt</code>:</p>
+<h2 id="6-start-the-master-host">6. Start the master host</h2>
+<p>On the master host, two shells (or two <code>tmux</code> windows / two <code>screen</code> windows / a <code>systemd-run --scope</code> per process):</p>
+<h3 id="start-the-bundled-zookeeper">Start the bundled ZooKeeper</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>manager&gt;
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/opt/openlogic-openjdk-17.0.7+7-linux-x64
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-zk.sh
+</code></pre></div>
+<h3 id="start-the-chango-master">Start the chango master</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>manager&gt;
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/opt/openlogic-openjdk-17.0.7+7-linux-x64
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;master-host&gt;:2181
+</code></pre></div>
+<p>The master binds:</p>
+<ul>
+<li><code>:8080</code> — admin HTTP (web UI + REST)</li>
+<li><code>:19999</code> — internal NIO (master ↔ NM, encrypted with the cluster master key)</li>
+</ul>
+<p>The first time the master starts, the KMS RocksDB under <code>/var/lib/chango/kms</code> is created and seeded from <code>CHANGO_MASTER_KEY</code>. From that point on, every later start of the same master needs the <strong>same</strong> master key to decrypt it.</p>
+<h2 id="7-start-each-node-manager">7. Start each node manager</h2>
+<p>On every node-manager host:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>manager&gt;
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/opt/openlogic-openjdk-17.0.7+7-linux-x64
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-node-manager.sh<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;master-host&gt;:2181
+</code></pre></div>
+<p>The NM binds <code>:19998</code> (internal NIO). It registers itself in ZooKeeper, the master picks it up, and the admin UI shows it as a target for new components.</p>
+<h2 id="8-verify">8. Verify</h2>
+<p>From any host that can reach the master's <code>:8080</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>http://&lt;master&gt;:8080/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;admin&quot;}&#39;</span>
+</code></pre></div>
+<p>A response containing <code>accessToken</code> means chango is up. The default login is <code>admin</code> / <code>admin</code>; the first login forces a password change.</p>
+<p>Web UI: <code>http://&lt;master&gt;:8080/admin/</code></p>
+<h2 id="logs-and-pid-files">Logs and pid files</h2>
 <table>
 <thead>
 <tr>
-<th>Path</th>
-<th>Used by</th>
+<th>What</th>
+<th>Where</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>/opt/chango</code></td>
-<td>Chango master/NM install dir</td>
+<td>chango master log</td>
+<td><code>/var/log/chango/master.log</code></td>
 </tr>
 <tr>
-<td><code>/opt/components/&lt;instanceId&gt;</code></td>
-<td>Each managed component instance</td>
+<td>chango master console</td>
+<td><code>/var/log/chango/master.out</code></td>
 </tr>
 <tr>
-<td><code>/var/lib/chango</code></td>
-<td>RocksDB stores (KMS, IAM, metadata) on the master</td>
+<td>bundled ZK log</td>
+<td><code>/var/log/chango/zk.log</code></td>
 </tr>
 <tr>
-<td><code>/var/log/chango</code></td>
-<td>Chango master + NM log files</td>
+<td>node manager log</td>
+<td><code>/var/log/chango/nodemanager.log</code></td>
+</tr>
+<tr>
+<td>process pid files</td>
+<td><code>/opt/chango/bin/*.pid</code></td>
 </tr>
 </tbody>
 </table>
-<p>Mount a dedicated data volume at <code>/opt</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Example for an AWS EBS volume attached as /dev/xvdb</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>sudo<span class="w"> </span>mkfs.xfs<span class="w"> </span>-f<span class="w"> </span>/dev/xvdb
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>sudo<span class="w"> </span>mount<span class="w"> </span>/dev/xvdb<span class="w"> </span>/opt
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;UUID=</span><span class="k">$(</span>sudo<span class="w"> </span>blkid<span class="w"> </span>-s<span class="w"> </span>UUID<span class="w"> </span>-o<span class="w"> </span>value<span class="w"> </span>/dev/xvdb<span class="k">)</span><span class="s2">  /opt  xfs  defaults,nofail  0 2&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/fstab
-</code></pre></div>
-<p>If <code>/opt</code> already has content (a previously installed JDK, for example), copy it across the new mount first:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sudo<span class="w"> </span>mount<span class="w"> </span>/dev/xvdb<span class="w"> </span>/mnt/newopt
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>sudo<span class="w"> </span>rsync<span class="w"> </span>-a<span class="w"> </span>/opt/<span class="w"> </span>/mnt/newopt/
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>sudo<span class="w"> </span>umount<span class="w"> </span>/mnt/newopt
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>sudo<span class="w"> </span>mount<span class="w"> </span>/dev/xvdb<span class="w"> </span>/opt
-</code></pre></div>
-<h2 id="hostnames">hostnames</h2>
-<p>Chango supports two hostname models:</p>
+<p>Pid files are port-suffixed (<code>master-8080.pid</code>, <code>node-manager-19998.pid</code>) so multiple instances per host coexist.</p>
+<h2 id="adding-hosts-manually">Adding hosts manually</h2>
+<p>Need to add a node manager later? Same recipe on the new host — host prep → install Java 17/25 → create <code>chango</code> user → extract chango tarball → <code>start-node-manager.sh</code> with the same <code>CHANGO_MASTER_KEY</code> and the existing cluster's ZK list. See <a href="../../operations/cluster-operations/#add-another-node-manager">Add another node manager</a>.</p>
+<p>Adding a second master is the same recipe plus extending the bundled ZooKeeper quorum — see <a href="../../operations/cluster-operations/#add-another-chango-master">Add another chango master</a>.</p>
+<h2 id="next">Next</h2>
 <ul>
-<li><strong>Real FQDNs already in DNS</strong> (AWS Private DNS, your corporate DNS, …) — chango registers the OS canonical hostname (<code>hostname -f</code>) as the node's FQHN and <strong>does not</strong> rewrite <code>/etc/hosts</code>. Component-to-component connections use those FQDNs directly.</li>
-<li><strong>Short hostnames only</strong> — chango synthesizes <code>&lt;short&gt;.&lt;chango.cluster.domain&gt;</code> (default <code>chango.private</code>) for every node and keeps a managed block in <code>/etc/hosts</code> on every host in sync with cluster membership.</li>
+<li><a href="../getting-started/">Getting Started</a> — first login + first managed component.</li>
+<li><a href="../../operations/cluster-operations/">Cluster Operations</a> — day-2 lifecycle.</li>
 </ul>
-<p>Either model works; nothing to configure beforehand. See <a href="../../features/hosts-sync/">Hosts Sync</a> for details.</p>
-<h2 id="verifying-prep">Verifying prep</h2>
-<p>Quick sanity check before running the playbook:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># On every host</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>getenforce<span class="w">                       </span><span class="c1"># → Permissive or Disabled</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nb">ulimit</span><span class="w"> </span>-n<span class="w">                         </span><span class="c1"># → 131072</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nb">ulimit</span><span class="w"> </span>-u<span class="w">                         </span><span class="c1"># → 128000</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>sysctl<span class="w"> </span>vm.max_map_count<span class="w">           </span><span class="c1"># → 262144</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>df<span class="w"> </span>-h<span class="w"> </span>/opt<span class="w">                        </span><span class="c1"># → dedicated volume mounted</span>
-</code></pre></div>
-<p>Once every host clears these, pick your install path — <a href="../manual/">Manual Install</a> for a step-by-step shell-driven bring-up, or <a href="../automated/">Automated Install (Ansible)</a> for a multi-host repeatable install.</p>
 
 
 

@@ -257,7 +257,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../installation/node-preparation/" class="md-tabs__link">
+        <a href="../../installation/" class="md-tabs__link">
           
   
   
@@ -594,6 +594,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../installation/node-preparation/" class="md-nav__link">
         
   
@@ -622,14 +650,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/installation/" class="md-nav__link">
+      <a href="../../installation/manual/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Download & Install
+    Manual Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/automated/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Install (Ansible)
   
 
     
@@ -1180,10 +1236,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#jdks-installed-by-ansible" class="md-nav__link">
+  <a href="#jdks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        JDKs (installed by ansible)
+        JDKs
       
     </span>
   </a>
@@ -1474,7 +1530,8 @@
 </tr>
 </tbody>
 </table>
-<h2 id="jdks-installed-by-ansible">JDKs (installed by ansible)</h2>
+<h2 id="jdks">JDKs</h2>
+<p>Installed on every host by <a href="../../installation/automated/"><code>ansible install.yml</code></a>, or by hand if you went the <a href="../../installation/manual/">manual install</a> path. Both JDKs land under <code>/opt/</code> and are referenced via <code>JAVA_HOME</code> — not added to the system <code>PATH</code>.</p>
 <table>
 <thead>
 <tr>
