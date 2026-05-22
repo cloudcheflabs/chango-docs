@@ -38,8 +38,10 @@ nav:
       - "Component Lifecycle": architecture/component-lifecycle.md
       - "Internal Protocol": architecture/internal-protocol.md
   - "Installation":
+      - "Overview": installation/index.md
       - "Node Preparation": installation/node-preparation.md
-      - "Download & Install": installation/installation.md
+      - "Manual Install": installation/manual.md
+      - "Automated Install (Ansible)": installation/automated.md
       - "Getting Started": installation/getting-started.md
   - "Features":
       - "Control Plane": features/control-plane.md

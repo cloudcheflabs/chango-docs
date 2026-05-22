@@ -10,7 +10,9 @@ The Chango 3.0.0 release ships the following component versions out of the box. 
 | Bundled ZooKeeper | 3.9.1 |
 | Admin UI (React + Vite) | 3.0.0 |
 
-## JDKs (installed by ansible)
+## JDKs
+
+Installed on every host by [`ansible install.yml`](../installation/automated.md), or by hand if you went the [manual install](../installation/manual.md) path. Both JDKs land under `/opt/` and are referenced via `JAVA_HOME` — not added to the system `PATH`.
 
 | Runtime | Version |
 |---|---|

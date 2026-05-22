@@ -1,6 +1,16 @@
 # Node Preparation
 
-Chango installs onto a fleet of **Rocky Linux 9** hosts (master + node managers). Before running the install playbook, every host needs the following preparation. This is a one-time, idempotent setup — skip it and the install will fail in subtle ways (nginx port bind, JVM file-descriptor exhaustion, RocksDB mmap limits).
+Chango installs onto a fleet of **Rocky Linux 9** hosts (master + node managers). The install playbook ships a `node-prep` ansible role that runs first against every host and applies SELinux + ulimit + sysctl. You do not need to do those steps by hand — they are listed here for reference, and so operators can run the same commands manually on hosts they prepared before they had ansible access.
+
+## What `node-prep` does
+
+| Step | Where it lands | Effective |
+|---|---|---|
+| SELinux → `disabled` | `/etc/selinux/config` (+ immediate `setenforce 0`) | Permissive now, fully disabled after the next reboot |
+| ulimit (nofile / nproc) | `/etc/security/limits.d/chango.conf` | New login sessions / service starts |
+| sysctl (mmap / somaxconn / file-max) | `/etc/sysctl.d/99-chango.conf` (+ `sysctl --system`) | Immediate |
+
+The role is idempotent — re-running `install.yml` is safe.
 
 ## SSH access
 
@@ -12,36 +22,37 @@ Verify before installing:
 ssh -i ~/.ssh/<key>.pem rocky@<each-host>   "sudo -n true && echo ok"
 ```
 
-## SELinux
+## SELinux (applied by `node-prep`)
 
-**Disable SELinux.** Rocky 9's default `enforcing` mode restricts nginx to bind only the `http_port_t` set (80, 443, 8080) and rejects every other port. Chango's per-component nginx bands live well outside that range — leaving SELinux on means every component nginx fails at first start.
+Chango requires SELinux **disabled**. Rocky 9's default `enforcing` mode restricts nginx to bind only the `http_port_t` set (80, 443, 8080) and rejects every other port; chango's per-component nginx bands live well outside that range, and the SELinux policy interferes with the JVM components' RocksDB + mmap usage as well.
+
+`node-prep` runs the equivalent of:
 
 ```bash
-sudo sed -i 's/^SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
-sudo setenforce 0      # take effect immediately (Permissive)
-sudo reboot            # required for SELINUX=disabled to fully take effect
+sudo setenforce 0                                                                # Permissive now
+sudo sed -i 's/^SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config         # persist across reboots
 ```
 
-`setenforce 0` switches to **Permissive** without a reboot, which is enough to get chango installed; the `SELINUX=disabled` line then makes it permanent across reboots.
+`setenforce 0` takes effect immediately, which is enough to get chango installed and running. The `SELINUX=disabled` line in `/etc/selinux/config` makes it permanent — you should reboot the host at the next convenient maintenance window so the kernel reloads in disabled mode.
 
-## ulimit (per-user)
+## ulimit (applied by `node-prep`)
 
-JVM components (Trino, Spark, Flink, ZooKeeper, NeoRunBase, kiok, …) open many file descriptors and threads. Raise the limits at the OS level so the JVM defaults don't cap behaviour.
+JVM components (Trino, Spark, Flink, ZooKeeper, NeoRunBase, kiok, …) open many file descriptors and threads. `node-prep` writes a single drop-in:
 
 ```bash
 sudo tee /etc/security/limits.d/chango.conf > /dev/null <<'EOF'
-*  soft  nofile  65536
-*  hard  nofile  65536
-*  soft  nproc   32768
-*  hard  nproc   32768
+*  soft  nofile  131072
+*  hard  nofile  131072
+*  soft  nproc   128000
+*  hard  nproc   128000
 EOF
 ```
 
-Use a wildcard (`*`) so the same limits apply to every system user chango creates per component (`chango`, `trino`, `spark`, `flink`, `postgres`, …).
+The values match Trino's recommended limits (it is the largest single consumer in the bundle). The wildcard (`*`) covers every per-component system user chango creates (`chango`, `trino`, `spark`, `flink`, `postgres`, …).
 
-## Kernel sysctl
+## Kernel sysctl (applied by `node-prep`)
 
-For larger clusters, raise:
+`node-prep` writes a single drop-in and runs `sysctl --system`:
 
 ```bash
 sudo tee /etc/sysctl.d/99-chango.conf > /dev/null <<'EOF'
@@ -101,10 +112,10 @@ Quick sanity check before running the playbook:
 ```bash
 # On every host
 getenforce                       # → Permissive or Disabled
-ulimit -n                         # → 65536
-ulimit -u                         # → 32768
+ulimit -n                         # → 131072
+ulimit -u                         # → 128000
 sysctl vm.max_map_count           # → 262144
 df -h /opt                        # → dedicated volume mounted
 ```
 
-Once every host clears these, you're ready to [Download & Install](installation.md).
+Once every host clears these, pick your install path — [Manual Install](manual.md) for a step-by-step shell-driven bring-up, or [Automated Install (Ansible)](automated.md) for a multi-host repeatable install.

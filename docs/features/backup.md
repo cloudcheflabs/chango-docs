@@ -88,7 +88,7 @@ Restore is an out-of-band procedure on a fresh master node:
 
 ### Restoring node managers
 
-NMs do not need to be restored — they have no authoritative state. After the master is back, NMs that are still alive against the same ZooKeeper re-register automatically. NMs that were lost can be reinstalled per [Download & Install](../installation/installation.md) — once registered, the leader re-attaches any component instances that were bound to that nodeId.
+NMs do not need to be restored — they have no authoritative state. After the master is back, NMs that are still alive against the same ZooKeeper re-register automatically. NMs that were lost can be reinstalled via [`ansible add-nodemanager.yml`](../installation/automated.md#adding-a-node-manager-later-add-nodemanageryml) (or the manual recipe in [Add another node manager](../operations/cluster-operations.md#add-another-node-manager)) — once registered, the leader re-attaches any component instances that were bound to that nodeId.
 
 ### Component data
 
