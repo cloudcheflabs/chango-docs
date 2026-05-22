@@ -28,19 +28,19 @@ The Chango 3.0.0 release ships the following component versions out of the box. 
 | Lakebase | NeoRunBase | 1.0.0 |
 | Agent | Mium | 1.0.0 |
 | Edge | UI Proxy | 1.0.0 |
-| Iceberg Catalog | Polaris (Apache) | 1.4.1 |
+| Query Gateway | Trino Gateway | 3.0.0 |
 
 ## Open-source engines
 
 | Component | Version | Notes |
 |---|---|---|
 | Trino | 479 | Java 25 |
-| Trino Gateway | 1.0.0 | First-party packaging of the Trino Gateway upstream |
 | Spark | 3.5.8 | Scala 2.12, with Hadoop 3 |
 | Flink | 1.19.3 | Scala 2.12 |
 | Kafka | 3.7.2 | Scala 2.12 |
 | Schema Registry | 7.7.1 | Confluent Community |
 | PostgreSQL | 16 | Rocky 9 native packages |
+| Polaris (Apache) | 1.4.1 | Iceberg Catalog |
 
 ## First-party plugins shipped with engines
 
