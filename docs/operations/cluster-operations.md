@@ -83,11 +83,30 @@ Node managers can be restarted in any order — the order does not affect cluste
 
 ## Add another node manager
 
-To add a node manager to an existing cluster:
+The bundle ships `ansible/add-nodemanager.yml` for this. It does the same `node-prep` + Java 17/25 + chango distribution + first-boot start as the initial install, but **never stages the master key on disk** — the playbook prompts you for it interactively and passes it through to first-boot start in memory only. The new host joins the cluster and registers in ZooKeeper; the admin UI sees it within seconds.
 
-1. **Prepare the host** per [Node Preparation](../installation/node-preparation.md) — SELinux, ulimit, `/opt` mount.
-2. **Copy the chango distribution** onto the new host (the same lean tarball you used for the initial install, or rsync `/opt/chango` from an existing host).
-3. **Create the `chango` user** and base directories:
+### Recommended — `ansible add-nodemanager.yml`
+
+1. Add the new host to your existing inventory under `chango_nodemanagers:`.
+
+2. Run the playbook limited to the new host (from the ansible controller, with the chango tarballs staged the same way as initial install):
+
+   ```bash
+   ansible-playbook -i inventory.yml add-nodemanager.yml --limit <new-host>
+   ```
+
+3. The playbook prompts for `CHANGO MASTER KEY` — type the same value you used at first install (you should be holding it in your secret manager). The key is `private` (not echoed) and never persisted on disk on the new host.
+
+That is it. The new NM is registered + ready when the playbook returns. Verify with the REST snippet at the bottom of this page.
+
+### Manual fallback
+
+If you cannot use ansible (air-gapped maintenance host with no controller, recovering one offline node, etc.):
+
+1. **Prepare the host** per [Node Preparation](../installation/node-preparation.md).
+2. **Install Java 17** (Trino's Java 25 is only required on masters that will run Trino's coordinator; NMs don't need it).
+3. **Copy the chango distribution** onto the new host (the same lean tarball used at install).
+4. **Create the `chango` user** and base directories:
 
    ```bash
    sudo groupadd -r chango || true
@@ -95,15 +114,15 @@ To add a node manager to an existing cluster:
    sudo install -d -o chango -g chango /opt/chango /var/lib/chango /var/log/chango
    ```
 
-4. **Extract chango** under `/opt/chango` and chown to chango.
-5. **Grant passwordless sudo** for the chango user (component install, hosts sync):
+5. **Extract chango** under `/opt/chango` and chown to chango.
+6. **Grant passwordless sudo** for the chango user:
 
    ```bash
    echo 'chango ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/chango
    sudo chmod 0440 /etc/sudoers.d/chango
    ```
 
-6. **Start the node manager**:
+7. **Start the node manager** with the cluster master key in the environment:
 
    ```bash
    export CHANGO_MASTER_KEY=<from your secret store>
@@ -111,18 +130,34 @@ To add a node manager to an existing cluster:
        -Dchango.zk.serverList=<zk-quorum>
    ```
 
-The new NM registers itself in ZooKeeper. The leader picks it up automatically; the admin UI shows it as a target for new component instances within seconds.
-
 ## Add another chango master
 
-Multi-master mode is for control-plane HA. Two ways to add a master:
+Multi-master mode is for control-plane HA. The bundle ships `ansible/add-master.yml` to do this end-to-end — it runs `node-prep` + Java 17/25 + chango install + first-boot start on the new host, prompts for the master key interactively (never writing it to disk on the new host), and is the recommended path. There is a manual fallback for environments where ansible is not an option.
 
-### A second master on a *new* host
+### Recommended — `ansible add-master.yml`
 
-Same steps as adding a node manager up through "Grant passwordless sudo", then:
+**Prerequisite — extend the bundled ZooKeeper quorum first** (see "ZK quorum" below for the exact edits). The quorum must already contain the new server line before you start the new master.
+
+1. Add the new host to your inventory under `chango_masters:` with a distinct `chango_master_zk_id`.
+2. Run the playbook limited to the new host:
+
+   ```bash
+   ansible-playbook -i inventory.yml add-master.yml --limit <new-master-host>
+   ```
+
+3. Type the same `CHANGO MASTER KEY` you used at first install when prompted (or set `CHANGO_MASTER_KEY` in the controller's environment for non-interactive runs — the prompt uses that as its default).
+
+The new master joins the live ZK quorum and shows up in the admin UI's **Cluster → Nodes** within seconds.
+
+### Manual — a second master on a *new* host
+
+If you cannot use ansible:
+
+Same steps as the manual NM install above up through "Grant passwordless sudo" plus Java 25 installation, then:
 
 ```bash
 export CHANGO_MASTER_KEY=<from your secret store>
+export JAVA_HOME=/opt/openlogic-openjdk-17.0.7+7-linux-x64
 
 # Start bundled ZooKeeper on the new host (extend the quorum — see "ZK quorum" below)
 sudo -u chango -E /opt/chango/bin/start-zk.sh \
