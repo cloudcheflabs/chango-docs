@@ -1,0 +1,591 @@
+# Phase 1 — Trino + Iceberg + RBAC
+
+[Phase 0](phase-0-foundation.md) must be complete (Ontul + PG + ShannonStore + Polaris all RUNNING). In this phase you will:
+
+1. Install a **Trino cluster** wired to ShannonStore exchange + PostgreSQL Resource Group + Ontul authz.
+2. Put a **Trino Gateway** in front of it so clients have a single endpoint.
+3. Confirm Polaris's `lakehouse` catalog auto-registers in Trino.
+4. Run **complex Iceberg queries** — CTAS, MERGE, time travel, partition pruning, window functions, multi-way joins.
+5. Verify **Ontul RBAC** is enforced through the Gateway, down to row and column level.
+
+## Topology
+
+| Component | Instances | Placement |
+|---|---|---|
+| Trino Coordinator | 1 | n1 |
+| Trino Worker | 2 | n2, n3 |
+| Trino Gateway | 1 | n1 |
+
+> Production layouts give the coordinator its own host, run more workers, and run at least two Gateway instances. The layout below is the verification-grade minimum.
+
+## Variables carried over from Phase 0
+
+```bash
+BASE=http://<master-host>:8080
+TOK=<token from the overview>
+N1=nm-chango-n1-19998
+N2=nm-chango-n2-19998
+N3=nm-chango-n3-19998
+
+# From Phase 0
+OTOK=<ontul service token>
+SS_ENDPOINT=http://<api-host>:<api-port>
+SS_AK=<shannonstore access key>
+SS_SK=<shannonstore secret key>
+```
+
+## 1. Install the Trino cluster
+
+### Via the chango admin UI
+
+1. In the sidebar's **Lakehouse Engines** group click **Trino**.
+2. Click **Install new Trino cluster**:
+    - **Cluster ID** — `trino-main`
+    - **Coordinator nodes** — `chango-n1`
+    - **Worker nodes** — `chango-n2`, `chango-n3`
+    - **Query memory** — `4GB` total, `1GB` per node
+    - **Retry policy** — `QUERY` (enables fault-tolerant execution)
+    - **Exchange manager** — toggle **Enable**. Fill the exchange S3 panel:
+        - **Base directory** — `s3://trino-exchange/`
+        - **S3 endpoint / region / access key / secret key** — values from Phase 0 (the ShannonStore AK/SK pair).
+    - **Ontul authz token** — paste the **OTOK** you minted in Phase 0 (the `trino-system` user's OTOK). chango auto-discovers the Ontul authz endpoint from the running `ontul-main` cluster.
+    - **Resource group** — toggle **Enable**:
+        - **PostgreSQL instance** — pick `pg-main`. chango re-uses its stored superuser password to create the `trino_rg` database + a `trino` login role automatically — you don't type a PG admin password.
+        - **DB name** — `trino_rg`, **DB user** — `trino`, **DB password** — click **Generate** for a strong random value.
+3. Click **Install** then **Start**. The cluster card flips to `RUNNING` over the next 1–3 minutes.
+
+### Via REST
+
+```bash
+curl -sS -X POST $BASE/admin/api/trino \
+  -H "Authorization: Bearer $TOK" \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"clusterId\":             \"trino-main\",
+    \"coordinatorNodes\":      [\"$N1\"],
+    \"workerNodes\":           [\"$N2\", \"$N3\"],
+    \"queryMaxMemory\":        \"4GB\",
+    \"queryMaxMemoryPerNode\": \"1GB\",
+    \"retryPolicy\":           \"QUERY\",
+
+    \"exchangeManagerEnabled\": true,
+    \"exchangeBaseDirectory\":  \"s3://trino-exchange/\",
+    \"exchangeS3Endpoint\":     \"$SS_ENDPOINT\",
+    \"exchangeS3Region\":       \"us-east-1\",
+    \"exchangeS3AccessKey\":    \"$SS_AK\",
+    \"exchangeS3SecretKey\":    \"$SS_SK\",
+
+    \"ontulAuthzToken\":       \"$OTOK\",
+
+    \"resourceGroupEnabled\":      true,
+    \"resourceGroupPgInstanceId\": \"pg-main\",
+    \"resourceGroupDbName\":       \"trino_rg\",
+    \"resourceGroupDbUser\":       \"trino\",
+    \"resourceGroupDbPassword\":   \"<rg-password>\"
+  }"
+```
+
+What each block means:
+
+| Field group | Effect |
+|---|---|
+| `exchangeManagerEnabled` + `exchange*` | Fault-tolerant execution spills to `s3://trino-exchange/` on ShannonStore. A coordinator or worker crash no longer fails the query — it retries. |
+| `ontulAuthzToken` | The coordinator's `chango-trino-authz` SystemAccessControl plugin authenticates to Ontul with this OTOK. The Ontul endpoint itself is auto-discovered from the running `ontul-main` master. |
+| `resourceGroup*` + `resourceGroupPgInstanceId=pg-main` | Chango knows `pg-main`'s superuser password, creates `trino_rg` database + a `trino` login role itself, and wires the coordinator's `resource-groups.properties`. The operator never types a PG admin password. |
+
+Wait for RUNNING and pin the coordinator host/port:
+
+```bash
+while true; do
+  STATE=$(curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/trino | \
+           jq -r '.[] | select(.clusterId=="trino-main") | [.instances[].state] | unique | join(",")')
+  echo "$(date +%T) trino-main: $STATE"
+  [ "$STATE" = "RUNNING" ] && break
+  sleep 5
+done
+
+COORD_HOST=$(curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/trino | \
+              jq -r '.[] | select(.clusterId=="trino-main") | .instances[] | select(.role=="COORDINATOR") | .host')
+COORD_PORT=$(curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/trino | \
+              jq -r '.[] | select(.clusterId=="trino-main") | .instances[] | select(.role=="COORDINATOR") | .httpPort')
+echo "coordinator: $COORD_HOST:$COORD_PORT"
+```
+
+## 2. Install Trino Gateway
+
+### Via the chango admin UI
+
+1. In the sidebar's **Lakehouse Engines** group click **Trino Gateway**.
+2. Click **Install new Trino Gateway cluster**:
+    - **Cluster ID** — `trino-gw`
+    - **Gateway nodes** — `chango-n1`
+    - **Trino backends** — pick `trino-main` from the dropdown (chango fills in `<coord-host>:<httpPort>` from the running coordinator).
+3. Click **Install** then **Start**. The cluster card flips to `RUNNING` within ~30 seconds.
+4. (Optional) Open the cluster detail and the **Cluster Groups** sub-page; create a `default` cluster-group that contains `trino-main`. Every Gateway route needs at least one cluster-group — see the note below.
+
+### Via REST
+
+```bash
+curl -sS -X POST $BASE/admin/api/trino-gateway \
+  -H "Authorization: Bearer $TOK" \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"clusterId\":     \"trino-gw\",
+    \"gatewayNodes\":  [\"$N1\"],
+    \"trinoBackends\": \"$COORD_HOST:$COORD_PORT\"
+  }"
+```
+
+Pin the Gateway endpoint — this is what every client uses from now on:
+
+```bash
+GW_HOST=$(curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/trino-gateway | \
+           jq -r '.[] | select(.clusterId=="trino-gw") | .instances[0].host')
+GW_PORT=$(curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/trino-gateway | \
+           jq -r '.[] | select(.clusterId=="trino-gw") | .instances[0].listenPort')
+echo "gateway: $GW_HOST:$GW_PORT"
+```
+
+## 3. Register the Polaris catalog in Trino
+
+The Polaris `lakehouse` catalog **does not auto-register in Trino**. Apply the catalog explicitly so Trino loads its `etc/catalog/iceberg.properties`. Chango ships a one-shot REST that pulls the OAuth client and endpoint from the running Polaris cluster, writes the properties file on every Trino node, and rolling-restarts the cluster.
+
+### 3.1 Read the Polaris connection
+
+```bash
+curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/polaris/polaris-main/credentials
+# {
+#   "clientId":            "polaris-root",
+#   "clientSecret":        "...",
+#   "realm":               "polaris-main",
+#   "icebergRestEndpoint": "http://chango-n2.chango.private:8180/api/catalog",
+#   "managementEndpoint":  "http://chango-n2.chango.private:8180/api/management/v1",
+#   "oauthTokenEndpoint":  "http://chango-n2.chango.private:8180/api/catalog/v1/oauth/tokens"
+# }
+```
+
+### 3.2 Build the Iceberg catalog properties
+
+Replace the placeholders with the Polaris connection values + the ShannonStore S3 credentials minted in Phase 0:
+
+```bash
+POLARIS_REST=http://chango-n2.chango.private:8180/api/catalog
+CLIENT_SECRET=<clientSecret from above>
+
+PROPS="connector.name=iceberg
+iceberg.catalog.type=rest
+iceberg.rest-catalog.uri=$POLARIS_REST
+iceberg.rest-catalog.warehouse=lakehouse
+iceberg.rest-catalog.security=OAUTH2
+iceberg.rest-catalog.oauth2.credential=polaris-root:$CLIENT_SECRET
+iceberg.rest-catalog.oauth2.scope=PRINCIPAL_ROLE:ALL
+fs.native-s3.enabled=true
+s3.endpoint=$SS_ENDPOINT
+s3.region=us-east-1
+s3.aws-access-key=$SS_AK
+s3.aws-secret-key=$SS_SK
+s3.path-style-access=true"
+```
+
+### 3.3 Apply the catalog to Trino
+
+#### Via the chango admin UI
+
+1. From the chango admin UI's **Trino** page, click into the `trino-main` cluster card and open the **Catalogs** tab.
+2. Click **Add catalog**:
+    - **Name** — `iceberg`
+    - **Properties** — paste the full multi-line `iceberg.properties` body from above into the text area.
+3. Click **Apply**. The card shows a rolling-restart progress bar. After ~30 seconds the catalog appears in the list.
+
+#### Via REST
+
+```bash
+jq -n --arg props "$PROPS" \
+    '{op:"add", name:"iceberg", properties:$props}' \
+  | curl -sS -X POST $BASE/admin/api/trino/trino-main/catalog \
+      -H "Authorization: Bearer $TOK" \
+      -H 'Content-Type: application/json' \
+      -d @-
+```
+
+Chango writes `etc/catalog/iceberg.properties` to every coordinator + worker and rolling-restarts the cluster. After ~30 seconds the new catalog is visible.
+
+### 3.4 Verify
+
+```bash
+trino --server http://$COORD_HOST:$COORD_PORT --user admin --execute 'SHOW CATALOGS'
+# "iceberg"
+# "jmx"
+# "system"
+# "tpcds"
+# "tpch"
+```
+
+> **Trino CLI binary** — Trino's Maven coordinates use the latest stable line. Replace `<v>` with the published version (e.g. `470`):
+> `curl -L -o /usr/local/bin/trino https://repo1.maven.org/maven2/io/trino/trino-cli/<v>/trino-cli-<v>-executable.jar && chmod +x /usr/local/bin/trino`
+
+> **Trino Gateway routing model** — the Gateway picks a backend Trino coordinator per query in three steps:
+>
+> 1. The submitting user's Ontul IAM group membership is read from the topology snapshot (Ontul is the source of truth — chango master mirrors it via the periodic sync).
+> 2. That ordered group list is intersected with the chango **cluster-groups** present in the topology. The first match wins. If none matches, the Gateway falls back to a cluster-group literally named `default` when one exists.
+> 3. The picked cluster-group's `trinoClusterIds` list is consulted; an active member backend is chosen and the query is forwarded to it.
+>
+> A fresh chango install has zero cluster-groups, so every Gateway request fails with `no cluster-group matches user '<user>'`. Before pointing clients at the Gateway, register at least one cluster-group through `POST /admin/api/gateway/cluster-groups` (or the admin UI's **Trino Gateway → Cluster Groups** page). The chango master mirrors that group to Ontul automatically — you do **not** manage the Ontul group separately.
+>
+> ```bash
+> curl -sS -X POST -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+>   $BASE/admin/api/gateway/cluster-groups \
+>   -d '{"groupName":"default","description":"Default","trinoClusterIds":["trino-main"]}'
+> ```
+>
+> Until that POST returns 200, query the Trino coordinator directly using `$COORD_HOST:$COORD_PORT`.
+
+> **Per-gateway routing scope** — each Trino Gateway cluster can optionally restrict itself to a subset of cluster-groups (the admin UI's **Trino Gateway → cluster detail → Attached Cluster Groups** panel, or `POST /admin/api/trino-gateway/<id>/attached-groups`). When the attached list is empty the Gateway routes every group in the topology; when it is non-empty, only those groups can route through this Gateway. Leaving it empty is the right default for a single-Gateway tenant; tighten it when fronting multiple Gateways with different routing responsibilities.
+
+## 4. Complex Iceberg queries
+
+Every SQL below runs through Trino. Use the coordinator endpoint directly while you have not configured Trino Gateway cluster groups yet — once those are configured, swap `$COORD_HOST:$COORD_PORT` for `$GW_HOST:$GW_PORT` and the same queries work unchanged.
+
+```bash
+trino --server http://$COORD_HOST:$COORD_PORT --user admin \
+      --catalog iceberg
+```
+
+> Pipe each block below into a here-doc or save to a `.sql` file and run with `trino -f <file>` — Trino's SQL uses **single-quoted string literals**, which the shell often mangles in `--execute "..."` form. The `.sql` file form is robust.
+
+### 4.1 Schema + table with partitioning and nested types
+
+```sql
+CREATE SCHEMA IF NOT EXISTS sales;
+
+CREATE TABLE sales.orders (
+    order_id      BIGINT,
+    customer_id   BIGINT,
+    order_ts      TIMESTAMP(6) WITH TIME ZONE,
+    country       VARCHAR,
+    items         ARRAY(ROW(sku VARCHAR, qty INTEGER, price DECIMAL(10,2))),
+    total_amount  DECIMAL(12,2)
+)
+WITH (
+    partitioning = ARRAY['country', 'day(order_ts)'],
+    format       = 'PARQUET'
+);
+```
+
+### 4.2 Multi-row INSERT
+
+```sql
+INSERT INTO sales.orders VALUES
+  (1, 100, TIMESTAMP '2026-05-20 09:15:00 UTC', 'KR',
+     ARRAY[ROW('SKU-A', 2, 12.50), ROW('SKU-B', 1, 33.00)], 58.00),
+  (2, 101, TIMESTAMP '2026-05-20 13:42:00 UTC', 'KR',
+     ARRAY[ROW('SKU-A', 1, 12.50)], 12.50),
+  (3, 200, TIMESTAMP '2026-05-21 08:00:00 UTC', 'JP',
+     ARRAY[ROW('SKU-C', 3, 9.90)],  29.70),
+  (4, 200, TIMESTAMP '2026-05-22 17:30:00 UTC', 'JP',
+     ARRAY[ROW('SKU-B', 5, 33.00)], 165.00);
+```
+
+### 4.3 CTAS (Create Table As Select)
+
+```sql
+CREATE TABLE sales.daily_country_revenue
+WITH (partitioning = ARRAY['country']) AS
+SELECT
+    country,
+    date(order_ts AT TIME ZONE 'UTC')      AS d,
+    SUM(total_amount)                      AS revenue,
+    COUNT(*)                               AS orders,
+    APPROX_PERCENTILE(total_amount, 0.95)  AS p95
+FROM sales.orders
+GROUP BY country, date(order_ts AT TIME ZONE 'UTC');
+
+SELECT * FROM sales.daily_country_revenue ORDER BY country, d;
+```
+
+Expected:
+
+```
+ country |     d      | revenue | orders |  p95
+---------+------------+---------+--------+-------
+ JP      | 2026-05-21 |  29.70  |   1    | 29.70
+ JP      | 2026-05-22 | 165.00  |   1    | 165.00
+ KR      | 2026-05-20 |  70.50  |   2    | 58.00
+```
+
+### 4.4 MERGE (upsert)
+
+```sql
+CREATE TABLE sales.customer_totals (
+    customer_id  BIGINT,
+    total_spent  DECIMAL(14,2)
+);
+
+INSERT INTO sales.customer_totals VALUES (100, 100.00), (200, 50.00);
+
+MERGE INTO sales.customer_totals t
+USING (
+    SELECT customer_id, SUM(total_amount) AS spent
+    FROM sales.orders
+    GROUP BY customer_id
+) s ON t.customer_id = s.customer_id
+WHEN MATCHED     THEN UPDATE SET total_spent = t.total_spent + s.spent
+WHEN NOT MATCHED THEN INSERT (customer_id, total_spent) VALUES (s.customer_id, s.spent);
+
+SELECT * FROM sales.customer_totals ORDER BY customer_id;
+```
+
+### 4.5 Window functions
+
+```sql
+SELECT
+    order_id,
+    customer_id,
+    total_amount,
+    ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts) AS purchase_seq,
+    SUM(total_amount)
+        OVER (PARTITION BY customer_id ORDER BY order_ts
+              ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)     AS cumulative_total
+FROM sales.orders
+ORDER BY customer_id, order_ts;
+```
+
+### 4.6 Partition pruning
+
+```sql
+EXPLAIN
+SELECT * FROM sales.orders
+WHERE country = 'KR'
+  AND order_ts >= TIMESTAMP '2026-05-20 00:00:00 UTC'
+  AND order_ts <  TIMESTAMP '2026-05-21 00:00:00 UTC';
+```
+
+Look for a `ScanFilterProject` node with something like:
+
+```
+predicate           = (country = VARCHAR 'KR') AND ...
+filtered partitions : 1
+```
+
+That confirms Trino pruned the `country` + `day(order_ts)` partitions instead of scanning the whole table.
+
+### 4.7 Time travel
+
+```sql
+-- List snapshots — column names match Iceberg's snapshots metadata table
+SELECT snapshot_id, committed_at, operation
+FROM sales."orders$snapshots"
+ORDER BY committed_at DESC;
+
+-- Query an older snapshot (e.g. the one before the latest INSERT)
+SELECT COUNT(*) FROM sales.orders FOR VERSION AS OF <snapshot_id>;
+-- "0"
+
+-- Or by timestamp
+SELECT COUNT(*) FROM sales.orders FOR TIMESTAMP AS OF TIMESTAMP '2026-05-22 00:00:00 UTC';
+```
+
+### 4.8 Schema evolution
+
+```sql
+ALTER TABLE sales.orders ADD COLUMN promo_code VARCHAR;
+
+INSERT INTO sales.orders (order_id, customer_id, order_ts, country, items, total_amount, promo_code)
+VALUES (5, 100, TIMESTAMP '2026-05-23 11:00:00 UTC', 'KR',
+        ARRAY[ROW('SKU-D', 1, 99.99)], 99.99, 'SUMMER10');
+
+SELECT order_id, promo_code FROM sales.orders WHERE promo_code IS NOT NULL;
+```
+
+The new column is NULL for the existing rows — Iceberg handles this with a metadata-only change.
+
+### 4.9 Multi-way join (CTE + 4-way join)
+
+Trino's planner rejects correlated subqueries in `JOIN ... ON` (`Given correlated subquery is not supported`). Use a `DISTINCT` mapping CTE instead — semantically identical, planner-friendly:
+
+```sql
+WITH
+order_summary AS (
+    SELECT customer_id, SUM(total_amount) AS spent, COUNT(*) AS n_orders
+    FROM sales.orders
+    GROUP BY customer_id
+),
+cust_country AS (
+    SELECT DISTINCT customer_id, country FROM sales.orders
+)
+SELECT
+    t.customer_id, t.total_spent, s.n_orders, d.country, d.revenue
+FROM sales.customer_totals t
+JOIN order_summary s   ON t.customer_id = s.customer_id
+JOIN cust_country  c   ON c.customer_id = t.customer_id
+JOIN sales.daily_country_revenue d ON d.country = c.country
+ORDER BY t.total_spent DESC;
+```
+
+Expected: 4 rows joining `customer_totals × order_summary × cust_country × daily_country_revenue`.
+
+## 5. Ontul RBAC
+
+Create two users in Ontul — `analyst-kr` (only KR rows) and `analyst-jp` (only JP rows) — and prove the Gateway enforces it.
+
+Ontul exposes its admin REST on the master's `adminPort` — discovered from `chango admin REST` at `/admin/api/ontul/<id>` and reachable directly from the chango cluster network. Default admin credentials are `admin/admin` with a forced first-login password change (same flow as chango).
+
+### Via the Ontul admin UI
+
+Sections 5.1 + 5.2 below are easiest to do click-by-click in Ontul's own admin UI (sidebar **IAM → Users / Groups / Policies**), so this UI subsection covers them both:
+
+1. From the chango admin UI's **Ontul** page click **Open admin UI** on `ontul-main`. Sign in with the admin password you set in Phase 0.
+2. **IAM → Users** → **New user** → `analyst-kr` / a password → **Save**. Repeat for `analyst-jp`.
+3. **IAM → Groups** → **New group** → `analyst-kr-grp` → **Save**. Repeat for `analyst-jp-grp`. On each group's detail page click **Add user** to put the matching `analyst-*` user in.
+4. **IAM → Policies** → **New policy** → paste the Statement document below (Section 5.2 shows the JSON for `sales-kr-read`). Repeat for `sales-jp-read`, swapping `'KR'` → `'JP'` in the Condition.
+5. Back on each group's detail page click **Attach policy** and pick the matching `sales-*-read` policy.
+
+You can verify the policy attachment by clicking the group → **Effective permissions** tab, which shows the merged statements.
+
+### Via REST
+
+```bash
+# Ontul admin endpoints
+ONTUL_HOST=$(curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/ontul/ontul-main \
+              | jq -r '.nodes[] | select(.role=="master") | .nodeId' \
+              | xargs -I {} curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/nodes/node-managers \
+              | jq -r ".[] | select(.nodeId==\"{}\") | .host")
+ONTUL_PORT=$(curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/ontul/ontul-main \
+              | jq -r '.nodes[] | select(.role=="master") | .config.adminPort')
+ONTUL=http://$ONTUL_HOST:$ONTUL_PORT
+
+# First login + change password
+ONTUL_TOK=$(curl -sS -X POST $ONTUL/admin/auth/login \
+  -H 'Content-Type: application/json' -d '{"username":"admin","password":"admin"}' | jq -r .accessToken)
+curl -sS -X POST $ONTUL/admin/auth/change-password \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"oldPassword":"admin","newPassword":"<ontul-admin-pw>"}'
+ONTUL_TOK=$(curl -sS -X POST $ONTUL/admin/auth/login \
+  -H 'Content-Type: application/json' -d '{"username":"admin","password":"<ontul-admin-pw>"}' | jq -r .accessToken)
+```
+
+### 5.1 Create user + group
+
+```bash
+curl -sS -X POST $ONTUL/admin/iam/users \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"username":"analyst-kr","password":"analyst-kr-pw"}'
+
+curl -sS -X POST $ONTUL/admin/iam/groups \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"groupName":"analyst-kr-grp"}'
+
+curl -sS -X POST $ONTUL/admin/iam/add-user-to-group \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"username":"analyst-kr","groupName":"analyst-kr-grp"}'
+```
+
+### 5.2 Create a row-filter policy (AWS-style document)
+
+Ontul policies use AWS IAM document shape. **`Condition`** is a SQL `WHERE` fragment that chango's `chango-trino-authz` plugin appends to every Trino query that touches `Resource`. **`Columns`** restricts which columns the user can `SELECT`.
+
+```bash
+cat > /tmp/sales-kr-read.json <<'EOF'
+{
+  "name": "sales-kr-read",
+  "document": {
+    "Version": "2024-01-01",
+    "Statement": [
+      {
+        "Sid": "SalesKrRead",
+        "Effect": "Allow",
+        "Action": ["SELECT"],
+        "Resource": "iceberg.sales.*",
+        "Condition": "country = 'KR'"
+      }
+    ]
+  }
+}
+EOF
+
+curl -sS -X POST $ONTUL/admin/iam/policies \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  --data @/tmp/sales-kr-read.json
+
+curl -sS -X POST $ONTUL/admin/iam/attach-group-policy \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"groupName":"analyst-kr-grp","policyName":"sales-kr-read"}'
+```
+
+### 5.3 Verify through Trino
+
+The `chango-trino-authz` plugin maps Trino's `X-Trino-User` header to an Ontul identity, evaluates the user's effective policies, and rewrites the query plan accordingly. No password / token is needed in the Trino CLI — chango's authz plugin trusts the coordinator's network boundary.
+
+```bash
+# admin — no filter
+trino --server http://$COORD_HOST:$COORD_PORT --user admin --catalog iceberg \
+      --execute 'SELECT country, COUNT(*) FROM sales.orders GROUP BY country'
+# "KR","2"
+# "JP","2"
+
+# analyst-kr — Condition `country = 'KR'` injected → KR rows only
+trino --server http://$COORD_HOST:$COORD_PORT --user analyst-kr --catalog iceberg \
+      --execute 'SELECT country, COUNT(*) FROM sales.orders GROUP BY country'
+# "KR","2"
+```
+
+### 5.4 Column-level restriction (optional)
+
+The same policy schema supports column whitelisting through the `Columns` field. Example — restrict `analyst-kr` to `order_id` + `country` + `total_amount` (no `customer_id`):
+
+```json
+{
+  "name": "sales-kr-read-cols",
+  "document": {
+    "Version": "2024-01-01",
+    "Statement": [{
+      "Sid": "SalesKrReadCols",
+      "Effect": "Allow",
+      "Action": ["SELECT"],
+      "Resource": "iceberg.sales.orders",
+      "Columns": ["order_id", "country", "total_amount"],
+      "Condition": "country = 'KR'"
+    }]
+  }
+}
+```
+
+A `SELECT customer_id` query for that user now fails with `Access Denied: not authorized to read column customer_id`.
+
+### 5.5 DENY check
+
+Without an explicit `INSERT` / `DELETE` action in the policy, mutating statements are denied:
+
+```bash
+trino --server http://$COORD_HOST:$COORD_PORT --user analyst-kr --catalog iceberg \
+      --execute "DELETE FROM sales.orders WHERE order_id=1"
+# Query failed: Access Denied: ...
+```
+
+## Phase 1 exit checklist
+
+- [ ] `trino-main` all instances RUNNING (coordinator + 2 workers)
+- [ ] `trino-gw` RUNNING
+- [ ] `SHOW CATALOGS` through the Gateway lists `iceberg`
+- [ ] CTAS, MERGE, window, partition prune, time travel, schema evolution, multi-join all pass
+- [ ] `analyst-kr` sees only KR rows; `analyst-jp` sees only JP rows; mutation is denied
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| `iceberg` missing from `SHOW CATALOGS` | Is Polaris RUNNING, and was the `lakehouse` catalog created (see Phase 0 → 4.1)? Check `etc/catalog/iceberg.properties` on the Trino coordinator. |
+| `Access Denied` even as `admin` | Either `ontulAuthzToken` was not supplied at install time, or the OTOK has expired. Update Trino's config via the admin REST to refresh the token. |
+| Exchange errors (`Failed to upload …`) | Does the `s3://trino-exchange/` bucket exist on ShannonStore? Does the access key have write permission on it? |
+| MERGE fails with `Iceberg merge not enabled` | The connector option `iceberg.merge` is on by default in chango's Trino install. Older Trino versions (< 479) have MERGE limitations. |
+
+## Stop Trino before moving on
+
+Phase 2 (Spark) needs the headroom. Stop the Trino cluster (keep the Gateway running — it is stateless and lightweight):
+
+```bash
+curl -sS -X POST $BASE/admin/api/trino/trino-main/stop \
+  -H "Authorization: Bearer $TOK"
+```
+
+Continue with the [Tutorials overview](index.md) for Phase 2 onward.
