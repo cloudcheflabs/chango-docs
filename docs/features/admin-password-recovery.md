@@ -37,12 +37,12 @@ rotation.
 
 | Property | Value |
 |---|---|
-| **Socket path** | `data/admin.sock` (mode `600`) |
+| **Socket path** | `<chango.base.data.dir>/master/admin.sock` (mode `600`) — for example, `/opt/chango/data/master/admin.sock` in the default install layout |
 | **Authentication** | OS file permission — same user as the master process |
 | **Network surface** | none — Unix domain socket only |
 | **Downtime** | none — applied in-process on the live master |
 | **Cluster sync** | automatic — leader pushes the new IAM snapshot to follower masters and node managers |
-| **Audit log** | `data/iam-audit/reset.log` (mode `600`, append-only) |
+| **Audit log** | `<chango.base.data.dir>/master/iam-audit/reset.log` (mode `600`, append-only) |
 | **Post-reset state** | `requirePasswordChange = true` (forced rotation on next login) |
 
 ## Quick start
@@ -51,10 +51,26 @@ The simplest invocation lets the master generate a strong 20-character
 password and print it to stdout. The new password must be changed on the
 admin's next login (the `requirePasswordChange` flag is set automatically).
 
+Run as the OS user that owns the master process (typically `chango`) on
+the master host. `JAVA_HOME` must point at Java 17, and `CHANGO_ADMIN_SOCKET`
+must be an absolute path to the live master's socket:
+
 ```bash
-# Inside the master host or container:
+export JAVA_HOME=/opt/openlogic-openjdk-17.0.7+7-linux-x64
+export CHANGO_ADMIN_SOCKET=/opt/chango/data/master/admin.sock
+cd /opt/chango
 bin/chango-cli.sh iam:reset-password
 ```
+
+!!! note "Why the explicit socket path"
+    The default discovery resolves `<chango.base.data.dir>/master/admin.sock`
+    relative to the master's working directory. When the CLI is launched
+    from a different working directory the relative path will not resolve;
+    setting `CHANGO_ADMIN_SOCKET` to the absolute path avoids that. If you
+    see an error like
+    `admin socket not found at /opt/chango/${chango.base.data.dir}/master/admin.sock`,
+    the property placeholder was not expanded — fall back to the explicit
+    `CHANGO_ADMIN_SOCKET` or `--socket` override shown here.
 
 Sample output (TTY):
 
@@ -91,29 +107,35 @@ hardened production deployment), set:
 ```properties
 # conf/chango.properties
 chango.admin.socket.enabled = false
-chango.admin.socket.path    = ${chango.base.data.dir}/admin.sock
-chango.iam.audit.dir        = ${chango.base.data.dir}/iam-audit
+chango.admin.socket.path    = ${chango.base.data.dir}/master/admin.sock
+chango.iam.audit.dir        = ${chango.base.data.dir}/master/iam-audit
 ```
 
 The CLI resolves the socket path in this order:
 
 1. `--socket /path/to/admin.sock` command-line flag
-2. `CHANGO_ADMIN_SOCKET` environment variable
+2. `CHANGO_ADMIN_SOCKET` environment variable (must be an absolute path)
 3. `chango.admin.socket.path` in `conf/chango.properties`
-4. `<chango.base.data.dir>/admin.sock` (the default that matches the master)
+4. `<chango.base.data.dir>/master/admin.sock` (the default that matches the master)
+
+Use the explicit override (1 or 2) whenever the CLI is launched from a
+directory other than the master's working directory — relative paths in
+`chango.properties` do not resolve under a different `cwd`.
 
 ## Security model
 
 **1. The socket is OS-gated.**
-At startup the master creates `data/admin.sock` with mode `600` (owner
-read/write only). Even other unprivileged users on the same host cannot
-connect. There is no token, no shared secret, no network listener.
+At startup the master creates `<chango.base.data.dir>/master/admin.sock`
+with mode `600` (owner read/write only). Even other unprivileged users on
+the same host cannot connect. There is no token, no shared secret, no
+network listener.
 
 **2. The audit log records every reset.**
-Every successful reset appends a JSON line to `data/iam-audit/reset.log`
-(mode `600`). The plaintext password is **never** logged — only the first
-8 characters of its hash, the user, whether it was master-generated, and
-the OS user that invoked the CLI.
+Every successful reset appends a JSON line to
+`<chango.base.data.dir>/master/iam-audit/reset.log` (mode `600`). The
+plaintext password is **never** logged — only the first 8 characters of
+its hash, the user, whether it was master-generated, and the OS user that
+invoked the CLI.
 
 ```json
 {"ts":"2026-05-23T16:00:46.922Z","event":"iam.reset-password","user":"admin","generated":true,"hashFp":"OYV/Ojf/","invokedAs":"root"}
