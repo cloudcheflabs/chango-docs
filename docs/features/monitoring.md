@@ -14,13 +14,15 @@ For components whose pid file lives in a 0700 directory (Trino's `var/var/run/la
 
 ## How the data flows
 
-1. The leader (and only the leader) runs the `ComponentMetricsCollector` thread on a fixed interval.
-2. For each managed `ComponentInstance`, the leader resolves which NM hosts it and sends `OpCode.COMPONENT_METRICS_REQ` over the internal NIO protocol.
-3. The NM runs `ps` against the instance's pid and returns `{ cpu, memRss, alive }` as JSON.
-4. The leader appends a `Sample` (`ts, instanceId, cpu, memRss`) to an in-memory circular buffer. Older samples past `chango.metrics.retention.seconds` (default 3600 s) are evicted.
-5. The admin UI's per-cluster page polls `/admin/api/<component>/<clusterId>/metrics` every 5 s and renders the recharts line chart from the returned series.
+Every master runs the `ComponentMetricsCollector` thread on a fixed interval. What it does depends on whether the master is the elected leader:
 
-Followers do not collect — they do not have authoritative inventory. After a leader change the new leader's history is empty for the first interval, then populates.
+1. **Leader path** — for each managed `ComponentInstance`, the leader resolves which NM hosts it and sends `OpCode.COMPONENT_METRICS_REQ` over the internal NIO protocol.
+2. **NM response** — the NM runs `ps` against the instance's pid and returns `{ cpu, memRss, alive }` as JSON.
+3. **Leader ring** — the leader appends a `Sample` (`ts, instanceId, cpu, memRss`) to an in-memory circular buffer (`localHistory`). Older samples past `chango.metrics.retention.seconds` (default 3600 s) are evicted.
+4. **Follower path** — every non-leader master calls the leader over `OpCode.COMPONENT_METRICS_HISTORY_REQ` and replaces its own `leaderHistory` ring with the leader's snapshot. This means a follower can serve the per-cluster metrics endpoint without having to re-poll any NM — and after a leader failover, the new leader's own samples come up within one interval while the previous leader's snapshot is still being served on the surviving followers.
+5. **Admin UI** polls `/admin/api/<component>/<clusterId>/metrics` (per-cluster line charts) and `/admin/api/monitoring/hosts` (Dashboard host roll-up) every 5 s.
+
+The ring that backs `history(ids)` is `localHistory` on the leader and `leaderHistory` on followers — admin endpoints never see an empty answer just because the call landed on the wrong master.
 
 ## In-memory only
 
@@ -30,12 +32,45 @@ To ship metrics to a real time-series database, run a node_exporter / process_ex
 
 ## What the admin UI shows
 
+### Cluster Dashboard
+
+The Dashboard ("Cluster Dashboard" sidebar entry) is the single landing page for the chango control plane's own usage:
+
+- **Stat cards** — master count, NM count, average daemon CPU, total daemon heap in use.
+- **Hosts section** — one collapsible card per host with:
+    - role chips (`MASTER` / `LEADER` / `NM`)
+    - OS-wide 1-minute load average and core count, host physical memory used / total
+    - sum of CPU% and resident memory across every RUNNING chango daemon on the host
+    - sum of CPU% and resident memory across every RUNNING component instance pinned to the host
+- **Expand the card** to see the breakdown: per-daemon table (master/NM with reachable / ready / leader status, heap usage) and per-instance component table (component type, cluster id, instance id, role, CPU%, mem RSS — sorted descending by CPU).
+- **Daemon line charts** under the host section render the last hour of CPU% and heap in MB per daemon (the same series chango has always shown).
+
+The host roll-up is served by `GET /admin/api/monitoring/hosts`. The payload shape:
+
+```json
+[
+  {
+    "host": "172.31.11.169",
+    "hasMaster": true,
+    "hasNodeManager": true,
+    "isLeader": true,
+    "ready": true,
+    "daemons": [ {"nodeId":"...","role":"master","cpu":0.3,"memUsed":...,"memMax":...}, ... ],
+    "os": { "load1m": 0.13, "cpuCores": 2, "memTotal": 8042622976, "memFree": 1825447936 },
+    "componentTotals": { "instances": 10, "cpu": 5.0, "memRss": 2932228096 },
+    "components": [ {"instanceId":"trino-v-coordinator-1","componentType":"trino","clusterId":"trino-v","role":"coordinator","cpu":3.6,"memRss":1283457024,"ts":1234567890}, ... ]
+  }
+]
+```
+
+OS metrics (`os.load1m / cpuCores / memTotal / memFree`) are sourced from the NM's `NodeMetrics.local()` response, which now reports the host's `OperatingSystemMXBean` values in addition to the JVM heap and process CPU. When a host's NM jar is older than the master's, the OS row falls back to `0` — refresh the NM's `chango-common.jar` to repopulate.
+
+### Per-cluster pages
+
 Per cluster page (Trino cluster, Spark cluster, …) carries two charts:
 
 - **CPU%** — one line per instance in the cluster, last hour.
 - **Memory (RSS, MB)** — one line per instance in the cluster, last hour.
-
-Per chango-cluster page also shows node-level CPU / memory across every NM in the fleet.
 
 ## Process health
 
