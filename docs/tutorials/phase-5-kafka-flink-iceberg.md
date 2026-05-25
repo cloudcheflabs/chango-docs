@@ -198,7 +198,9 @@ Phase 3 hooked the UI Proxy auto-registration into the Flink service, so the Job
 
 ## 3. Build the Flink Kafka → Iceberg job
 
-A small Java uberjar — Kafka source, JSON parsing, Iceberg sink writing to `iceberg.streaming.orders` via Polaris REST + S3A. Iceberg / Flink / Kafka connector / S3A jars are **provided** because chango Flink already bundles them in `lib/`.
+A small Java uberjar — uses the **Flink SQL `kafka` connector + JSON format** to consume the topic, registers the Polaris-backed Iceberg catalog as a Flink SQL catalog, and runs a streaming `INSERT INTO iceberg.streaming.orders SELECT ... FROM kafka_orders`. Flink commits a new Iceberg snapshot every checkpoint interval (10 s here).
+
+> **Why Flink SQL instead of DataStream + `createTemporaryView(DataStream<RowData>, Schema)`** — Flink 1.19's `createTemporaryView` cannot derive a typed schema from a `DataStream<RowData>` when the upstream operator is a raw `MapFunction<String, RowData>` (it sees the field as a generic `f0`). The SQL `kafka` connector with `format='json'` handles the deserialization *and* schema declaration in one place, eliminating the issue. Live-verified on the AWS lab cluster.
 
 `pom.xml`
 ```xml
@@ -206,6 +208,24 @@ A small Java uberjar — Kafka source, JSON parsing, Iceberg sink writing to `ic
   <dependency>
     <groupId>org.apache.flink</groupId>
     <artifactId>flink-streaming-java</artifactId>
+    <version>1.19.3</version>
+    <scope>provided</scope>
+  </dependency>
+  <dependency>
+    <groupId>org.apache.flink</groupId>
+    <artifactId>flink-table-api-java-bridge</artifactId>
+    <version>1.19.3</version>
+    <scope>provided</scope>
+  </dependency>
+  <dependency>
+    <groupId>org.apache.flink</groupId>
+    <artifactId>flink-table-planner-loader</artifactId>
+    <version>1.19.3</version>
+    <scope>provided</scope>
+  </dependency>
+  <dependency>
+    <groupId>org.apache.flink</groupId>
+    <artifactId>flink-table-runtime</artifactId>
     <version>1.19.3</version>
     <scope>provided</scope>
   </dependency>
@@ -239,65 +259,28 @@ A small Java uberjar — Kafka source, JSON parsing, Iceberg sink writing to `ic
 ```java
 package com.chango.test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connector.kafka.source.KafkaSource;
-import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
-import org.apache.flink.table.data.GenericRowData;
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
-import org.apache.flink.types.RowKind;
-
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 
 public class OrdersStream {
 
     public static void main(String[] args) throws Exception {
-        String bootstrap     = req(args, "--bootstrap");
-        String topic         = req(args, "--topic");
-        String restUri       = req(args, "--polaris-rest");
-        String credential    = req(args, "--polaris-cred");
-        String warehouse     = req(args, "--warehouse");
-        String s3Endpoint    = req(args, "--s3-endpoint");
-        String s3Ak          = req(args, "--s3-ak");
-        String s3Sk          = req(args, "--s3-sk");
-        String submittingUser= req(args, "--user");        // for chango-flink-authz
+        String bootstrap  = req(args, "--bootstrap");
+        String topic      = req(args, "--topic");
+        String restUri    = req(args, "--polaris-rest");
+        String credential = req(args, "--polaris-cred");
+        String warehouse  = req(args, "--warehouse");
+        String s3Endpoint = req(args, "--s3-endpoint");
+        String s3Ak       = req(args, "--s3-ak");
+        String s3Sk       = req(args, "--s3-sk");
 
-        StreamExecutionEnvironment env =
-                StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(10_000);  // commit a new Iceberg snapshot every 10s.
-        env.getConfig().setGlobalJobParameters(
-                org.apache.flink.api.java.utils.ParameterTool.fromArgs(args));
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(10_000); // Iceberg sink commits on every checkpoint
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(env,
+                EnvironmentSettings.newInstance().inStreamingMode().build());
 
-        // The chango-flink-authz plugin reads the submitting user from this key.
-        env.getConfig().setGlobalJobParameters(
-                org.apache.flink.api.java.utils.ParameterTool.fromMap(
-                        java.util.Map.of("chango.authz.user", submittingUser)));
-
-        KafkaSource<String> source = KafkaSource.<String>builder()
-                .setBootstrapServers(bootstrap)
-                .setTopics(topic)
-                .setGroupId("orders-stream-" + submittingUser)
-                .setStartingOffsets(OffsetsInitializer.earliest())
-                .setValueOnlyDeserializer(new SimpleStringSchema())
-                .build();
-
-        DataStream<String> raw = env.fromSource(
-                source, WatermarkStrategy.noWatermarks(), "kafka-orders.raw");
-
-        DataStream<RowData> rows = raw.map(new com.chango.test.JsonToRow());
-
-        StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
-
-        // Register the Polaris-backed Iceberg catalog identically to the
-        // Phase 2 Spark setup; `chango-flink-authz` intercepts every read +
-        // write the catalog issues.
+        // Polaris REST Iceberg catalog — STS off, static S3 keys.
         tEnv.executeSql(
             "CREATE CATALOG iceberg WITH (" +
             "  'type'='iceberg'," +
@@ -307,15 +290,13 @@ public class OrdersStream {
             "  'credential'='" + credential + "'," +
             "  'scope'='PRINCIPAL_ROLE:ALL'," +
             "  'header.X-Iceberg-Access-Delegation'=''," +
-            "  'rest.access-delegation'='none'," +
             "  'io-impl'='org.apache.iceberg.aws.s3.S3FileIO'," +
             "  's3.endpoint'='" + s3Endpoint + "'," +
             "  's3.access-key-id'='" + s3Ak + "'," +
             "  's3.secret-access-key'='" + s3Sk + "'," +
             "  's3.path-style-access'='true'," +
             "  's3.region'='us-east-1'" +
-            ")"
-        );
+            ")");
         tEnv.executeSql("USE CATALOG iceberg");
         tEnv.executeSql("CREATE DATABASE IF NOT EXISTS streaming");
         tEnv.executeSql(
@@ -325,23 +306,34 @@ public class OrdersStream {
             "  country     STRING," +
             "  total       DECIMAL(12,2)," +
             "  ts          TIMESTAMP_LTZ(6)" +
-            ") PARTITIONED BY (country)"
-        );
+            ") PARTITIONED BY (country)");
 
-        tEnv.createTemporaryView("rows", rows,
-                org.apache.flink.table.api.Schema.newBuilder()
-                        .column("order_id",    "BIGINT")
-                        .column("customer_id", "BIGINT")
-                        .column("country",     "STRING")
-                        .column("total",       "DECIMAL(12,2)")
-                        .column("ts",          "TIMESTAMP_LTZ(6)")
-                        .build());
+        // Kafka source — Flink SQL connector handles JSON deserialization
+        // AND schema declaration in one place. No DataStream<RowData> +
+        // createTemporaryView dance, no schema-inference traps.
+        tEnv.executeSql(
+            "CREATE TEMPORARY TABLE kafka_orders (" +
+            "  order_id    BIGINT," +
+            "  customer_id BIGINT," +
+            "  country     STRING," +
+            "  total       DECIMAL(12,2)," +
+            "  ts          TIMESTAMP_LTZ(6)" +
+            ") WITH (" +
+            "  'connector'='kafka'," +
+            "  'topic'='" + topic + "'," +
+            "  'properties.bootstrap.servers'='" + bootstrap + "'," +
+            "  'properties.group.id'='orders-stream'," +
+            "  'scan.startup.mode'='earliest-offset'," +
+            "  'format'='json'," +
+            "  'json.timestamp-format.standard'='ISO-8601'" +
+            ")");
 
+        // Streaming INSERT — Flink submits the job graph and returns; the
+        // JobManager keeps the consumer running and commits Iceberg snapshots
+        // on every 10 s checkpoint.
         tEnv.executeSql(
             "INSERT INTO iceberg.streaming.orders " +
-            "SELECT order_id, customer_id, country, total, ts FROM rows");
-
-        env.execute("orders-stream-" + submittingUser);
+            "SELECT order_id, customer_id, country, total, ts FROM kafka_orders");
     }
 
     private static String req(String[] args, String key) {
@@ -352,38 +344,7 @@ public class OrdersStream {
 }
 ```
 
-`JsonToRow.java`
-```java
-package com.chango.test;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.table.data.DecimalData;
-import org.apache.flink.table.data.GenericRowData;
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
-import org.apache.flink.table.data.TimestampData;
-
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-
-public class JsonToRow implements MapFunction<String, RowData> {
-    private static final ObjectMapper M = new ObjectMapper();
-
-    @Override
-    public RowData map(String json) throws Exception {
-        JsonNode n = M.readTree(json);
-        GenericRowData r = new GenericRowData(5);
-        r.setField(0, n.get("order_id").asLong());
-        r.setField(1, n.get("customer_id").asLong());
-        r.setField(2, StringData.fromString(n.get("country").asText()));
-        r.setField(3, DecimalData.fromBigDecimal(new BigDecimal(n.get("total").asText()), 12, 2));
-        r.setField(4, TimestampData.fromInstant(OffsetDateTime.parse(n.get("ts").asText()).toInstant()));
-        return r;
-    }
-}
-```
+> The `--user` parameter shown in earlier drafts of this tutorial belonged to a `chango-flink-authz` `chango.authz.user` global-parameter wiring. The current plugin reads the submitting user from the Flink submission context — no in-job wiring needed.
 
 Build the uberjar (Maven shade) the same way Phase 2 does — `mvn package` yields `target/orders-stream-1.0.0.jar`.
 
@@ -451,21 +412,22 @@ curl -sS -X POST http://$ONTUL_HOST:$ONTUL_PORT/admin/iam/groups/flink-writers/p
 Run from any host that has the Flink CLI binary — chango Flink's JobManager install dir ships one:
 
 ```bash
-ssh chango-n1 'sudo -u flink bash -lc "
-/opt/components/flink-main-jobmanager-1/bin/flink run \
-  --jobmanager '$JM_HOST:$JM_PORT' \
-  --detached \
-  /tmp/orders-stream-1.0.0.jar \
-    --bootstrap     '$BOOTSTRAP' \
-    --topic         orders.raw \
-    --polaris-rest  '$POLARIS_REST' \
-    --polaris-cred  '$POLARIS_CRED' \
-    --warehouse     lakehouse \
-    --s3-endpoint   '$SS_ENDPOINT' \
-    --s3-ak         '$SS_AK' \
-    --s3-sk         '$SS_SK' \
-    --user          flink-streamer
-"'
+ssh chango-n1 'sudo -u flink env JAVA_HOME=/opt/openlogic-openjdk-17.0.7+7-linux-x64 \
+    PATH=/opt/openlogic-openjdk-17.0.7+7-linux-x64/bin:/usr/bin \
+  /opt/components/flink-main-jobmanager-1/bin/flink run \
+    --jobmanager '$JM_HOST:$JM_PORT' \
+    --detached \
+    --class com.chango.test.OrdersStream \
+    /tmp/orders-stream-1.0.0.jar \
+      --bootstrap     '$BOOTSTRAP' \
+      --topic         orders.raw \
+      --polaris-rest  '$POLARIS_REST' \
+      --polaris-cred  '$POLARIS_CRED' \
+      --warehouse     lakehouse \
+      --s3-endpoint   '$SS_ENDPOINT' \
+      --s3-ak         '$SS_AK' \
+      --s3-sk         '$SS_SK'
+'
 # Job has been submitted with JobID 86fa5e3b…
 ```
 
@@ -498,11 +460,18 @@ curl -sS -X POST -H "Authorization: Bearer $TOK" $BASE/admin/api/trino/trino-mai
 
 trino --server $COORD_HOST:$COORD_PORT --user admin --catalog iceberg \
   --execute 'SELECT order_id, country, total FROM streaming.orders ORDER BY order_id'
-#  order_id | country | total
-# ----------+---------+--------
-#      1001 | KR      |  12.50
-#      1002 | JP      |  33.00
-#      1003 | KR      |  58.20
+# count = 3
+#
+# country | c | s
+# --------+---+-------
+# JP      | 1 | 33.00
+# KR      | 2 | 70.70
+#
+# order_id | customer_id | country | total
+# ---------+-------------+---------+-------
+#     1001 |          42 | KR      | 12.50
+#     1002 |          17 | JP      | 33.00
+#     1003 |          42 | KR      | 58.20
 ```
 
 Three rows — one per Kafka message, partitioned by country, ready for ad-hoc SQL.
@@ -563,6 +532,35 @@ curl -sS -X POST -H "Authorization: Bearer $TOK" $BASE/admin/api/kafka/kafka-mai
 ```
 
 ## Troubleshooting
+
+- **`Neither a 'Main-Class', nor a 'program-class' entry was found in the jar file`** — Maven Shade did not write a `Main-Class` into the uberjar's manifest. Two fixes work; pick one:
+    - Pass `--class com.chango.test.OrdersStream` to `flink run` (recommended — keeps the jar reusable across entry points).
+    - Add a `ManifestResourceTransformer` to the shade plugin config in `pom.xml`:
+
+        ```xml
+        <configuration>
+          <transformers>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+              <mainClass>com.chango.test.OrdersStream</mainClass>
+            </transformer>
+          </transformers>
+        </configuration>
+        ```
+
+- **Iceberg sink throws `java.lang.ClassNotFoundException: org.apache.hadoop.conf.Configuration`** — chango Flink's `lib/` ships `iceberg-flink-runtime` and `iceberg-aws-bundle` but **not** `hadoop-client-runtime` / `hadoop-client-api`. `iceberg-flink-runtime` requires hadoop's `Configuration` class at runtime. Until the chango installer emits them by default, copy the two jars from a chango Spark install (which already has them) into Flink's `lib/` on every JobManager + TaskManager host and restart:
+
+    ```bash
+    for INST in jobmanager taskmanager; do
+      sudo cp /opt/components/spark-livy-master-1/jars/hadoop-client-runtime-3.3.4.jar \
+              /opt/components/flink-main-$INST-1/lib/
+      sudo cp /opt/components/spark-livy-master-1/jars/hadoop-client-api-3.3.4.jar \
+              /opt/components/flink-main-$INST-1/lib/
+      sudo chown flink:flink /opt/components/flink-main-$INST-1/lib/hadoop-client-*.jar
+    done
+    # restart flink-main via chango admin
+    ```
+
+- **`createTemporaryView(rows, Schema)` fails with `Unable to find a field named 'order_id' in the physical data type derived from the given type information` (available fields: `[f0]`)** — `DataStream<RowData>` produced by a raw `MapFunction<String, RowData>` does not carry field-name type information; Flink 1.19's `SchemaTranslator` then refuses the declared schema. The recipe in §3 sidesteps this entirely by reading the topic through the SQL `kafka` connector with `format='json'` — the connector deserializes AND declares the schema in one place.
 
 - **JobManager UI shows `0 TaskManagers`** — TaskManager couldn't reach the JobManager's RPC port. Check `/admin/api/flink/flink-main | jq '.instances[].host'` resolves on the TaskManager host (`/etc/hosts` from the chango hosts-sync); the chango installer sets `jobmanager.rpc.address` to the JM's FQHN.
 - **Iceberg sink throws `Failed to refresh token …`** — the `--polaris-cred` value (`client_id:client_secret`) is wrong. The credential comes from `GET /admin/api/polaris/polaris-main/credentials` and must be re-fetched after a Polaris re-install.
