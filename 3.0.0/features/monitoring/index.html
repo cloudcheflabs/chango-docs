@@ -1171,6 +1171,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="What the admin UI shows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cluster-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster Dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-cluster-pages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-cluster pages
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1940,24 +1968,55 @@
 </table>
 <p>For components whose pid file lives in a 0700 directory (Trino's <code>var/var/run/launcher.pid</code>, ZooKeeper sometimes), the NM falls back to <code>sudo cat</code> to read it. The pid that ends up in the metric record is the one the chango master tracks for stop / restart.</p>
 <h2 id="how-the-data-flows">How the data flows</h2>
+<p>Every master runs the <code>ComponentMetricsCollector</code> thread on a fixed interval. What it does depends on whether the master is the elected leader:</p>
 <ol>
-<li>The leader (and only the leader) runs the <code>ComponentMetricsCollector</code> thread on a fixed interval.</li>
-<li>For each managed <code>ComponentInstance</code>, the leader resolves which NM hosts it and sends <code>OpCode.COMPONENT_METRICS_REQ</code> over the internal NIO protocol.</li>
-<li>The NM runs <code>ps</code> against the instance's pid and returns <code>{ cpu, memRss, alive }</code> as JSON.</li>
-<li>The leader appends a <code>Sample</code> (<code>ts, instanceId, cpu, memRss</code>) to an in-memory circular buffer. Older samples past <code>chango.metrics.retention.seconds</code> (default 3600 s) are evicted.</li>
-<li>The admin UI's per-cluster page polls <code>/admin/api/&lt;component&gt;/&lt;clusterId&gt;/metrics</code> every 5 s and renders the recharts line chart from the returned series.</li>
+<li><strong>Leader path</strong> — for each managed <code>ComponentInstance</code>, the leader resolves which NM hosts it and sends <code>OpCode.COMPONENT_METRICS_REQ</code> over the internal NIO protocol.</li>
+<li><strong>NM response</strong> — the NM runs <code>ps</code> against the instance's pid and returns <code>{ cpu, memRss, alive }</code> as JSON.</li>
+<li><strong>Leader ring</strong> — the leader appends a <code>Sample</code> (<code>ts, instanceId, cpu, memRss</code>) to an in-memory circular buffer (<code>localHistory</code>). Older samples past <code>chango.metrics.retention.seconds</code> (default 3600 s) are evicted.</li>
+<li><strong>Follower path</strong> — every non-leader master calls the leader over <code>OpCode.COMPONENT_METRICS_HISTORY_REQ</code> and replaces its own <code>leaderHistory</code> ring with the leader's snapshot. This means a follower can serve the per-cluster metrics endpoint without having to re-poll any NM — and after a leader failover, the new leader's own samples come up within one interval while the previous leader's snapshot is still being served on the surviving followers.</li>
+<li><strong>Admin UI</strong> polls <code>/admin/api/&lt;component&gt;/&lt;clusterId&gt;/metrics</code> (per-cluster line charts) and <code>/admin/api/monitoring/hosts</code> (Dashboard host roll-up) every 5 s.</li>
 </ol>
-<p>Followers do not collect — they do not have authoritative inventory. After a leader change the new leader's history is empty for the first interval, then populates.</p>
+<p>The ring that backs <code>history(ids)</code> is <code>localHistory</code> on the leader and <code>leaderHistory</code> on followers — admin endpoints never see an empty answer just because the call landed on the wrong master.</p>
 <h2 id="in-memory-only">In-memory only</h2>
 <p>The metric history is held only in the leader's JVM heap. A master restart resets the chart back to zero. There is <strong>no on-disk persistence</strong> of metric samples and no external Prometheus shipping (out of the box). This is a deliberate tradeoff — metric stores are an entirely separate operational layer, and most teams already have one. What chango provides is the admin-UI dashboard.</p>
 <p>To ship metrics to a real time-series database, run a node_exporter / process_exporter alongside chango and scrape per host. The chango master also exposes the same JSON the UI uses, so a small adapter can scrape <code>/admin/api/.../metrics</code> directly.</p>
 <h2 id="what-the-admin-ui-shows">What the admin UI shows</h2>
+<h3 id="cluster-dashboard">Cluster Dashboard</h3>
+<p>The Dashboard ("Cluster Dashboard" sidebar entry) is the single landing page for the chango control plane's own usage:</p>
+<ul>
+<li><strong>Stat cards</strong> — master count, NM count, average daemon CPU, total daemon heap in use.</li>
+<li><strong>Hosts section</strong> — one collapsible card per host with:<ul>
+<li>role chips (<code>MASTER</code> / <code>LEADER</code> / <code>NM</code>)</li>
+<li>OS-wide 1-minute load average and core count, host physical memory used / total</li>
+<li>sum of CPU% and resident memory across every RUNNING chango daemon on the host</li>
+<li>sum of CPU% and resident memory across every RUNNING component instance pinned to the host</li>
+</ul>
+</li>
+<li><strong>Expand the card</strong> to see the breakdown: per-daemon table (master/NM with reachable / ready / leader status, heap usage) and per-instance component table (component type, cluster id, instance id, role, CPU%, mem RSS — sorted descending by CPU).</li>
+<li><strong>Daemon line charts</strong> under the host section render the last hour of CPU% and heap in MB per daemon (the same series chango has always shown).</li>
+</ul>
+<p>The host roll-up is served by <code>GET /admin/api/monitoring/hosts</code>. The payload shape:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">[</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="p">{</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">&quot;host&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;172.31.11.169&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nt">&quot;hasMaster&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nt">&quot;hasNodeManager&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nt">&quot;isLeader&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">&quot;ready&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">&quot;daemons&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;...&quot;</span><span class="p">,</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="s2">&quot;master&quot;</span><span class="p">,</span><span class="nt">&quot;cpu&quot;</span><span class="p">:</span><span class="mf">0.3</span><span class="p">,</span><span class="nt">&quot;memUsed&quot;</span><span class="p">:</span><span class="err">...</span><span class="p">,</span><span class="nt">&quot;memMax&quot;</span><span class="p">:</span><span class="err">...</span><span class="p">},</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">],</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="nt">&quot;os&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;load1m&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.13</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;cpuCores&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;memTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8042622976</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;memFree&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1825447936</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nt">&quot;componentTotals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;instances&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;cpu&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;memRss&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2932228096</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nt">&quot;components&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;instanceId&quot;</span><span class="p">:</span><span class="s2">&quot;trino-v-coordinator-1&quot;</span><span class="p">,</span><span class="nt">&quot;componentType&quot;</span><span class="p">:</span><span class="s2">&quot;trino&quot;</span><span class="p">,</span><span class="nt">&quot;clusterId&quot;</span><span class="p">:</span><span class="s2">&quot;trino-v&quot;</span><span class="p">,</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="s2">&quot;coordinator&quot;</span><span class="p">,</span><span class="nt">&quot;cpu&quot;</span><span class="p">:</span><span class="mf">3.6</span><span class="p">,</span><span class="nt">&quot;memRss&quot;</span><span class="p">:</span><span class="mi">1283457024</span><span class="p">,</span><span class="nt">&quot;ts&quot;</span><span class="p">:</span><span class="mi">1234567890</span><span class="p">},</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">]</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">]</span>
+</code></pre></div>
+<p>OS metrics (<code>os.load1m / cpuCores / memTotal / memFree</code>) are sourced from the NM's <code>NodeMetrics.local()</code> response, which now reports the host's <code>OperatingSystemMXBean</code> values in addition to the JVM heap and process CPU. When a host's NM jar is older than the master's, the OS row falls back to <code>0</code> — refresh the NM's <code>chango-common.jar</code> to repopulate.</p>
+<h3 id="per-cluster-pages">Per-cluster pages</h3>
 <p>Per cluster page (Trino cluster, Spark cluster, …) carries two charts:</p>
 <ul>
 <li><strong>CPU%</strong> — one line per instance in the cluster, last hour.</li>
 <li><strong>Memory (RSS, MB)</strong> — one line per instance in the cluster, last hour.</li>
 </ul>
-<p>Per chango-cluster page also shows node-level CPU / memory across every NM in the fleet.</p>
 <h2 id="process-health">Process health</h2>
 <p>Beyond CPU / memory, every component instance carries a textual status (<code>STARTING / RUNNING / STOPPING / STOPPED / ERROR</code>). Chango derives that from:</p>
 <ul>
