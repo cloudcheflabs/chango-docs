@@ -1,0 +1,2697 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-6-kiok-livy-spark-iceberg-polaris/">
+      
+      
+        <link rel="prev" href="../phase-5-kafka-flink-iceberg/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../images/logo/chango-logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Phase 6 — kiok native livy task + Polaris - Chango</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#phase-6-kiok-dag-native-type-livy-spark-iceberg-via-polaris-rest" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Chango" class="md-header__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/logo/chango-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Chango
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Phase 6 — kiok native livy task + Polaris
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../installation/" class="md-tabs__link">
+          
+  
+  
+  Installation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/control-plane/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../components/catalog/" class="md-tabs__link">
+          
+  
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../operations/cluster-operations/" class="md-tabs__link">
+          
+  
+  
+  Operations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Chango" class="md-nav__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/logo/chango-logo.png" alt="logo">
+
+    </a>
+    Chango
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chango Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/component-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/internal-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internal Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Installation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/node-preparation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Preparation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/manual/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manual Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/automated/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Install (Ansible)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Docker Cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/control-plane/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control Plane
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/topology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Topology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/iam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Identity & Access Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/admin-password-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin Password Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/kms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Encryption & Key Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/port-allocator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Port Allocator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/hosts-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hosts Sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/ui-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/monitoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring & Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Restore
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/versions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Versions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/cluster-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/component-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/nginx-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nginx Reverse Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/upgrade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-0-foundation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 — Foundation Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-1-trino-iceberg-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 — Trino + Iceberg + RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-2-spark-iceberg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2 — Spark + Iceberg
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-2b-spark-via-livy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2b — Spark via Livy REST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-3-kiok-spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3 — kiok DAG (SSH to Spark master)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-3b-kiok-via-livy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3b — kiok DAG via Livy REST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-4-iceberg-maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 — Iceberg table maintenance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-5-kafka-flink-iceberg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5 — Kafka + Flink + Iceberg streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 6 — kiok native livy task + Polaris
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 6 — kiok native livy task + Polaris
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-will-end-up-with" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you will end up with
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prereqs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prereqs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-sanity-check-the-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Sanity-check the catalog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-build-the-uberjar-java" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Build the uberjar (Java)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-stage-the-pyspark-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Stage the PySpark script
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-build-the-kiok-dag-bundle-four-variants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Build the kiok DAG bundle — four variants
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Build the kiok DAG bundle — four variants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-yaml-srcmainyamllivy_iceberg_yamlyaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 YAML — src/main/yaml/livy_iceberg_yaml.yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-python-sdk-srcmainpythonlivy_iceberg_python_dagpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Python SDK — src/main/python/livy_iceberg_python_dag.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-java-sdk-srcmainjavacomcloudcheflabsicebergdemolivyicebergjavadagjava" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Java SDK — src/main/java/com/cloudcheflabs/iceberg/demo/LivyIcebergJavaDag.java
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-shell-dag-srcmainscriptlivy_iceberg_shellsh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Shell DAG — src/main/script/livy_iceberg_shell.sh
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-place-holder-substitution-bundle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Place-holder substitution + bundle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-trigger-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Trigger + verify
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-cross-engine-verify-trino-ontul" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Cross-engine verify (Trino + Ontul)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-cluster-deploy-mode-for-the-java-variant-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Cluster deploy mode for the Java variant (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s3-401-the-aws-access-key-id-you-provided-does-not-exist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S3 401 The AWS Access Key Id you provided does not exist
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polaris-forbidden-not-authorized-for-op-create_table_direct_with_write_delegation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Polaris Forbidden ... not authorized for op CREATE_TABLE_DIRECT_WITH_WRITE_DELEGATION
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#livy-rejected-reason-blacklisted-configuration-values-in-session-config-sparksubmitdeploymode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Livy Rejected, Reason: Blacklisted configuration values in session config: spark.submit.deployMode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ontul-could-not-initialize-class-orgapachearrowmemoryutilmemoryutil" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ontul Could not initialize class org.apache.arrow.memory.util.MemoryUtil
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cluster-mode-driver-bootstrap-s3ajar-403-forbidden" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster-mode driver bootstrap s3a://...jar : 403 Forbidden
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-6-exit-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6 exit checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-changed-vs-phase-3b" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What changed vs Phase 3b
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="phase-6-kiok-dag-native-type-livy-spark-iceberg-via-polaris-rest">Phase 6 — kiok DAG (native <code>type: livy</code>) → Spark → Iceberg via Polaris REST</h1>
+<p>This phase verifies the full end-to-end path <strong>kiok DAG → Livy → Spark → Iceberg (Polaris REST catalog) → ShannonStore S3</strong>. It uses kiok 1.0.0's native <code>type: livy</code> task (no <code>shell</code> + <code>curl</code> workaround) and writes the same Spark job four ways — YAML, Python SDK, Java SDK with a cluster-mode uberjar, and a shell-task fallback. All four targets the same Polaris catalog that Ontul also reads (cross-engine verify).</p>
+<blockquote>
+<p>Why this phase, given Phase 3b already exists. Phase 3b was written before kiok shipped the native <code>type: livy</code> task — it wraps everything in <code>type: shell</code> + <code>curl</code>. Phase 6 uses the typed task directly, plus shows the cluster-mode-uberjar variant that Phase 3b omits.</p>
+</blockquote>
+<h2 id="what-you-will-end-up-with">What you will end up with</h2>
+<ul>
+<li>One kiok DAG bundle that ships <strong>four</strong> DAGs (YAML, Python, Java, Shell) — each runs the same Spark job through Livy and writes to the same Iceberg table</li>
+<li>A Java uberjar (~2 KB) staged in <code>s3a://&lt;bucket&gt;/jars/...</code>, submitted in <strong>cluster deploy mode</strong></li>
+<li>A PySpark script staged in <code>s3a://&lt;bucket&gt;/scripts/...</code>, run in client deploy mode (PySpark cannot run cluster mode on Spark standalone)</li>
+<li>Iceberg writes landing under <code>s3://&lt;polaris-warehouse&gt;/&lt;ns&gt;/&lt;table&gt;-&lt;uuid&gt;/</code> (default base location from the Polaris catalog)</li>
+<li>Trino + Ontul both read the resulting table — cross-engine verification</li>
+</ul>
+<h2 id="prereqs">Prereqs</h2>
+<p>Complete:</p>
+<ul>
+<li><a href="../phase-0-foundation/">Phase 0 — Foundation</a> — Ontul + PostgreSQL + ShannonStore + Polaris + chango admin</li>
+<li><a href="../phase-1-trino-iceberg-rbac/">Phase 1 — Trino + Iceberg + RBAC</a> — Polaris catalog <code>lakehouse</code> (or your name) created with <code>stsUnavailable: true</code>, Ontul iceberg catalog registered, Trino iceberg catalog registered</li>
+</ul>
+<p>Plus from chango admin:</p>
+<ul>
+<li>A Spark cluster installed <strong>with Livy paired</strong> — chango's Spark install accepts <code>livyNodes: [...]</code> (one entry per Livy server). The Livy host must be co-located with at least one Spark master so Livy can fork <code>spark-submit</code>.</li>
+<li>A kiok cluster installed and running (default admin credentials rotated; see <a href="../phase-0-foundation/">Phase 0</a>).</li>
+<li>ShannonStore S3 access key + secret active (verify with <code>aws --endpoint-url &lt;ss-api&gt; s3 ls</code>).</li>
+</ul>
+<h2 id="variables">Variables</h2>
+<p>Shell prelude — paste once per terminal session:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># chango admin</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">BASE</span><span class="o">=</span>http://&lt;chango-master&gt;:8080
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_USER</span><span class="o">=</span>admin
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_PW</span><span class="o">=</span><span class="s1">&#39;&lt;your chango admin password&gt;&#39;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;username\&quot;:\&quot;</span><span class="nv">$CHANGO_USER</span><span class="s2">\&quot;,\&quot;password\&quot;:\&quot;</span><span class="nv">$CHANGO_PW</span><span class="s2">\&quot;}&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># kiok admin (JWT)</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nb">export</span><span class="w"> </span><span class="nv">KIOK</span><span class="o">=</span>http://&lt;kiok-master&gt;:18400
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="nb">export</span><span class="w"> </span><span class="nv">KIOK_USER</span><span class="o">=</span>admin
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="nb">export</span><span class="w"> </span><span class="nv">KIOK_PW</span><span class="o">=</span><span class="s1">&#39;&lt;your kiok admin password&gt;&#39;</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="nb">export</span><span class="w"> </span><span class="nv">KTOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$KIOK</span>/api/v1/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;user\&quot;:\&quot;</span><span class="nv">$KIOK_USER</span><span class="s2">\&quot;,\&quot;password\&quot;:\&quot;</span><span class="nv">$KIOK_PW</span><span class="s2">\&quot;}&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1"># Livy endpoint (the chango-provisioned Livy server)</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="nb">export</span><span class="w"> </span><span class="nv">LIVY_URL</span><span class="o">=</span>http://&lt;spark-master-host&gt;:30000
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="c1"># Polaris REST catalog (chango-provisioned)</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="nb">export</span><span class="w"> </span><span class="nv">POLARIS_REST</span><span class="o">=</span>http://&lt;polaris-host&gt;:30000/api/catalog
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="nb">export</span><span class="w"> </span><span class="nv">POLARIS_WAREHOUSE</span><span class="o">=</span>lakehouse
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="nb">export</span><span class="w"> </span><span class="nv">POLARIS_CID</span><span class="o">=</span>polaris-root
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="nb">export</span><span class="w"> </span><span class="nv">POLARIS_CS</span><span class="o">=</span>&lt;polaris<span class="w"> </span>client_secret<span class="w"> </span>from<span class="w"> </span>Phase<span class="w"> </span><span class="m">1</span>&gt;
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="c1"># ShannonStore S3</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SS_ENDPOINT</span><span class="o">=</span>http://&lt;ss-api-host&gt;:8080
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SS_REGION</span><span class="o">=</span>us-east-1
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SS_BUCKET</span><span class="o">=</span>chango-iceberg<span class="w">            </span><span class="c1"># any bucket you own</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SS_AK</span><span class="o">=</span>&lt;live<span class="w"> </span>access<span class="w"> </span>key&gt;
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SS_SK</span><span class="o">=</span>&lt;live<span class="w"> </span>secret<span class="w"> </span>key&gt;
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="c1"># Working bucket layout</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="nb">export</span><span class="w"> </span><span class="nv">JAR_S3</span><span class="o">=</span>s3a://<span class="nv">$SS_BUCKET</span>/jars/iceberg-demo-java-1.0.0.jar
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PY_S3</span><span class="o">=</span>s3a://<span class="nv">$SS_BUCKET</span>/scripts/iceberg_polaris.py
+</code></pre></div>
+<blockquote>
+<p>Bucket and key naming — pick whatever fits your environment. The values above are placeholders that match the rest of the doc.</p>
+</blockquote>
+<h2 id="1-sanity-check-the-catalog">1. Sanity-check the catalog</h2>
+<p>Confirm Polaris returns the <strong>live</strong> S3 keys for the warehouse (vending), and that the Ontul iceberg catalog points at the same warehouse:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Polaris OAuth token</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PTOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$POLARIS_REST</span><span class="s2">/v1/oauth/tokens&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/x-www-form-urlencoded&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>--data-urlencode<span class="w"> </span><span class="nv">grant_type</span><span class="o">=</span>client_credentials<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span>--data-urlencode<span class="w"> </span><span class="nv">client_id</span><span class="o">=</span><span class="nv">$POLARIS_CID</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span>--data-urlencode<span class="w"> </span><span class="nv">client_secret</span><span class="o">=</span><span class="nv">$POLARIS_CS</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span>--data-urlencode<span class="w"> </span><span class="nv">scope</span><span class="o">=</span>PRINCIPAL_ROLE:ALL<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.access_token<span class="k">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># Vended defaults — s3.access-key-id MUST be the live key, not a stale one</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$PTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="s2">&quot;</span><span class="nv">$POLARIS_REST</span><span class="s2">/v1/config?warehouse=</span><span class="nv">$POLARIS_WAREHOUSE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.defaults
+</code></pre></div>
+<blockquote>
+<p>Trap — if <code>s3.access-key-id</code> here is the <strong>old</strong> key (from before a ShannonStore re-install), every Iceberg client will get <code>401 The AWS Access Key Id you provided does not exist</code>. Fix path is in the <a href="#9-troubleshooting">Troubleshooting</a> section at the bottom — the Polaris JVM holds the keys as <code>-Daws.accessKeyId</code> system properties pinned at install time, so updating the catalog row alone is not enough.</p>
+</blockquote>
+<h2 id="2-build-the-uberjar-java">2. Build the uberjar (Java)</h2>
+<p><code>build.gradle</code> — Gradle Shadow plugin, <code>compileOnly</code> Spark + Iceberg so the jar carries only your business class:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">plugins</span><span class="w"> </span><span class="o">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="n">id</span><span class="w"> </span><span class="s1">&#39;java&#39;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="n">id</span><span class="w"> </span><span class="s1">&#39;com.gradleup.shadow&#39;</span><span class="w"> </span><span class="n">version</span><span class="w"> </span><span class="s1">&#39;8.3.6&#39;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="o">}</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;com.cloudcheflabs.sample&#39;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;1.0.0&#39;</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">java</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="n">toolchain</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="n">languageVersion</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JavaLanguageVersion</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="mi">11</span><span class="o">)</span><span class="w"> </span><span class="o">}</span><span class="w"> </span><span class="o">}</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">repositories</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="n">mavenCentral</span><span class="o">()</span><span class="w"> </span><span class="o">}</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="n">compileOnly</span><span class="w"> </span><span class="s1">&#39;org.apache.spark:spark-sql_2.12:3.5.8&#39;</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span><span class="n">compileOnly</span><span class="w"> </span><span class="s1">&#39;org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.1&#39;</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="o">}</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">shadowJar</span><span class="w"> </span><span class="o">{</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="n">archiveBaseName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;iceberg-demo-java&#39;</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">  </span><span class="n">archiveClassifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;&#39;</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">  </span><span class="n">manifest</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="n">attributes</span><span class="w"> </span><span class="s1">&#39;Main-Class&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;com.cloudcheflabs.sample.IcebergDemoJob&#39;</span><span class="w"> </span><span class="o">}</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="o">}</span>
+</code></pre></div>
+<p><code>src/main/java/com/cloudcheflabs/sample/IcebergDemoJob.java</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">com.cloudcheflabs.sample</span><span class="p">;</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.apache.spark.sql.Row</span><span class="p">;</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.apache.spark.sql.SparkSession</span><span class="p">;</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="cm">/** Hard-coded job — all catalog wiring is provided at submit time via --conf. */</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">IcebergDemoJob</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">        </span><span class="n">SparkSession</span><span class="w"> </span><span class="n">spark</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SparkSession</span><span class="p">.</span><span class="na">builder</span><span class="p">()</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">                </span><span class="p">.</span><span class="na">appName</span><span class="p">(</span><span class="s">&quot;kiok-livy-iceberg-polaris-java&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">                </span><span class="p">.</span><span class="na">getOrCreate</span><span class="p">();</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;##KIOK## SparkSession built&quot;</span><span class="p">);</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">        </span><span class="n">spark</span><span class="p">.</span><span class="na">sql</span><span class="p">(</span><span class="s">&quot;CREATE NAMESPACE IF NOT EXISTS lakehouse.maint&quot;</span><span class="p">);</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">        </span><span class="n">spark</span><span class="p">.</span><span class="na">sql</span><span class="p">(</span><span class="s">&quot;DROP TABLE IF EXISTS lakehouse.maint.java_orders&quot;</span><span class="p">);</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">        </span><span class="n">spark</span><span class="p">.</span><span class="na">sql</span><span class="p">(</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">            </span><span class="s">&quot;CREATE TABLE lakehouse.maint.java_orders (&quot;</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">          </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;  id INT, amount DOUBLE, region STRING&quot;</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">          </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;) USING iceberg&quot;</span><span class="p">);</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;##KIOK## table created&quot;</span><span class="p">);</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">            </span><span class="n">spark</span><span class="p">.</span><span class="na">sql</span><span class="p">(</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">                </span><span class="s">&quot;INSERT INTO lakehouse.maint.java_orders VALUES &quot;</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;(&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;, &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1.5</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;, &#39;KR&#39;), &quot;</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;(&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;, &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1.5</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;, &#39;JP&#39;), &quot;</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;(&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;, &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1.5</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;, &#39;US&#39;)&quot;</span><span class="p">);</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">            </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;##KIOK## INSERT batch &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">));</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spark</span><span class="p">.</span><span class="na">sql</span><span class="p">(</span><span class="s">&quot;SELECT count(*) FROM lakehouse.maint.java_orders&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">                </span><span class="p">.</span><span class="na">collectAsList</span><span class="p">().</span><span class="na">get</span><span class="p">(</span><span class="mi">0</span><span class="p">).</span><span class="na">getLong</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;##KIOK## total rows = &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">total</span><span class="p">);</span>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="w">        </span><span class="n">spark</span><span class="p">.</span><span class="na">stop</span><span class="p">();</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="p">}</span>
+</code></pre></div>
+<p>Build + stage:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>./gradlew<span class="w"> </span>shadowJar
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>aws<span class="w"> </span>--endpoint-url<span class="w"> </span><span class="nv">$SS_ENDPOINT</span><span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span>build/libs/iceberg-demo-java-1.0.0.jar<span class="w">  </span>s3://<span class="nv">$SS_BUCKET</span>/jars/iceberg-demo-java-1.0.0.jar
+</code></pre></div>
+<h2 id="3-stage-the-pyspark-script">3. Stage the PySpark script</h2>
+<p><code>iceberg_polaris.py</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="sd">&quot;&quot;&quot;Same workload as the Java jar, but PySpark — runs in CLIENT deploy mode</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="sd">(PySpark is not supported in cluster deploy mode on Spark standalone).&quot;&quot;&quot;</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SparkSession</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">spark</span> <span class="o">=</span> <span class="p">(</span><span class="n">SparkSession</span><span class="o">.</span><span class="n">builder</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="o">.</span><span class="n">appName</span><span class="p">(</span><span class="s2">&quot;kiok-livy-iceberg-polaris-python&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.extensions&quot;</span><span class="p">,</span> <span class="s2">&quot;org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse&quot;</span><span class="p">,</span> <span class="s2">&quot;org.apache.iceberg.spark.SparkCatalog&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.type&quot;</span><span class="p">,</span> <span class="s2">&quot;rest&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.uri&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;POLARIS_REST&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.warehouse&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;POLARIS_WAREHOUSE&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.credential&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>            <span class="s2">&quot;&lt;POLARIS_CID&gt;:&lt;POLARIS_CS&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.scope&quot;</span><span class="p">,</span> <span class="s2">&quot;PRINCIPAL_ROLE:ALL&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="c1"># STS off — empty header disables Polaris vended-credentials, so Spark uses</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="c1"># the static S3 keys from the catalog properties (or below)</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.header.X-Iceberg-Access-Delegation&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.io-impl&quot;</span><span class="p">,</span> <span class="s2">&quot;org.apache.iceberg.aws.s3.S3FileIO&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.s3.endpoint&quot;</span><span class="p">,</span>        <span class="s2">&quot;&lt;SS_ENDPOINT&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.s3.access-key-id&quot;</span><span class="p">,</span>   <span class="s2">&quot;&lt;SS_AK&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.s3.secret-access-key&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;SS_SK&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.s3.path-style-access&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;spark.sql.catalog.lakehouse.s3.region&quot;</span><span class="p">,</span>          <span class="s2">&quot;&lt;SS_REGION&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>    <span class="o">.</span><span class="n">getOrCreate</span><span class="p">())</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##KIOK## SparkSession built&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">&quot;CREATE NAMESPACE IF NOT EXISTS lakehouse.maint&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">&quot;DROP TABLE IF EXISTS lakehouse.maint.py_orders&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a><span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">&quot;CREATE TABLE lakehouse.maint.py_orders &quot;</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>          <span class="s2">&quot;(id INT, amount DOUBLE, region STRING) USING iceberg&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>    <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;INSERT INTO lakehouse.maint.py_orders VALUES &quot;</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>              <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mf">1.5</span><span class="si">}</span><span class="s2">,&#39;KR&#39;),&quot;</span>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>              <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">2</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="mf">1.5</span><span class="si">}</span><span class="s2">,&#39;JP&#39;),&quot;</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>              <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">3</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="mf">1.5</span><span class="si">}</span><span class="s2">,&#39;US&#39;)&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;##KIOK## INSERT batch </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a><span class="n">total</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">&quot;SELECT count(*) FROM lakehouse.maint.py_orders&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;##KIOK## total rows = </span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a><span class="n">spark</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</code></pre></div>
+<p>Substitute placeholders and upload:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>sed<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;POLARIS_REST&gt;|</span><span class="nv">$POLARIS_REST</span><span class="s2">|&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;POLARIS_WAREHOUSE&gt;|</span><span class="nv">$POLARIS_WAREHOUSE</span><span class="s2">|&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;POLARIS_CID&gt;|</span><span class="nv">$POLARIS_CID</span><span class="s2">|&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;POLARIS_CS&gt;|</span><span class="nv">$POLARIS_CS</span><span class="s2">|&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;SS_ENDPOINT&gt;|</span><span class="nv">$SS_ENDPOINT</span><span class="s2">|&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;SS_AK&gt;|</span><span class="nv">$SS_AK</span><span class="s2">|&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;SS_SK&gt;|</span><span class="nv">$SS_SK</span><span class="s2">|&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;SS_REGION&gt;|</span><span class="nv">$SS_REGION</span><span class="s2">|&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">    </span>iceberg_polaris.py<span class="w"> </span>&gt;<span class="w"> </span>/tmp/iceberg_polaris.rendered.py
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>aws<span class="w"> </span>--endpoint-url<span class="w"> </span><span class="nv">$SS_ENDPOINT</span><span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">    </span>/tmp/iceberg_polaris.rendered.py<span class="w"> </span>s3://<span class="nv">$SS_BUCKET</span>/scripts/iceberg_polaris.py
+</code></pre></div>
+<blockquote>
+<p>Why the placeholders — the script is captured verbatim in your git history; the rendered copy with secrets only lives in S3.</p>
+</blockquote>
+<h2 id="4-build-the-kiok-dag-bundle-four-variants">4. Build the kiok DAG bundle — four variants</h2>
+<p>Layout:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>iceberg-polaris-bundle/
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>├── src/main/yaml/livy_iceberg_yaml.yaml
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>├── src/main/python/livy_iceberg_python_dag.py
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>├── src/main/java/com/cloudcheflabs/iceberg/demo/LivyIcebergJavaDag.java
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>└── src/main/script/livy_iceberg_shell.sh
+</code></pre></div>
+<p>kiok's bundle scanner walks the whole zip and compiles by file extension. Below, each variant produces a distinct DAG id (so all four can coexist in the same bundle).</p>
+<h3 id="41-yaml-srcmainyamllivy_iceberg_yamlyaml">4.1 YAML — <code>src/main/yaml/livy_iceberg_yaml.yaml</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">dag</span><span class="p">:</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">livy-iceberg-polaris-yaml</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">defaultTimeoutMs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">600000</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="nt">tasks</span><span class="p">:</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spark_iceberg</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">livy</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="nt">config</span><span class="p">:</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">      </span><span class="nt">livy.url</span><span class="p">:</span><span class="w">  </span><span class="s">&quot;&lt;LIVY_URL&gt;&quot;</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">      </span><span class="nt">livy.file</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;PY_S3&gt;&quot;</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">      </span><span class="nt">livy.driverMemory</span><span class="p">:</span><span class="w">   </span><span class="s">&quot;768m&quot;</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">      </span><span class="nt">livy.executorMemory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;768m&quot;</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">      </span><span class="nt">livy.pollIntervalMs</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3000&quot;</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">      </span><span class="c1"># When the script self-configures the catalog (as iceberg_polaris.py does),</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">      </span><span class="c1"># leaving livy.conf empty is fine. Below are the s3a fallback creds used by</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">      </span><span class="c1"># Spark&#39;s hadoop client (only required if the script references s3a:// at</span>
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">      </span><span class="c1"># runtime — for the catalog itself the script&#39;s own conf wins).</span>
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="w">      </span><span class="nt">livy.conf</span><span class="p">:</span>
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="w">        </span><span class="nt">spark.hadoop.fs.s3a.endpoint</span><span class="p">:</span><span class="w">               </span><span class="s">&quot;&lt;SS_ENDPOINT&gt;&quot;</span>
+<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="w">        </span><span class="nt">spark.hadoop.fs.s3a.access.key</span><span class="p">:</span><span class="w">             </span><span class="s">&quot;&lt;SS_AK&gt;&quot;</span>
+<a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="w">        </span><span class="nt">spark.hadoop.fs.s3a.secret.key</span><span class="p">:</span><span class="w">             </span><span class="s">&quot;&lt;SS_SK&gt;&quot;</span>
+<a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="w">        </span><span class="nt">spark.hadoop.fs.s3a.path.style.access</span><span class="p">:</span><span class="w">      </span><span class="s">&quot;true&quot;</span>
+<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="w">        </span><span class="nt">spark.hadoop.fs.s3a.connection.ssl.enabled</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;false&quot;</span>
+</code></pre></div>
+<h3 id="42-python-sdk-srcmainpythonlivy_iceberg_python_dagpy">4.2 Python SDK — <code>src/main/python/livy_iceberg_python_dag.py</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">kiok</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dag</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">LIVY</span> <span class="o">=</span> <span class="s2">&quot;&lt;LIVY_URL&gt;&quot;</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">PY_S3</span> <span class="o">=</span> <span class="s2">&quot;&lt;PY_S3&gt;&quot;</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">SS_EP</span> <span class="o">=</span> <span class="s2">&quot;&lt;SS_ENDPOINT&gt;&quot;</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">SS_AK</span> <span class="o">=</span> <span class="s2">&quot;&lt;SS_AK&gt;&quot;</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">SS_SK</span> <span class="o">=</span> <span class="s2">&quot;&lt;SS_SK&gt;&quot;</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">dag</span> <span class="o">=</span> <span class="n">Dag</span><span class="p">(</span><span class="s2">&quot;livy-iceberg-polaris-python&quot;</span><span class="p">,</span> <span class="n">default_timeout</span><span class="o">=</span><span class="s2">&quot;10m&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">dag</span><span class="o">.</span><span class="n">livy</span><span class="p">(</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="s2">&quot;spark_iceberg&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">url</span><span class="o">=</span><span class="n">LIVY</span><span class="p">,</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">file</span><span class="o">=</span><span class="n">PY_S3</span><span class="p">,</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="n">conf</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>        <span class="s2">&quot;spark.hadoop.fs.s3a.endpoint&quot;</span><span class="p">:</span>               <span class="n">SS_EP</span><span class="p">,</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>        <span class="s2">&quot;spark.hadoop.fs.s3a.access.key&quot;</span><span class="p">:</span>             <span class="n">SS_AK</span><span class="p">,</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>        <span class="s2">&quot;spark.hadoop.fs.s3a.secret.key&quot;</span><span class="p">:</span>             <span class="n">SS_SK</span><span class="p">,</span>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>        <span class="s2">&quot;spark.hadoop.fs.s3a.path.style.access&quot;</span><span class="p">:</span>      <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>        <span class="s2">&quot;spark.hadoop.fs.s3a.connection.ssl.enabled&quot;</span><span class="p">:</span> <span class="s2">&quot;false&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>    <span class="p">},</span>
+<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>    <span class="n">driver_memory</span><span class="o">=</span><span class="s2">&quot;768m&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>    <span class="n">executor_memory</span><span class="o">=</span><span class="s2">&quot;768m&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>    <span class="n">poll_interval_ms</span><span class="o">=</span><span class="mi">3000</span><span class="p">,</span>
+<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="p">)</span>
+</code></pre></div>
+<h3 id="43-java-sdk-srcmainjavacomcloudcheflabsicebergdemolivyicebergjavadagjava">4.3 Java SDK — <code>src/main/java/com/cloudcheflabs/iceberg/demo/LivyIcebergJavaDag.java</code></h3>
+<p>The Java variant submits the <strong>uberjar</strong> (not a Python script) and uses the in-job catalog wiring (<code>--conf</code> from the DAG):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">package</span><span class="w"> </span><span class="nn">com.cloudcheflabs.iceberg.demo</span><span class="p">;</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">com.cloudcheflabs.kiok.sdk.Dag</span><span class="p">;</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">com.cloudcheflabs.kiok.sdk.KiokDag</span><span class="p">;</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="cm">/**</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="cm"> * Java DAG: Livy submits the uberjar; the SparkSession is built without any</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="cm"> * catalog wiring in code — all Iceberg/Polaris/S3 conf comes from livy.conf.</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="cm"> *</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="cm"> * Cluster mode option: uncomment the spark.submit.deployMode line AND ensure</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="cm"> * the Spark master/worker has access to the s3a:// uberjar (chango writes</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="cm"> * conf/core-site.xml on every host so DriverRunner.downloadUserJar works).</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="cm"> */</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">LivyIcebergJavaDag</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">KiokDag</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">Dag</span><span class="w"> </span><span class="nf">define</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">        </span><span class="n">Dag</span><span class="w"> </span><span class="n">dag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Dag</span><span class="p">(</span><span class="s">&quot;livy-iceberg-polaris-java&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="w">                </span><span class="p">.</span><span class="na">defaultTimeoutMs</span><span class="p">(</span><span class="mi">10</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">60_000L</span><span class="p">);</span>
+<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>
+<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="w">        </span><span class="n">dag</span><span class="p">.</span><span class="na">task</span><span class="p">(</span><span class="s">&quot;spark_iceberg_java&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="w">           </span><span class="p">.</span><span class="na">livy</span><span class="p">(</span><span class="s">&quot;&lt;LIVY_URL&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="w">           </span><span class="p">.</span><span class="na">livyFile</span><span class="p">(</span><span class="s">&quot;&lt;JAR_S3&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="w">           </span><span class="p">.</span><span class="na">livyClassName</span><span class="p">(</span><span class="s">&quot;com.cloudcheflabs.sample.IcebergDemoJob&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="w">           </span><span class="p">.</span><span class="na">livyDriverMemory</span><span class="p">(</span><span class="s">&quot;768m&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="w">           </span><span class="p">.</span><span class="na">livyExecutorMemory</span><span class="p">(</span><span class="s">&quot;768m&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="w">           </span><span class="c1">// Polaris REST catalog wiring (driver builds SparkSession without</span>
+<a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a><span class="w">           </span><span class="c1">// these — they come via --conf so the same jar can target any</span>
+<a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a><span class="w">           </span><span class="c1">// catalog without a rebuild).</span>
+<a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.extensions&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a><span class="w">                     </span><span class="s">&quot;org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse&quot;</span><span class="p">,</span><span class="w">            </span><span class="s">&quot;org.apache.iceberg.spark.SparkCatalog&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.type&quot;</span><span class="p">,</span><span class="w">       </span><span class="s">&quot;rest&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.uri&quot;</span><span class="p">,</span><span class="w">        </span><span class="s">&quot;&lt;POLARIS_REST&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.warehouse&quot;</span><span class="p">,</span><span class="w">  </span><span class="s">&quot;&lt;POLARIS_WAREHOUSE&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.credential&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&lt;POLARIS_CID&gt;:&lt;POLARIS_CS&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.scope&quot;</span><span class="p">,</span><span class="w">      </span><span class="s">&quot;PRINCIPAL_ROLE:ALL&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.header.X-Iceberg-Access-Delegation&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.io-impl&quot;</span><span class="p">,</span><span class="w">          </span><span class="s">&quot;org.apache.iceberg.aws.s3.S3FileIO&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-39" name="__codelineno-10-39" href="#__codelineno-10-39"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.s3.endpoint&quot;</span><span class="p">,</span><span class="w">      </span><span class="s">&quot;&lt;SS_ENDPOINT&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-40" name="__codelineno-10-40" href="#__codelineno-10-40"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.s3.access-key-id&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&lt;SS_AK&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-41" name="__codelineno-10-41" href="#__codelineno-10-41"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.s3.secret-access-key&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&lt;SS_SK&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-42" name="__codelineno-10-42" href="#__codelineno-10-42"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.s3.path-style-access&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;true&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-43" name="__codelineno-10-43" href="#__codelineno-10-43"></a><span class="w">           </span><span class="p">.</span><span class="na">livyConf</span><span class="p">(</span><span class="s">&quot;spark.sql.catalog.lakehouse.s3.region&quot;</span><span class="p">,</span><span class="w">        </span><span class="s">&quot;&lt;SS_REGION&gt;&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-44" name="__codelineno-10-44" href="#__codelineno-10-44"></a><span class="w">           </span><span class="c1">// Cluster mode (optional). Without it the driver runs inside the</span>
+<a id="__codelineno-10-45" name="__codelineno-10-45" href="#__codelineno-10-45"></a><span class="w">           </span><span class="c1">// Livy JVM (client mode) — fine for short jobs.</span>
+<a id="__codelineno-10-46" name="__codelineno-10-46" href="#__codelineno-10-46"></a><span class="w">           </span><span class="c1">// .livyConf(&quot;spark.submit.deployMode&quot;, &quot;cluster&quot;)</span>
+<a id="__codelineno-10-47" name="__codelineno-10-47" href="#__codelineno-10-47"></a><span class="w">           </span><span class="p">;</span>
+<a id="__codelineno-10-48" name="__codelineno-10-48" href="#__codelineno-10-48"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">dag</span><span class="p">;</span>
+<a id="__codelineno-10-49" name="__codelineno-10-49" href="#__codelineno-10-49"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-10-50" name="__codelineno-10-50" href="#__codelineno-10-50"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="44-shell-dag-srcmainscriptlivy_iceberg_shellsh">4.4 Shell DAG — <code>src/main/script/livy_iceberg_shell.sh</code></h3>
+<p>The shell variant lets you wrap any pre-existing Livy / spark-submit recipe — useful for ops scripts that already exist. It uses kiok's <code>type: shell</code> task (with a <code>.sh</code> extension the bundle scanner treats it as a one-task DAG named after the file):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="ch">#!/bin/bash</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nb">set</span><span class="w"> </span>-euo<span class="w"> </span>pipefail
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nv">LIVY</span><span class="o">=</span><span class="s2">&quot;&lt;LIVY_URL&gt;&quot;</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nv">PY_S3</span><span class="o">=</span><span class="s2">&quot;&lt;PY_S3&gt;&quot;</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nv">SS_EP</span><span class="o">=</span><span class="s2">&quot;&lt;SS_ENDPOINT&gt;&quot;</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nv">SS_AK</span><span class="o">=</span><span class="s2">&quot;&lt;SS_AK&gt;&quot;</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="nv">SS_SK</span><span class="o">=</span><span class="s2">&quot;&lt;SS_SK&gt;&quot;</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="nv">BATCH</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$LIVY</span><span class="s2">/batches&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;{</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="s2">  \&quot;file\&quot;: \&quot;</span><span class="nv">$PY_S3</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="s2">  \&quot;driverMemory\&quot;: \&quot;768m\&quot;,</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="s2">  \&quot;executorMemory\&quot;: \&quot;768m\&quot;,</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="s2">  \&quot;conf\&quot;: {</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="s2">    \&quot;spark.hadoop.fs.s3a.endpoint\&quot;:               \&quot;</span><span class="nv">$SS_EP</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="s2">    \&quot;spark.hadoop.fs.s3a.access.key\&quot;:             \&quot;</span><span class="nv">$SS_AK</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="s2">    \&quot;spark.hadoop.fs.s3a.secret.key\&quot;:             \&quot;</span><span class="nv">$SS_SK</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="s2">    \&quot;spark.hadoop.fs.s3a.path.style.access\&quot;:      \&quot;true\&quot;,</span>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="s2">    \&quot;spark.hadoop.fs.s3a.connection.ssl.enabled\&quot;: \&quot;false\&quot;</span>
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="s2">  }</span>
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="s2">}&quot;</span><span class="k">)</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="nv">BID</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BATCH</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import sys,json;print(json.load(sys.stdin)[&#39;id&#39;])&quot;</span><span class="k">)</span>
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;##KIOK## batch id=</span><span class="nv">$BID</span><span class="s2">&quot;</span>
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="k">$(</span>seq<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">60</span><span class="k">)</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="w">  </span>sleep<span class="w"> </span><span class="m">4</span>
+<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="w">  </span><span class="nv">STATE</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$LIVY</span><span class="s2">/batches/</span><span class="nv">$BID</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import sys,json;print(json.load(sys.stdin)[&#39;state&#39;])&quot;</span><span class="k">)</span>
+<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;##KIOK## state=</span><span class="nv">$STATE</span><span class="s2">&quot;</span>
+<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$STATE</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;success&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$STATE</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;dead&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">{</span><span class="w"> </span>curl<span class="w"> </span>-sSf<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$LIVY</span><span class="s2">/batches/</span><span class="nv">$BID</span><span class="s2">/log?from=0&amp;size=200&quot;</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+<a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="k">done</span>
+<a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;##KIOK## TIMEOUT&quot;</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">2</span>
+</code></pre></div>
+<blockquote>
+<p>Why the shell variant — there is one less moving part (no <code>type: livy</code> SDK call), so when the typed task misbehaves you can A/B against it. The cost is your DAG hard-codes the polling loop.</p>
+</blockquote>
+<h2 id="5-place-holder-substitution-bundle">5. Place-holder substitution + bundle</h2>
+<p>Substitute everywhere, zip, upload:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>iceberg-polaris-bundle/src/main/<span class="o">{</span>yaml,python,java/com/cloudcheflabs/iceberg/demo,script<span class="o">}</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>cp<span class="w"> </span>livy_iceberg_yaml.yaml<span class="w">         </span>iceberg-polaris-bundle/src/main/yaml/
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>cp<span class="w"> </span>livy_iceberg_python_dag.py<span class="w">     </span>iceberg-polaris-bundle/src/main/python/
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>cp<span class="w"> </span>LivyIcebergJavaDag.java<span class="w">        </span>iceberg-polaris-bundle/src/main/java/com/cloudcheflabs/iceberg/demo/
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>cp<span class="w"> </span>livy_iceberg_shell.sh<span class="w">          </span>iceberg-polaris-bundle/src/main/script/
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>find<span class="w"> </span>iceberg-polaris-bundle<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="se">\(</span><span class="w"> </span>-name<span class="w"> </span><span class="s1">&#39;*.yaml&#39;</span><span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span><span class="s1">&#39;*.py&#39;</span><span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span><span class="s1">&#39;*.java&#39;</span><span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span><span class="s1">&#39;*.sh&#39;</span><span class="w"> </span><span class="se">\)</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">  </span>-exec<span class="w"> </span>sed<span class="w"> </span>-i.bak<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;LIVY_URL&gt;|</span><span class="nv">$LIVY_URL</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;PY_S3&gt;|</span><span class="nv">$PY_S3</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;JAR_S3&gt;|</span><span class="nv">$JAR_S3</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;POLARIS_REST&gt;|</span><span class="nv">$POLARIS_REST</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;POLARIS_WAREHOUSE&gt;|</span><span class="nv">$POLARIS_WAREHOUSE</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;POLARIS_CID&gt;|</span><span class="nv">$POLARIS_CID</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;POLARIS_CS&gt;|</span><span class="nv">$POLARIS_CS</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;SS_ENDPOINT&gt;|</span><span class="nv">$SS_ENDPOINT</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;SS_AK&gt;|</span><span class="nv">$SS_AK</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;SS_SK&gt;|</span><span class="nv">$SS_SK</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="w">    </span>-e<span class="w"> </span><span class="s2">&quot;s|&lt;SS_REGION&gt;|</span><span class="nv">$SS_REGION</span><span class="s2">|g&quot;</span><span class="w"> </span><span class="o">{}</span><span class="w"> </span><span class="se">\;</span>
+<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>find<span class="w"> </span>iceberg-polaris-bundle<span class="w"> </span>-name<span class="w"> </span><span class="s1">&#39;*.bak&#39;</span><span class="w"> </span>-delete
+<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>
+<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="o">(</span><span class="nb">cd</span><span class="w"> </span>iceberg-polaris-bundle<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>zip<span class="w"> </span>-r<span class="w"> </span>../iceberg-polaris-bundle.zip<span class="w"> </span>src<span class="o">)</span>
+<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$KTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/zip&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="w">    </span>--data-binary<span class="w"> </span>@iceberg-polaris-bundle.zip<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a><span class="w">    </span><span class="nv">$KIOK</span>/api/v1/admin/bundles/iceberg-polaris
+</code></pre></div>
+<p>Verify all four compiled:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$KTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$KIOK</span>/api/v1/admin/bundles<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="c1"># expect: dagCount: 4, errors: []</span>
+</code></pre></div>
+<h2 id="6-trigger-verify">6. Trigger + verify</h2>
+<p>Trigger each DAG:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">for</span><span class="w"> </span>DAG<span class="w"> </span><span class="k">in</span><span class="w"> </span>livy-iceberg-polaris-yaml<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">           </span>livy-iceberg-polaris-python<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">           </span>livy-iceberg-polaris-java<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">           </span>livy-iceberg-polaris-shell<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">  </span><span class="c1"># The bundle scanner mangles the id with the bundle name + path; resolve it.</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">  </span><span class="nv">REAL_ID</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$KTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$KIOK</span><span class="s2">/api/v1/dags?q=</span><span class="nv">$DAG</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">            </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.[0].id // empty&#39;</span><span class="k">)</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">  </span><span class="o">[</span><span class="w"> </span>-z<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$REAL_ID</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;DAG </span><span class="nv">$DAG</span><span class="s2"> not registered&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">  </span><span class="nv">RID</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sSf<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$KTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">        </span>-d<span class="w"> </span><span class="s1">&#39;{}&#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$KIOK</span><span class="s2">/api/v1/dags/</span><span class="nv">$REAL_ID</span><span class="s2">/runs&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.runId<span class="k">)</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$DAG</span><span class="s2"> -&gt; </span><span class="nv">$RID</span><span class="s2">&quot;</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="k">done</span>
+</code></pre></div>
+<p>Poll a single run and tail its log:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$KTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$KIOK</span><span class="s2">/api/v1/runs/</span><span class="nv">$RID</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.state
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$KTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span><span class="s2">&quot;</span><span class="nv">$KIOK</span><span class="s2">/api/v1/runs/</span><span class="nv">$RID</span><span class="s2">/tasks/spark_iceberg/log&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39;##KIOK##&#39;</span>
+</code></pre></div>
+<p>Expected markers (any of the variants):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>##KIOK## SparkSession built
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>##KIOK## table created
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>##KIOK## INSERT batch 1
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>##KIOK## INSERT batch 5
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>##KIOK## total rows = 15
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>Livy batch N finished with state=success
+</code></pre></div>
+<p>S3 listing under the Polaris warehouse — each variant writes a separate table so all four land their own layout side by side:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>aws<span class="w"> </span>--endpoint-url<span class="w"> </span><span class="nv">$SS_ENDPOINT</span><span class="w"> </span>s3<span class="w"> </span>ls<span class="w"> </span>s3://<span class="nv">$POLARIS_WAREHOUSE</span>/maint/<span class="w"> </span>--recursive<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="c1"># Expect, per table:</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="c1">#   .../maint/&lt;table&gt;-&lt;uuid&gt;/data/...parquet</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c1">#   .../maint/&lt;table&gt;-&lt;uuid&gt;/metadata/v&lt;N&gt;.metadata.json</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="c1">#   .../maint/&lt;table&gt;-&lt;uuid&gt;/metadata/snap-...avro</span>
+</code></pre></div>
+<h2 id="7-cross-engine-verify-trino-ontul">7. Cross-engine verify (Trino + Ontul)</h2>
+<p>Trino — same Polaris catalog registered in <a href="../phase-1-trino-iceberg-rbac/">Phase 1</a> as <code>ice</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://&lt;trino-coordinator&gt;:8480/v1/statement<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;X-Trino-User: admin&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: text/plain&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">  </span>--data<span class="w"> </span><span class="s1">&#39;SELECT region, count(*), sum(amount) FROM ice.maint.py_orders GROUP BY region ORDER BY region&#39;</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="c1"># follow nextUri until data</span>
+</code></pre></div>
+<p>Ontul — same Polaris catalog registered as <code>iceberg</code> (Phase 4):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://&lt;ontul-master&gt;:19220/v1/api/sql<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Token </span><span class="nv">$ONTUL_OTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;sql&quot;:&quot;SELECT region, count(*), sum(amount) FROM iceberg.maint.py_orders GROUP BY region ORDER BY region&quot;}&#39;</span>
+</code></pre></div>
+<p>Both should report 15 rows split 5 per region.</p>
+<h2 id="8-cluster-deploy-mode-for-the-java-variant-optional">8. Cluster deploy mode for the Java variant (optional)</h2>
+<p>The Java DAG can be flipped from client to cluster mode by:</p>
+<ol>
+<li>Setting <code>livy.spark.deploy-mode = cluster</code> on the Spark+Livy cluster (chango admin → Spark page → Configure → Livy Overrides → add <code>livy.spark.deploy-mode = cluster</code>; the cluster restarts).</li>
+<li><strong>Not</strong> setting <code>spark.submit.deployMode</code> in the DAG — Livy hardcodes a <code>Blacklisted configuration values</code> reject for that key in session config. The server-side default (step 1) is the only supported lever.</li>
+<li>Ensuring chango has emitted <code>conf/core-site.xml</code> on every Spark master + worker — this is automatic once the cluster's <code>s3Endpoint / s3AccessKey / s3SecretKey</code> are populated (chango admin → Spark → Configure → Job Log on S3 → Update). The driver bootstrap on the worker uses core-site.xml to fetch the <code>s3a://</code> uberjar before SparkConf is built.</li>
+</ol>
+<p>PySpark cannot run in cluster mode on Spark standalone — keep the Python variant in client mode.</p>
+<h2 id="9-troubleshooting">9. Troubleshooting</h2>
+<h3 id="s3-401-the-aws-access-key-id-you-provided-does-not-exist">S3 <code>401 The AWS Access Key Id you provided does not exist</code></h3>
+<p>Polaris JVM pins <code>-Daws.accessKeyId</code> at install time. If your ShannonStore IAM was re-installed (or the original access key was deleted), the JVM still holds the dead key and every server-side I/O (metadata.json commit) fails — even when the catalog's <code>properties.s3.access-key-id</code> row is updated.</p>
+<p>Workaround until chango ships a <code>polaris/&lt;id&gt;/credentials</code> endpoint:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Trigger chango createCatalog with the live keys — its credsChanged branch</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="c1"># also pushes them onto every Polaris instance&#39;s POLARIS_JAVA_OPTS and restarts.</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>curl<span class="w"> </span>-sSf<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">  </span><span class="s2">&quot;</span><span class="nv">$BASE</span><span class="s2">/admin/api/polaris/polaris-main/catalogs&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;name\&quot;:\&quot;_creds_refresh_</span><span class="k">$(</span>date<span class="w"> </span>+%s<span class="k">)</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="s2">       \&quot;s3Bucket\&quot;:\&quot;_creds_refresh\&quot;,</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="s2">       \&quot;s3Endpoint\&quot;:\&quot;</span><span class="nv">$SS_ENDPOINT</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="s2">       \&quot;s3Region\&quot;:\&quot;</span><span class="nv">$SS_REGION</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="s2">       \&quot;s3AccessKey\&quot;:\&quot;</span><span class="nv">$SS_AK</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="s2">       \&quot;s3SecretKey\&quot;:\&quot;</span><span class="nv">$SS_SK</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="s2">       \&quot;s3PathStyleAccess\&quot;:true}&quot;</span>
+</code></pre></div>
+<p>The new throwaway catalog can be ignored; the side effect (JVM env + restart) is what you want.</p>
+<h3 id="polaris-forbidden-not-authorized-for-op-create_table_direct_with_write_delegation">Polaris <code>Forbidden ... not authorized for op CREATE_TABLE_DIRECT_WITH_WRITE_DELEGATION</code></h3>
+<p>You set <code>header.X-Iceberg-Access-Delegation: "vended-credentials"</code> and the Polaris principal does not have the write-delegation grant. Either set the header to empty (<code>""</code>) and rely on static credentials (the recipe in this phase), or grant the principal the necessary role on Polaris (<code>polaris-cli</code> or its REST API — out of scope here).</p>
+<h3 id="livy-rejected-reason-blacklisted-configuration-values-in-session-config-sparksubmitdeploymode">Livy <code>Rejected, Reason: Blacklisted configuration values in session config: spark.submit.deployMode</code></h3>
+<p>Livy 0.8 hard-codes a server-side block on <code>spark.submit.deployMode</code> from session conf, even when both blacklist properties are empty. Use chango's livyOverrides to set the cluster-wide <code>livy.spark.deploy-mode</code> instead — see section 8 above.</p>
+<h3 id="ontul-could-not-initialize-class-orgapachearrowmemoryutilmemoryutil">Ontul <code>Could not initialize class org.apache.arrow.memory.util.MemoryUtil</code></h3>
+<p>ontul-master on JDK 17 needs Arrow's <code>--add-opens</code> flags. Add to <code>/opt/components/ontul-main-master-1/conf/jvm.conf</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>--add-opens=java.base/java.nio=ALL-UNNAMED
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>--add-opens=java.base/java.lang=ALL-UNNAMED
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>--add-opens=java.base/java.lang.invoke=ALL-UNNAMED
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>--add-opens=java.base/java.util=ALL-UNNAMED
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>--add-opens=java.base/sun.nio.ch=ALL-UNNAMED
+</code></pre></div>
+<p>Then restart <code>ontul-main</code> from the chango admin UI.</p>
+<h3 id="cluster-mode-driver-bootstrap-s3ajar-403-forbidden">Cluster-mode driver bootstrap <code>s3a://...jar : 403 Forbidden</code></h3>
+<p>The driver bootstrap on the worker uses hadoop's <code>core-site.xml</code>, not SparkConf. chango writes that file when <code>s3Endpoint / s3AccessKey / s3SecretKey</code> are populated; verify with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>ssh<span class="w"> </span>&lt;worker-host&gt;<span class="w"> </span>sudo<span class="w"> </span>cat<span class="w"> </span>/opt/components/spark-&lt;cluster&gt;-worker-N/conf/core-site.xml
+</code></pre></div>
+<p>If empty or stale, run <code>Configure → Job Log on S3 → Update</code> from the chango admin UI to re-emit the file across every Spark instance.</p>
+<h2 id="phase-6-exit-checklist">Phase 6 exit checklist</h2>
+<ul>
+<li>[ ] Bundle uploaded — <code>dagCount: 4, errors: []</code></li>
+<li>[ ] Each DAG run finished with <code>state=SUCCESS</code></li>
+<li>[ ] S3 layout under <code>s3://&lt;warehouse&gt;/maint/{yaml_orders,py_orders,java_orders,shell_orders}-&lt;uuid&gt;/</code> exists</li>
+<li>[ ] Trino <code>SELECT count(*)</code> returns 15 for at least one table</li>
+<li>[ ] Ontul <code>SELECT count(*)</code> returns 15 for at least one table</li>
+</ul>
+<h2 id="what-changed-vs-phase-3b">What changed vs Phase 3b</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Phase 3b</th>
+<th>Phase 6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Task type</td>
+<td><code>type: shell</code> + curl</td>
+<td>Native <code>type: livy</code></td>
+</tr>
+<tr>
+<td>Variants</td>
+<td>YAML / Python / Java (all wrap shell)</td>
+<td>YAML / Python / Java / Shell (native + escape hatch)</td>
+</tr>
+<tr>
+<td>Java SDK imports</td>
+<td><code>com.cloudcheflabs.kiok.dag.*</code> (pre-1.0 SDK)</td>
+<td><code>com.cloudcheflabs.kiok.sdk.*</code> (1.0 SDK)</td>
+</tr>
+<tr>
+<td>Cluster mode</td>
+<td>not covered</td>
+<td>section 8</td>
+</tr>
+<tr>
+<td>Polaris cred rotation pitfall</td>
+<td>not covered</td>
+<td>section 9</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      © <script>document.write(new Date().getFullYear())</script> Cloud Chef Labs, Inc. All rights reserved. <a href="mailto:admin@cloudchef-labs.com">admin@cloudchef-labs.com</a>
+
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy", "header.autohide"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "3.0.0", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

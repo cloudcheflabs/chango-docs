@@ -1,0 +1,2657 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-4-iceberg-maintenance/">
+      
+      
+        <link rel="prev" href="../phase-3b-kiok-via-livy/">
+      
+      
+        <link rel="next" href="../phase-5-kafka-flink-iceberg/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../images/logo/chango-logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Phase 4 — Iceberg table maintenance - Chango</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#phase-4-iceberg-table-maintenance-ontuls-maintenance-scheduler" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Chango" class="md-header__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/logo/chango-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Chango
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Phase 4 — Iceberg table maintenance
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../installation/" class="md-tabs__link">
+          
+  
+  
+  Installation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/control-plane/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../components/catalog/" class="md-tabs__link">
+          
+  
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../operations/cluster-operations/" class="md-tabs__link">
+          
+  
+  
+  Operations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Chango" class="md-nav__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/logo/chango-logo.png" alt="logo">
+
+    </a>
+    Chango
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chango Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/component-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/internal-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internal Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Installation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/node-preparation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Preparation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/manual/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manual Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/automated/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Install (Ansible)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Docker Cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/control-plane/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control Plane
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/topology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Topology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/iam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Identity & Access Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/admin-password-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin Password Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/kms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Encryption & Key Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/port-allocator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Port Allocator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/hosts-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hosts Sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/ui-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/monitoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring & Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Restore
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/versions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Versions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/cluster-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/component-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/nginx-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nginx Reverse Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/upgrade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-0-foundation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 — Foundation Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-1-trino-iceberg-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 — Trino + Iceberg + RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-2-spark-iceberg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2 — Spark + Iceberg
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-2b-spark-via-livy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2b — Spark via Livy REST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-3-kiok-spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3 — kiok DAG (SSH to Spark master)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-3b-kiok-via-livy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3b — kiok DAG via Livy REST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 — Iceberg table maintenance
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 — Iceberg table maintenance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topology
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-stop-the-heavies-single-host-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-stop the heavies (single-host lab)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variables-carried-over" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables carried over
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-register-the-polaris-catalog-in-ontul" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Register the Polaris catalog in Ontul
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Register the Polaris catalog in Ontul">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#via-the-ontul-admin-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Via the Ontul admin UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#via-rest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Via REST
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-generate-a-dirty-state-for-the-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Generate a dirty state for the demo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-the-maintenance-page-ui-walkthrough" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. The Maintenance page — UI walkthrough
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. The Maintenance page — UI walkthrough">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-manual-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Manual Trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-table-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Table Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-job-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Job History
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-maintenance-page-rest-equivalents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The Maintenance page — REST equivalents
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. The Maintenance page — REST equivalents">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-manual-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Manual trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-read-job-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Read job history
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-per-table-config-read-write" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Per-table config — read &amp; write
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-scheduled-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The scheduled cycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-orphan-file-cleanup-ontul-sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Orphan file cleanup (Ontul SQL)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-verify-the-dirty-state-shrank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Verify the dirty state shrank
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-optional-schedule-the-full-cycle-from-kiok" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. (Optional) Schedule the full cycle from kiok
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4-exit-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4 exit checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-5-kafka-flink-iceberg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5 — Kafka + Flink + Iceberg streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phase-6-kiok-livy-spark-iceberg-polaris/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 6 — kiok native livy task + Polaris
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="phase-4-iceberg-table-maintenance-ontuls-maintenance-scheduler">Phase 4 — Iceberg table maintenance (Ontul's Maintenance scheduler)</h1>
+<p>By the end of Phase 3 the lakehouse holds a handful of Iceberg tables written by Trino, by Spark in cluster mode, and by kiok-scheduled <code>spark-submit</code>. Every write produced a new <strong>snapshot</strong> and at least one new <strong>data file</strong>, plus one or more <strong>manifest files</strong> that point at them. Long-running tables accumulate this metadata until queries pay a noticeable planning tax and the underlying object storage grows with files no live snapshot references any more.</p>
+<p>Iceberg ships three procedures to address that bloat:</p>
+<table>
+<thead>
+<tr>
+<th>Procedure</th>
+<th>What it does</th>
+<th>What it does <em>not</em> do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>expire_snapshots</code></td>
+<td>drops snapshot metadata older than a retention window</td>
+<td>does <em>not</em> delete the data files; just makes them eligible for removal</td>
+</tr>
+<tr>
+<td><code>rewrite_data_files</code> (a.k.a. <code>optimize</code>)</td>
+<td>rewrites many small Parquet files into fewer files at a target size, then commits a new snapshot referencing the consolidated set</td>
+<td>does <em>not</em> touch the now-unreferenced inputs</td>
+</tr>
+<tr>
+<td><code>rewrite_manifests</code></td>
+<td>re-shards the manifest tree for better partition pruning on planning</td>
+<td>does not change row data</td>
+</tr>
+</tbody>
+</table>
+<p>Plus a fourth that complements the first three:</p>
+<p>| <code>remove_orphan_files</code> | scans the table's storage prefix and deletes any file no live manifest references (and that is older than a safety threshold) |</p>
+<p><strong>Ontul</strong> ships a Maintenance scheduler that runs the first three on a configurable cadence (default every 6 hours, leader-only), keeps a per-table opt-out + tuning store, and records every job in a 30-day RocksDB history. The fourth (<code>remove_orphan_files</code>) is not on the auto-cycle — operators run it ad-hoc through Ontul SQL, on demand or via kiok.</p>
+<p>This phase walks both surfaces end-to-end against the Iceberg catalog Phase 0 set up in Polaris.</p>
+<h2 id="topology">Topology</h2>
+<p>Foundation only — Phase 4 does <strong>not</strong> need Trino, Spark, Flink, or kiok. Ontul's maintenance executes inside the Ontul master JVM and reads/writes via the Polaris REST catalog + the same S3-compatible bucket on ShannonStore.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ontul (master + worker)</td>
+<td>the scheduler + Iceberg connector + admin UI Maintenance page live here</td>
+</tr>
+<tr>
+<td>Polaris</td>
+<td>REST catalog Ontul reads schema/snapshot metadata from</td>
+</tr>
+<tr>
+<td>ShannonStore (S3)</td>
+<td>the actual data + manifest + manifest-list files Ontul rewrites</td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td>Polaris's metastore</td>
+</tr>
+</tbody>
+</table>
+<h2 id="pre-stop-the-heavies-single-host-lab">Pre-stop the heavies (single-host lab)</h2>
+<p>Before continuing on a single-host test cluster, free the RAM Phase 2/3 left behind:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/kiok/kiok-main/stop<span class="w">  </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/spark/spark-main/stop<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino/trino-main/stop<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+</code></pre></div>
+<p>The Trino Gateway can stay up — it is small and useful once Phase 4 finishes. ShannonStore, Polaris, PostgreSQL, and Ontul must stay up.</p>
+<h2 id="variables-carried-over">Variables carried over</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">BASE</span><span class="o">=</span>http://&lt;master-host&gt;:8080
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">TOK</span><span class="o">=</span>&lt;chango<span class="w"> </span>admin<span class="w"> </span>token&gt;
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># From Phase 0 — Ontul admin endpoint + admin token (OTOK)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nv">ONTUL_HOST</span><span class="o">=</span>&lt;chango-n1&gt;
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nv">ONTUL_PORT</span><span class="o">=</span>&lt;ontul-master<span class="w"> </span>adminPort,<span class="w"> </span>e.g.<span class="w"> </span><span class="m">18180</span>&gt;
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nv">OTOK</span><span class="o">=</span>&lt;Ontul<span class="w"> </span>admin<span class="w"> </span>user<span class="w"> </span>OTOK&gt;
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># From Phase 0 — ShannonStore S3 credentials</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nv">SS_AK</span><span class="o">=</span>&lt;access<span class="w"> </span>key&gt;
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nv">SS_SK</span><span class="o">=</span>&lt;secret<span class="w"> </span>key&gt;
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="nv">SS_ENDPOINT</span><span class="o">=</span>http://chango-n2.chango.private:8080
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># From Phase 1 — Polaris connection</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="nv">POLARIS_REST</span><span class="o">=</span>http://chango-n2.chango.private:8180/api/catalog
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="nv">CLIENT_SECRET</span><span class="o">=</span>&lt;polaris-root<span class="w"> </span>client<span class="w"> </span>secret<span class="w"> </span>from<span class="w"> </span>/admin/api/polaris/polaris-main/credentials&gt;
+</code></pre></div>
+<p>If you skipped Phase 0/1 and only want to exercise Phase 4, mint a fresh OTOK now — Ontul rotates the admin token on every login:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">OTOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;username\&quot;:\&quot;admin\&quot;,\&quot;password\&quot;:\&quot;&lt;ontul-admin-pw&gt;\&quot;}&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
+</code></pre></div>
+<h2 id="1-register-the-polaris-catalog-in-ontul">1. Register the Polaris catalog in Ontul</h2>
+<p>Trino registered the Polaris-backed Iceberg catalog at <code>iceberg</code> in Phase 1, but Ontul has its <strong>own</strong> catalog registry — the Maintenance scheduler iterates <code>catalogService.getRegisteredCatalogNames()</code> and only sees what Ontul knows about. Register the same <code>lakehouse</code> warehouse inside Ontul with the matching short name <code>iceberg</code>:</p>
+<h3 id="via-the-ontul-admin-ui">Via the Ontul admin UI</h3>
+<ol>
+<li>Open <code>http://$ONTUL_HOST:$ONTUL_PORT/admin/</code> and log in.</li>
+<li><strong>Catalogs</strong> in the sidebar → <strong>Register catalog</strong>.</li>
+<li><strong>Catalog name</strong> — <code>iceberg</code>.</li>
+<li><strong>Type</strong> — <code>Iceberg (REST)</code>.</li>
+<li>Fill the REST + S3 panel:<ul>
+<li><strong>REST URI</strong> — <code>http://chango-n2.chango.private:8180/api/catalog</code> (<code>$POLARIS_REST</code>)</li>
+<li><strong>Warehouse</strong> — <code>lakehouse</code></li>
+<li><strong>Flavor</strong> — <code>polaris</code> (sets <code>scope=PRINCIPAL_ROLE:ALL</code> and disables Iceberg credential vending so Ontul reads S3 directly)</li>
+<li><strong>Client ID</strong> — <code>polaris-root</code></li>
+<li><strong>Client Secret</strong> — paste <code>$CLIENT_SECRET</code></li>
+<li><strong>S3 endpoint</strong> — <code>$SS_ENDPOINT</code></li>
+<li><strong>S3 access key / secret key</strong> — <code>$SS_AK</code> / <code>$SS_SK</code></li>
+<li><strong>Path style</strong> — on</li>
+<li><strong>Region</strong> — <code>us-east-1</code></li>
+</ul>
+</li>
+<li>Click <strong>Register</strong>. The card lands with a table count — <code>iceberg</code> should show the tables Phase 1/2/3 left behind (<code>sales.orders</code>, <code>test.yaml_dag_smoke</code>, …).</li>
+</ol>
+<h3 id="via-rest">Via REST</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>/tmp/iceberg-catalog.json<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="s">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="s">  &quot;catalogName&quot;: &quot;iceberg&quot;,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="s">  &quot;config&quot;: {</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="s">    &quot;catalog.type&quot;:              &quot;rest&quot;,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="s">    &quot;catalog.warehouse&quot;:         &quot;lakehouse&quot;,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="s">    &quot;catalog.name&quot;:              &quot;lakehouse&quot;,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="s">    &quot;catalog.rest.uri&quot;:          &quot;$POLARIS_REST&quot;,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="s">    &quot;catalog.rest.client_id&quot;:    &quot;polaris-root&quot;,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="s">    &quot;catalog.rest.client_secret&quot;:&quot;$CLIENT_SECRET&quot;,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="s">    &quot;catalog.rest.flavor&quot;:       &quot;polaris&quot;,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="s">    &quot;s3.endpoint&quot;:               &quot;$SS_ENDPOINT&quot;,</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="s">    &quot;s3.accessKey&quot;:              &quot;$SS_AK&quot;,</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="s">    &quot;s3.secretKey&quot;:              &quot;$SS_SK&quot;,</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="s">    &quot;s3.pathStyle&quot;:              &quot;true&quot;,</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="s">    &quot;s3.region&quot;:                 &quot;us-east-1&quot;</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="s">  }</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="s">}</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="s">EOF</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/catalogs<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">  </span>--data<span class="w"> </span>@/tmp/iceberg-catalog.json
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="c1"># { &quot;status&quot;:&quot;ok&quot;, &quot;catalogName&quot;:&quot;iceberg&quot;, &quot;tableCount&quot;: 5 }</span>
+</code></pre></div>
+<blockquote>
+<p><strong>Why the duplicate registration?</strong> Trino's <code>etc/catalog/iceberg.properties</code> lives on the Trino coordinator/workers and is read by Trino only. Ontul's registry lives in Ontul's <code>MetadataStore</code> (RocksDB) and is read by Ontul's connector pool. Polaris is the single source of truth for the schemas + tables themselves — both engines pull from there.</p>
+</blockquote>
+<h2 id="2-generate-a-dirty-state-for-the-demo">2. Generate a dirty state for the demo</h2>
+<p>Phase 3 left three tables behind, each with only three rows and ~one snapshot — too clean to compact. Build a small demo table and dirty it on purpose. Ontul's SQL endpoint is <code>POST /admin/query/execute</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">SQL</span><span class="o">=</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="s">CREATE TABLE IF NOT EXISTS iceberg.test.maint_demo (</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="s">  id      BIGINT,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="s">  payload VARCHAR</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="s">);</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="s">EOF</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="k">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/query/execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;sql\&quot;:</span><span class="k">$(</span>jq<span class="w"> </span>-Rs<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="s2">&quot;</span><span class="nv">$SQL</span><span class="s2">&quot;</span><span class="k">)</span><span class="s2">}&quot;</span>
+</code></pre></div>
+<p>Now generate 30 single-row inserts. Every insert produces its own snapshot + at least one small Parquet file:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="k">$(</span>seq<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">30</span><span class="k">)</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/query/execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;sql\&quot;:\&quot;INSERT INTO iceberg.test.maint_demo VALUES (</span><span class="nv">$i</span><span class="s2">, &#39;row-</span><span class="nv">$i</span><span class="s2">&#39;)\&quot;}&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.commandTag // .error&#39;</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">done</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span><span class="p">|</span><span class="w"> </span>uniq<span class="w"> </span>-c
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1">#   30 INSERT 0 1</span>
+</code></pre></div>
+<p>Inspect the resulting clutter — Ontul exposes Iceberg metadata tables with the standard <code>$</code> suffix:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/query/execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;sql&quot;:&quot;SELECT COUNT(*) FROM \&quot;iceberg.test.maint_demo$snapshots\&quot;&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.rows[0][0]&#39;</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># 30</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/query/execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;sql&quot;:&quot;SELECT COUNT(*), SUM(file_size_in_bytes) FROM \&quot;iceberg.test.maint_demo$files\&quot;&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.rows[0] | &quot;files=\(.[0]) total_bytes=\(.[1])&quot;&#39;</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1"># files=30 total_bytes=...    # 30 tiny Parquet files</span>
+</code></pre></div>
+<p>You now have a table that genuinely benefits from maintenance.</p>
+<h2 id="3-the-maintenance-page-ui-walkthrough">3. The Maintenance page — UI walkthrough</h2>
+<p>Open the Ontul admin UI's <strong>Iceberg Maintenance</strong> sidebar entry. The page has three panels.</p>
+<h3 id="31-manual-trigger">3.1 Manual Trigger</h3>
+<p>A wildcard pattern + operation dropdown + a <strong>Run Now</strong> button.</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iceberg.*.*</code></td>
+<td>every Iceberg table in catalog <code>iceberg</code></td>
+</tr>
+<tr>
+<td><code>iceberg.test.*</code></td>
+<td>every table in schema <code>test</code></td>
+</tr>
+<tr>
+<td><code>iceberg.test.maint_demo</code></td>
+<td>exactly that table</td>
+</tr>
+<tr>
+<td><code>iceberg.*.maint*</code></td>
+<td>every table whose name starts with <code>maint</code>, across every schema</td>
+</tr>
+<tr>
+<td><code>iceberg.test.user?</code></td>
+<td>single-char wildcard — matches <code>user1</code>, <code>userA</code>, …</td>
+</tr>
+</tbody>
+</table>
+<p>Operation:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>All Operations</code></td>
+<td>runs <code>expire_snapshots</code> + <code>rewrite_data_files</code> + <code>rewrite_manifests</code> in sequence per matched table</td>
+</tr>
+<tr>
+<td><code>Expire Snapshots</code></td>
+<td>only the snapshot retention pass</td>
+</tr>
+<tr>
+<td><code>Rewrite Data Files</code></td>
+<td>only compaction (target = the table's configured <code>targetFileSizeMB</code>, default 128 MB)</td>
+</tr>
+<tr>
+<td><code>Rewrite Manifests</code></td>
+<td>only the manifest re-shard</td>
+</tr>
+</tbody>
+</table>
+<p>For the demo table:</p>
+<ol>
+<li><strong>Pattern</strong> — <code>iceberg.test.maint_demo</code></li>
+<li><strong>Operation</strong> — <code>All Operations</code></li>
+<li>Click <strong>Run Now</strong></li>
+</ol>
+<p>The banner reads <code>Triggered on 1 table</code> with a chip listing the matched key. Jobs run on a cached thread pool in the background — the page does not block.</p>
+<h3 id="32-table-configuration">3.2 Table Configuration</h3>
+<p>The dropdown is populated from <code>tableKey</code>s that have appeared in <strong>Job History</strong>. Pick <code>iceberg.test.maint_demo</code> (it shows up after the Manual Trigger run above), and the panel reveals:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Enabled</strong> toggle</td>
+<td><code>Enabled</code></td>
+<td>when off, the scheduled cycle skips this table; manual trigger still works</td>
+</tr>
+<tr>
+<td><strong>Snapshot Retention (hours)</strong></td>
+<td><code>168</code> (7 days)</td>
+<td>snapshots older than this are dropped by <code>expire_snapshots</code></td>
+</tr>
+<tr>
+<td><strong>Target File Size (MB)</strong></td>
+<td><code>128</code></td>
+<td><code>rewrite_data_files</code> compacts everything smaller than this; rewrites no-op when files are already at target</td>
+</tr>
+</tbody>
+</table>
+<p>Click <strong>Save Configuration</strong>. Ontul persists the override under MetadataStore key <code>maintenance.&lt;tableKey&gt;</code>; the next scheduled cycle picks it up.</p>
+<h3 id="33-job-history">3.3 Job History</h3>
+<p>A 100-row, newest-first list of every operation Ontul ran — manual or scheduled — across every table. Columns: <strong>Time</strong>, <strong>Table</strong>, <strong>Operation</strong>, <strong>Status</strong> (<code>OK</code> / <code>Error</code>), <strong>Duration</strong>, <strong>Details</strong>. Click <strong>Refresh</strong> to re-pull. After the Manual Trigger from §3.1 you should see three rows for <code>iceberg.test.maint_demo</code>:</p>
+<table>
+<thead>
+<tr>
+<th>operation</th>
+<th>details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>expire_snapshots</code></td>
+<td><code>retention=168h</code></td>
+</tr>
+<tr>
+<td><code>rewrite_data_files</code></td>
+<td>(rewrite output line — e.g. file count + bytes rewritten)</td>
+</tr>
+<tr>
+<td><code>rewrite_manifests</code></td>
+<td>(no details — Iceberg API does not surface stats)</td>
+</tr>
+</tbody>
+</table>
+<p>Retention is 30 days by default — older rows are reaped by the daemon's 6-hour cleanup loop.</p>
+<h2 id="4-the-maintenance-page-rest-equivalents">4. The Maintenance page — REST equivalents</h2>
+<p>The UI is a wrapper around four admin endpoints. Use these from kiok DAGs, oncall runbooks, or alert-driven automation.</p>
+<h3 id="41-manual-trigger">4.1 Manual trigger</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/maintenance/run<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;tableKey&quot;:&quot;iceberg.test.*&quot;,&quot;operation&quot;:&quot;all&quot;}&#39;</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># { &quot;status&quot;:&quot;ok&quot;, &quot;matchedCount&quot;: 4,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1">#   &quot;tables&quot;:[&quot;iceberg.test.maint_demo&quot;,&quot;iceberg.test.yaml_dag_smoke&quot;,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1">#             &quot;iceberg.test.py_dag_smoke&quot;,&quot;iceberg.test.java_dag_smoke&quot;] }</span>
+</code></pre></div>
+<p><code>operation</code> accepts <code>all</code>, <code>expire_snapshots</code>, <code>rewrite_data_files</code>, <code>rewrite_manifests</code>.</p>
+<h3 id="42-read-job-history">4.2 Read job history</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># all jobs, newest first, up to 100</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$ONTUL_HOST</span><span class="s2">:</span><span class="nv">$ONTUL_PORT</span><span class="s2">/admin/maintenance/history&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.[0:5]&#39;</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># filter by table</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$ONTUL_HOST</span><span class="s2">:</span><span class="nv">$ONTUL_PORT</span><span class="s2">/admin/maintenance/history?tableKey=iceberg.test.maint_demo&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.
+</code></pre></div>
+<p>Each entry shape:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;jobId&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;ec6e…&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">&quot;tableKey&quot;</span><span class="p">:</span><span class="w">  </span><span class="s2">&quot;iceberg.test.maint_demo&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rewrite_data_files&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;ok&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1716620400000</span><span class="p">,</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span><span class="nt">&quot;elapsedMs&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4231</span><span class="p">,</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">  </span><span class="nt">&quot;details&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;compaction: rewrote 30 files -&gt; 1 file&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w">     </span><span class="kc">null</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="43-per-table-config-read-write">4.3 Per-table config — read &amp; write</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># READ</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>curl<span class="w"> </span>-sS<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/maintenance/config<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;X-Table-Key: iceberg.test.maint_demo&#39;</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1"># { &quot;enabled&quot;: true, &quot;snapshotRetentionHours&quot;: 168,</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1">#   &quot;targetFileSizeMB&quot;: 128, &quot;compactionIntervalHours&quot;: 6 }</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="c1"># WRITE — tighten the demo table&#39;s retention to 24h, leave everything else at default</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>PUT<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/maintenance/config<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;tableKey&quot;:&quot;iceberg.test.maint_demo&quot;,</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="s1">       &quot;config&quot;:{&quot;enabled&quot;:true,&quot;snapshotRetentionHours&quot;:24,</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="s1">                 &quot;targetFileSizeMB&quot;:128,&quot;compactionIntervalHours&quot;:6}}&#39;</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="c1"># { &quot;status&quot;:&quot;ok&quot; }</span>
+</code></pre></div>
+<h2 id="5-the-scheduled-cycle">5. The scheduled cycle</h2>
+<p><code>IcebergMaintenanceService</code> starts on <strong>leader-only</strong> when Ontul master comes up. Its loop:</p>
+<ol>
+<li>Sleep for the configured interval (default <strong>6 hours</strong>, first tick after 60 s).</li>
+<li>For every registered catalog whose connector is <code>IcebergConnector</code>:<ul>
+<li>List schemas; list tables in each schema.</li>
+<li>For each <code>&lt;catalog&gt;.&lt;schema&gt;.&lt;table&gt;</code>, read the per-table <code>MaintenanceConfig</code> from MetadataStore.</li>
+<li>If <code>enabled=false</code>, skip.</li>
+<li>Otherwise submit to the <code>maintenance-task</code> cached pool: run <code>expire_snapshots</code> → <code>rewrite_data_files</code> → <code>rewrite_manifests</code> in sequence.</li>
+</ul>
+</li>
+</ol>
+<p>Two consequences worth knowing:</p>
+<ul>
+<li>The cycle is <strong>not</strong> synchronized with writes. Heavy ingestion plus a 128 MB target threshold can mean a fresh batch of small files lands during compaction and gets caught on the <em>next</em> cycle, not this one.</li>
+<li>The scheduler <strong>does not</strong> run <code>remove_orphan_files</code>. Orphans accumulate until you explicitly run §6 below or wire it into a kiok DAG.</li>
+</ul>
+<p>Tuning (set in <code>ontul.properties</code> or via chango's Ontul <strong>Configure</strong> card):</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ontul.maintenance.interval.ms</code></td>
+<td><code>21600000</code> (6h)</td>
+<td>Time between cycle starts. Keep ≥ one ingest cycle.</td>
+</tr>
+<tr>
+<td><code>ontul.maintenance.history.retention.days</code></td>
+<td><code>30</code></td>
+<td>RocksDB job-history TTL.</td>
+</tr>
+<tr>
+<td>Per-table <code>snapshotRetentionHours</code></td>
+<td><code>168</code> (7d)</td>
+<td>Don't drop below your time-travel SLA.</td>
+</tr>
+<tr>
+<td>Per-table <code>targetFileSizeMB</code></td>
+<td><code>128</code></td>
+<td>Lower if your downstream readers prefer many small files; raise for fewer larger files.</td>
+</tr>
+</tbody>
+</table>
+<p>Verify the leader is the one running it (the JVM log line is the source of truth):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>grep<span class="w"> </span><span class="s1">&#39;IcebergMaintenanceService started&#39;</span><span class="w"> </span>/var/log/chango/components/ontul-main-master-*/logs/ontul-master.log
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># Should appear exactly once, on the elected leader&#39;s host.</span>
+</code></pre></div>
+<h2 id="6-orphan-file-cleanup-ontul-sql">6. Orphan file cleanup (Ontul SQL)</h2>
+<p>Orphan removal is a separate procedure because it touches the storage layer directly — it lists every object under the table's prefix and deletes anything not referenced by any live manifest. Mistuned, it can race against in-flight writers and remove valid files. The default safety threshold is <strong>3 days</strong> — files newer than that are ignored even if unreferenced.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Default retention (3 days)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/query/execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;sql&quot;:&quot;REMOVE ORPHAN FILES iceberg.test.maint_demo&quot;}&#39;</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="c1"># Or with explicit threshold</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/query/execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;sql\&quot;:\&quot;REMOVE ORPHAN FILES iceberg.test.maint_demo OLDER THAN &#39;2026-05-20&#39;\&quot;}&quot;</span>
+</code></pre></div>
+<p>Response shape on success:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">&quot;queryId&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;9b3c…&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">&quot;elapsedMs&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1820</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span><span class="nt">&quot;commandTag&quot;</span><span class="p">:</span><span class="s2">&quot;REMOVE ORPHAN FILES iceberg.test.maint_demo: scanned=42 deleted=29 bytesFreed=1834567&quot;</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="p">}</span>
+</code></pre></div>
+<p>If you ran <code>expire_snapshots</code> first (which dropped 29 snapshots and made their data files unreachable from any live manifest), the <code>deleted</code> count above is how many of those got physically removed from S3. The ones the scheduler can't reach are now actually gone.</p>
+<blockquote>
+<p><strong>Production rule of thumb</strong> — chain the three in this order, on cadence, per table: <code>expire_snapshots</code> (cuts metadata) → wait at least one Ontul <code>maintenance.interval.ms</code> tick (so <code>rewrite_data_files</code> from a parallel cycle does not race) → <code>remove_orphan_files</code> with <code>older_than</code> ≥ the longest possible writer transaction.</p>
+</blockquote>
+<h2 id="7-verify-the-dirty-state-shrank">7. Verify the dirty state shrank</h2>
+<p>Re-run the inspection queries from §2 against <code>maint_demo</code>. After a successful <code>All Operations</code> trigger you should see something close to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/query/execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;sql&quot;:&quot;SELECT COUNT(*) FROM \&quot;iceberg.test.maint_demo$snapshots\&quot;&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.rows[0][0]&#39;</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="c1"># small number — typically 2-3 (the retention default keeps recent snapshots)</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/query/execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;sql&quot;:&quot;SELECT COUNT(*) FROM \&quot;iceberg.test.maint_demo$files\&quot;&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.rows[0][0]&#39;</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="c1"># 1 (the compaction collapsed all 30 micro-files into one ~128 MB-or-less file)</span>
+</code></pre></div>
+<p>And the row count is unchanged:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/query/execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;sql&quot;:&quot;SELECT COUNT(*) FROM iceberg.test.maint_demo&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.rows[0][0]&#39;</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="c1"># 30</span>
+</code></pre></div>
+<h2 id="8-optional-schedule-the-full-cycle-from-kiok">8. (Optional) Schedule the full cycle from kiok</h2>
+<p>Phase 3's kiok cluster can carry this — register one DAG that hits Ontul's REST on a daily cron, looping over the table patterns you care about. Sketch (YAML):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iceberg-maintenance-daily</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="nt">schedule</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0</span><span class="nv"> </span><span class="s">3</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*&quot;</span><span class="w">   </span><span class="c1"># 03:00 every day</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="nt">tasks</span><span class="p">:</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">full-maintenance</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shell</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">      </span><span class="no">curl -sSf -X POST &quot;$ONTUL/admin/maintenance/run&quot; \</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">        </span><span class="no">-H &quot;Authorization: Bearer $OTOK&quot; -H &#39;Content-Type: application/json&#39; \</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="w">        </span><span class="no">-d &#39;{&quot;tableKey&quot;:&quot;iceberg.*.*&quot;,&quot;operation&quot;:&quot;all&quot;}&#39;</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">orphan-cleanup</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shell</span>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">full-maintenance</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="w">      </span><span class="no">for t in iceberg.test.maint_demo iceberg.sales.orders; do</span>
+<a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="w">        </span><span class="no">curl -sSf -X POST &quot;$ONTUL/admin/query/execute&quot; \</span>
+<a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="w">          </span><span class="no">-H &quot;Authorization: Bearer $OTOK&quot; -H &#39;Content-Type: application/json&#39; \</span>
+<a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="w">          </span><span class="no">-d &quot;{\&quot;sql\&quot;:\&quot;REMOVE ORPHAN FILES $t\&quot;}&quot;</span>
+<a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a><span class="w">      </span><span class="no">done</span>
+</code></pre></div>
+<p>Pull <code>ONTUL</code> + <code>OTOK</code> from a kiok <strong>Connection</strong> (the same <code>polaris-rest</code>-style pattern Phase 3 used) so the values are not baked into the bundle. The Ontul scheduler still runs its own 6-hour cycle — this DAG is an <strong>explicit ceiling</strong> on bloat for tables that are not happy at the 6h cadence, plus the place to put orphan cleanup, which the scheduler does not cover.</p>
+<h2 id="phase-4-exit-checklist">Phase 4 exit checklist</h2>
+<ul>
+<li>[ ] <code>GET http://$ONTUL_HOST:$ONTUL_PORT/admin/catalogs | jq</code> lists <code>iceberg</code> with a non-zero <code>tableCount</code>.</li>
+<li>[ ] <code>POST /admin/maintenance/run</code> with <code>iceberg.test.maint_demo</code> + <code>all</code> returns <code>matchedCount: 1</code> and <code>Job History</code> records three OK rows within ~60 seconds.</li>
+<li>[ ] <code>SELECT COUNT(*) FROM "iceberg.test.maint_demo$snapshots"</code> shrinks; <code>$files</code> collapses to ≤ ceil(total_bytes / targetFileSizeMB).</li>
+<li>[ ] <code>REMOVE ORPHAN FILES iceberg.test.maint_demo</code> returns a non-error <code>commandTag</code> with <code>deleted&gt;0</code> on a freshly-expired table.</li>
+<li>[ ] Per-table <code>PUT /admin/maintenance/config</code> persists across an Ontul leader restart (re-<code>GET</code> to confirm).</li>
+<li>[ ] (If you wired §8) the kiok daily run shows up green every morning, and an audit of <code>Job History</code> shows one batch around 03:00 from kiok plus four from Ontul's 6h cycle.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<ul>
+<li><strong>Maintenance page is empty after registering the catalog.</strong> Job History only populates after at least one operation has run. Click <strong>Run Now</strong> with <code>iceberg.*.*</code> once, wait ~30 s, refresh.</li>
+<li><strong><code>Triggered on 0 tables</code></strong> — your wildcard does not match anything. List what Ontul sees: <code>GET http://$ONTUL_HOST:$ONTUL_PORT/admin/catalogs</code> and the per-catalog <code>tables</code> endpoint, or run <code>SHOW TABLES FROM iceberg.test</code> through <code>/admin/query/execute</code>.</li>
+<li><strong><code>rewrite_data_files</code> history row says <code>No compaction needed</code>.</strong> Files are already at or above the target size. Lower <code>targetFileSizeMB</code> to force a rewrite, or accept that there is nothing to do.</li>
+<li><strong><code>REMOVE ORPHAN FILES</code> deletes zero files but you expected some.</strong> The 3-day default safety threshold is rejecting files newer than that. Use the explicit <code>OLDER THAN '&lt;ts&gt;'</code> form, but never set it tighter than the longest active write transaction or you risk pulling a file out from under a writer.</li>
+<li><strong>Scheduler log says <code>IcebergMaintenanceService started</code> on more than one host.</strong> Two Ontul masters both think they are leader — investigate Curator / ZooKeeper before letting the next cycle run. Both leaders will conflict on <code>commit()</code>.</li>
+<li><strong><code>ALTER TABLE … EXECUTE remove_orphan_files(…)</code> returned <code>Orphan file removal triggered (check maintenance history)</code> but nothing changed.</strong> The <code>ALTER … EXECUTE</code> form is a placeholder; use the dedicated <code>REMOVE ORPHAN FILES &lt;table&gt;</code> statement from §6 instead.</li>
+</ul>
+<h2 id="next">Next</h2>
+<p><a href="#">Phase 5 — Kafka → Flink → Iceberg streaming</a> brings Flink up and points it at the same Iceberg catalog. Pre-stop: nothing — Ontul, Polaris, ShannonStore, PostgreSQL stay up exactly as they are now; the maintenance scheduler stays useful for Phase 5's streaming output too.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      © <script>document.write(new Date().getFullYear())</script> Cloud Chef Labs, Inc. All rights reserved. <a href="mailto:admin@cloudchef-labs.com">admin@cloudchef-labs.com</a>
+
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy", "header.autohide"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "3.0.0", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

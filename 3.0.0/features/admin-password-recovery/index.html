@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/iam/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/admin-password-recovery/">
       
       
-        <link rel="prev" href="../topology/">
+        <link rel="prev" href="../iam/">
       
       
-        <link rel="next" href="../admin-password-recovery/">
+        <link rel="next" href="../kms/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>Identity & Access Management - Chango</title>
+        <title>Admin Password Recovery - Chango</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#identity-access-management" class="md-skip">
+        <a href="#admin-password-recovery" class="md-skip">
           Skip to content
         </a>
       
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Identity & Access Management
+              Admin Password Recovery
             
           </span>
         </div>
@@ -899,6 +899,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../iam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Identity & Access Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -918,7 +946,7 @@
   <span class="md-ellipsis">
     
   
-    Identity & Access Management
+    Admin Password Recovery
   
 
     
@@ -936,7 +964,7 @@
   <span class="md-ellipsis">
     
   
-    Identity & Access Management
+    Admin Password Recovery
   
 
     
@@ -962,10 +990,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
+  <a href="#when-to-use" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Concepts
+        When to use
       
     </span>
   </a>
@@ -973,10 +1001,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-chango-uses-it" class="md-nav__link">
+  <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How chango uses it
+        How it works
       
     </span>
   </a>
@@ -984,10 +1012,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-components-use-it" class="md-nav__link">
+  <a href="#quick-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How components use it
+        Quick start
       
     </span>
   </a>
@@ -995,10 +1023,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#default-bootstrap" class="md-nav__link">
+  <a href="#input-modes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Default bootstrap
+        Input modes
       
     </span>
   </a>
@@ -1006,10 +1034,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-state-lives" class="md-nav__link">
+  <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Where state lives
+        Configuration
       
     </span>
   </a>
@@ -1017,10 +1045,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rest-surface" class="md-nav__link">
+  <a href="#security-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        REST surface
+        Security model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related
       
     </span>
   </a>
@@ -1031,34 +1081,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../admin-password-recovery/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Admin Password Recovery
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1909,148 +1931,187 @@
 
 
 
-<h1 id="identity-access-management">Identity &amp; Access Management</h1>
-<p>Chango ships with a built-in IAM layer that controls who can do what against the admin UI, the REST API, and any cluster-wide operation. It is implemented inside chango itself — no external identity provider is required to bring chango up. Components that need their own authorization (Trino, Spark, Flink, …) delegate to Ontul; chango's IAM governs the control plane.</p>
-<h2 id="concepts">Concepts</h2>
-<p>The model is intentionally close to AWS IAM, so policies port across cleanly.</p>
-<table>
-<thead>
-<tr>
-<th>Entity</th>
-<th>What it is</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>User</strong></td>
-<td>A principal with credentials. Identified by username; can hold a password and one or more access keys.</td>
-</tr>
-<tr>
-<td><strong>Group</strong></td>
-<td>A named bundle of policies. Users get permissions by belonging to groups.</td>
-</tr>
-<tr>
-<td><strong>Policy</strong></td>
-<td>A versioned set of <code>Statement</code> rules — <code>Effect</code> (Allow / Deny) × <code>Action</code> × <code>Resource</code> × optional <code>Columns</code> / <code>Condition</code>.</td>
-</tr>
-<tr>
-<td><strong>Access Key</strong></td>
-<td>A long-lived <code>(accessKeyId, secretAccessKey, token)</code> triple issued for a user. Used by service-to-service calls (Ontul authz plugins, S3 SigV4 against ShannonStore).</td>
-</tr>
-<tr>
-<td><strong>Temporary Credentials</strong></td>
-<td>Short-lived <code>(accessKeyId, secretAccessKey, sessionToken, expiration)</code> issued by the STS endpoint for a federated principal.</td>
-</tr>
-</tbody>
-</table>
-<p>A policy statement looks like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="p">{</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">      </span><span class="nt">&quot;Sid&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;allow-events&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">      </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">      </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;SELECT&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">      </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;lake.db.events&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">}</span>
+<h1 id="admin-password-recovery">Admin Password Recovery</h1>
+<p>Chango ships with a built-in recovery channel that lets an operator reset the
+<code>admin</code> user's password <strong>without stopping the master</strong>, even when no one
+remembers the current password.</p>
+<p>Recovery uses a local Unix domain socket — there is no HTTP back-door, no
+network endpoint, no recovery URL. Authentication is performed by the
+operating system: only a process that already shares the master's filesystem
+identity can open the socket.</p>
+<h2 id="when-to-use">When to use</h2>
+<ul>
+<li>The admin password was forgotten or rotated out of the password manager.</li>
+<li>An automation script needs to provision a known admin password during
+  first-time setup, without going through the web UI.</li>
+<li>A new operator is onboarded and you need to hand them an admin credential.</li>
+</ul>
+<p>For day-to-day password changes (the user remembers the old password and
+wants a new one), use the Admin UI's <strong>Change Password</strong> screen instead —
+that path requires the old password and does not flag the user for forced
+rotation.</p>
+<h2 id="how-it-works">How it works</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌────────────────────┐   JSON over UDS    ┌────────────────────┐
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│  chango-cli        │ ─────────────────▶ │  Master (running)  │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│  iam:reset-password│                    │   AuthManager      │
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>└────────────────────┘                    │   .adminResetPwd() │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>         ▲                                │                    │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>         │ stdout: new password           │  saveToDb()        │
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>         │ (one-time)                     │  cluster sync push │
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                                          │  audit log append  │
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                                          └────────────────────┘
 </code></pre></div>
-<p>Statements are evaluated as a flat set across every policy attached (directly or via group) to the calling user. The order is the standard AWS one: explicit <code>Deny</code> always wins, otherwise the action must match at least one <code>Allow</code>.</p>
-<h2 id="how-chango-uses-it">How chango uses it</h2>
-<p>Three places inside chango itself:</p>
-<ul>
-<li><strong>Admin UI login</strong> — username + password against the IAM user table. The bootstrap creates an <code>admin</code> user with the default password <code>admin</code> and the <code>AdministratorAccess</code> policy attached; the first login forces a password change.</li>
-<li><strong>Admin REST API</strong> — every request carries <code>Authorization: Bearer &lt;accessToken&gt;</code>. The token is issued at login by <code>AdminTokenService</code> and verified per request. Mutating routes (KMS / IAM / cluster install) are leader-only — followers return <code>421</code> with the leader's address.</li>
-<li><strong>STS for service principals</strong> — <code>POST /admin/api/sts/assume-role</code> issues short-lived credentials that scripts can use without a long-lived password. Used internally by chango's own provisioners.</li>
-</ul>
-<h2 id="how-components-use-it">How components use it</h2>
-<p>Chango is the master copy of IAM state, but the actual data-plane components (Trino, Spark, Flink) delegate authorization to <strong>Ontul</strong> — Ontul is the IAM authority that holds the user / group / policy graph for query-time decisions.</p>
-<ul>
-<li>The chango installer wires every Trino / Spark / Flink cluster to an Ontul endpoint + a long-lived access key (OTOK).</li>
-<li>Inside the engine, the first-party authz plugin (<code>chango-trino-authz</code>, <code>chango-spark-authz</code>, <code>chango-flink-authz</code>) calls <code>POST &lt;ontul&gt;/v1/api/authz/check-batch</code> for every query, with <code>(user, action, resource)</code> tuples and gets back <code>ALLOW</code> / <code>DENY</code> / <code>ABSTAIN</code> decisions.</li>
-</ul>
-<p>So chango's own IAM governs the admin UI and the REST API. Ontul's IAM governs query-time access to the data. Chango and Ontul are deliberately separate authorities — chango can be re-provisioned without invalidating Ontul tokens, and Ontul can be re-bootstrapped without re-issuing chango admin sessions.</p>
-<h2 id="default-bootstrap">Default bootstrap</h2>
-<p>On the very first start of a fresh cluster, the leader creates exactly one user / group / policy:</p>
-<ul>
-<li>User <code>admin</code> / password <code>admin</code> (must be changed on first login).</li>
-<li>Group <code>admin-group</code> with the <code>AdministratorAccess</code> policy attached (<code>Action: *</code>, <code>Resource: *</code>).</li>
-<li>The <code>admin</code> user belongs to <code>admin-group</code>.</li>
-</ul>
-<p>If the leader's IAM RocksDB ever looks empty on a non-first boot (disk corruption, accidental wipe), chango <strong>refuses to recreate the defaults</strong> — your real IAM cannot be silently overwritten back to <code>admin/admin</code>. Restore from backup instead.</p>
-<h2 id="where-state-lives">Where state lives</h2>
-<p>IAM state is one of three RocksDB stores the chango master keeps locally:</p>
-<ul>
-<li><code>/var/lib/chango/iam/</code> (default <code>chango.iam.rocksdb.path</code>).</li>
-<li>The store is plain RocksDB — no KMS envelope on read, since the leader needs synchronous access. Sensitive fields (password hashes, access key secrets) are stored hashed / encrypted at the field level.</li>
-<li>Followers and node managers cache the state and pull a fresh copy from the leader on every restart and on every change at runtime — single source of truth.</li>
-</ul>
-<p>The IAM RocksDB is included in chango's <a href="../backup/">Backup &amp; Restore</a> artifact alongside the KMS and metadata RocksDB.</p>
-<h2 id="rest-surface">REST surface</h2>
 <table>
 <thead>
 <tr>
-<th>Endpoint</th>
-<th>Purpose</th>
+<th>Property</th>
+<th>Value</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>POST /admin/api/auth/login</code></td>
-<td>Username + password → access + refresh token</td>
+<td><strong>Socket path</strong></td>
+<td><code>data/admin.sock</code> (mode <code>600</code>)</td>
 </tr>
 <tr>
-<td><code>POST /admin/api/auth/refresh</code></td>
-<td>Refresh token → new access token</td>
+<td><strong>Authentication</strong></td>
+<td>OS file permission — same user as the master process</td>
 </tr>
 <tr>
-<td><code>POST /admin/api/auth/change-password</code></td>
-<td>Rotate the current user's password</td>
+<td><strong>Network surface</strong></td>
+<td>none — Unix domain socket only</td>
 </tr>
 <tr>
-<td><code>GET  /admin/api/iam/users</code></td>
-<td>List users</td>
+<td><strong>Downtime</strong></td>
+<td>none — applied in-process on the live master</td>
 </tr>
 <tr>
-<td><code>POST /admin/api/iam/users</code></td>
-<td>Create user</td>
+<td><strong>Cluster sync</strong></td>
+<td>automatic — leader pushes the new IAM snapshot to follower masters and node managers</td>
 </tr>
 <tr>
-<td><code>GET  /admin/api/iam/groups</code></td>
-<td>List groups</td>
+<td><strong>Audit log</strong></td>
+<td><code>data/iam-audit/reset.log</code> (mode <code>600</code>, append-only)</td>
 </tr>
 <tr>
-<td><code>POST /admin/api/iam/groups</code></td>
-<td>Create group</td>
-</tr>
-<tr>
-<td><code>GET  /admin/api/iam/policies</code></td>
-<td>List policies (full document)</td>
-</tr>
-<tr>
-<td><code>POST /admin/api/iam/policies</code></td>
-<td>Create policy</td>
-</tr>
-<tr>
-<td><code>POST /admin/api/iam/attach-group-policy</code></td>
-<td>Attach a policy to a group</td>
-</tr>
-<tr>
-<td><code>POST /admin/api/iam/add-user-to-group</code></td>
-<td>Add a user to a group</td>
-</tr>
-<tr>
-<td><code>POST /admin/api/iam/access-keys</code></td>
-<td>Issue an access key for a user</td>
-</tr>
-<tr>
-<td><code>POST /admin/api/sts/assume-role</code></td>
-<td>Issue short-lived credentials</td>
+<td><strong>Post-reset state</strong></td>
+<td><code>requirePasswordChange = true</code> (forced rotation on next login)</td>
 </tr>
 </tbody>
 </table>
-<p>All routes (except <code>auth/login</code> and <code>auth/refresh</code>) require a Bearer access token. Mutating routes additionally require leader status.</p>
+<h2 id="quick-start">Quick start</h2>
+<p>The simplest invocation lets the master generate a strong 20-character
+password and print it to stdout. The new password must be changed on the
+admin's next login (the <code>requirePasswordChange</code> flag is set automatically).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Inside the master host or container:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>bin/chango-cli.sh<span class="w"> </span>iam:reset-password
+</code></pre></div>
+<p>Sample output (TTY):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>  ┌────────────────────────────────────────────────────────────┐
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  │  Password reset for user: admin                            │
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  │                                                            │
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  │  New temporary password: K3p9WvTx7qLm8zXa#-Bd              │
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  │                                                            │
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  │  Must be changed on next login (requirePasswordChange).    │
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  └────────────────────────────────────────────────────────────┘
+</code></pre></div>
+<h2 id="input-modes">Input modes</h2>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Command</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Master-generated</strong></td>
+<td><code>chango-cli.sh iam:reset-password</code></td>
+<td>Default. Strong random password printed once on stdout.</td>
+</tr>
+<tr>
+<td><strong>Explicit</strong></td>
+<td><code>chango-cli.sh iam:reset-password --new-password 'My!Pass'</code></td>
+<td>Automation that knows the desired value. Beware: argv may show up in <code>ps</code>.</td>
+</tr>
+<tr>
+<td><strong>Stdin</strong></td>
+<td><code>echo 'My!Pass' \| chango-cli.sh iam:reset-password --new-password -</code></td>
+<td>Automation that wants to avoid argv exposure.</td>
+</tr>
+<tr>
+<td><strong>Interactive</strong></td>
+<td><code>chango-cli.sh iam:reset-password --interactive</code></td>
+<td>Operator at a TTY. Prompts for password twice with no echo.</td>
+</tr>
+</tbody>
+</table>
+<p>Resetting a different user is also supported:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>bin/chango-cli.sh<span class="w"> </span>iam:reset-password<span class="w"> </span>--user<span class="w"> </span>some-user<span class="w"> </span>--new-password<span class="w"> </span><span class="s1">&#39;NewPass123&#39;</span>
+</code></pre></div>
+<h2 id="configuration">Configuration</h2>
+<p>The recovery socket is enabled by default. To disable it (for example, in a
+hardened production deployment), set:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># conf/chango.properties</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="na">chango.admin.socket.enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">false</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="na">chango.admin.socket.path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">${chango.base.data.dir}/admin.sock</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="na">chango.iam.audit.dir</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="s">${chango.base.data.dir}/iam-audit</span>
+</code></pre></div>
+<p>The CLI resolves the socket path in this order:</p>
+<ol>
+<li><code>--socket /path/to/admin.sock</code> command-line flag</li>
+<li><code>CHANGO_ADMIN_SOCKET</code> environment variable</li>
+<li><code>chango.admin.socket.path</code> in <code>conf/chango.properties</code></li>
+<li><code>&lt;chango.base.data.dir&gt;/admin.sock</code> (the default that matches the master)</li>
+</ol>
+<h2 id="security-model">Security model</h2>
+<p><strong>1. The socket is OS-gated.</strong>
+At startup the master creates <code>data/admin.sock</code> with mode <code>600</code> (owner
+read/write only). Even other unprivileged users on the same host cannot
+connect. There is no token, no shared secret, no network listener.</p>
+<p><strong>2. The audit log records every reset.</strong>
+Every successful reset appends a JSON line to <code>data/iam-audit/reset.log</code>
+(mode <code>600</code>). The plaintext password is <strong>never</strong> logged — only the first
+8 characters of its hash, the user, whether it was master-generated, and
+the OS user that invoked the CLI.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span><span class="nt">&quot;ts&quot;</span><span class="p">:</span><span class="s2">&quot;2026-05-23T16:00:46.922Z&quot;</span><span class="p">,</span><span class="nt">&quot;event&quot;</span><span class="p">:</span><span class="s2">&quot;iam.reset-password&quot;</span><span class="p">,</span><span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span><span class="nt">&quot;generated&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span><span class="nt">&quot;hashFp&quot;</span><span class="p">:</span><span class="s2">&quot;OYV/Ojf/&quot;</span><span class="p">,</span><span class="nt">&quot;invokedAs&quot;</span><span class="p">:</span><span class="s2">&quot;root&quot;</span><span class="p">}</span>
+</code></pre></div>
+<p><strong>3. The new password is exposed exactly once.</strong>
+For master-generated passwords, the plaintext is returned only on the
+single CLI invocation that triggered the reset. It is not written to the
+audit log, not stored in RocksDB, and not retransmitted. Treat scrollback
+and shell history accordingly — or use stdin input mode to avoid argv
+exposure entirely.</p>
+<p><strong>4. Forced rotation on next login.</strong>
+After reset, the user is flagged <code>requirePasswordChange = true</code>. The next
+successful login forces the user through the change-password flow, so a
+temporary password used by the operator is immediately replaced by a
+password only the user knows.</p>
+<p><strong>5. The master must be running.</strong>
+Because the recovery channel is in-process, the master must be alive for
+the CLI to connect. This is intentional: RocksDB requires an exclusive
+lock, so an offline edit would either conflict with a running master or
+need a complex stale-lock recovery. With this design, the only way to
+reset is to be on the host <em>and</em> have the master running <em>and</em> share its
+filesystem identity.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><strong>Master must be running.</strong> If the master is down (e.g. KMS unseal
+  failure during boot), this CLI cannot help. The recovery path in that
+  case is to inspect the boot failure, fix the underlying issue, and let
+  the master come up — then run the CLI.</li>
+<li><strong>No knowledge factor.</strong> Any process that shares the master's filesystem
+  identity can invoke the CLI. In multi-tenant or shared-shell
+  environments, restrict shell access to the master accordingly. A future
+  enhancement may add an opt-in "recovery key" requirement for an
+  additional knowledge factor.</li>
+</ul>
+<h2 id="related">Related</h2>
+<ul>
+<li><a href="../iam/">Identity &amp; Access Management</a> — users, groups, policies</li>
+<li><a href="../kms/">Encryption &amp; Key Management</a> — how IAM is encrypted at rest</li>
+</ul>
 
 
 
