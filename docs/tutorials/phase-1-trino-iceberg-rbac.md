@@ -482,6 +482,245 @@ curl -sS -X POST $ONTUL/admin/iam/add-user-to-group \
 
 ### 5.2 Create a row-filter policy (AWS-style document)
 
+#### Ontul IAM policy JSON schema in detail
+
+Ontul policies adopt the **AWS IAM policy document** shape — a top-level `Version` + a list of `Statement` blocks. The chango-trino-authz plugin reads the user's effective policies (union of every policy attached to every group the user is in), evaluates them per resource on each query, and either allows / denies / rewrites the plan.
+
+> **Field names are case-sensitive PascalCase** — `Version`, `Statement`, `Sid`, `Effect`, `Action`, `Resource`, `Condition`, `Columns`. Lowercase variants are silently ignored by the Jackson deserializer, which is the most common policy-create pitfall (a `policies` GET returns the policy with every PascalCase field `null` when this happens, because the deserializer never populated them). The REST envelope `{name, document}` itself uses lowercase keys (`name`, `document`) — the PascalCase rule applies inside `document`.
+
+##### Top-level envelope (what `POST /admin/iam/policies` accepts)
+
+```json
+{
+  "name":     "<policy-name>",
+  "document": { ... AWS-IAM-style document ... }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `name` | Unique policy name inside the tenant. Used by `attach-group-policy` / `attach-user-policy`. |
+| `document` | The IAM-style document below. Stored as-is and re-evaluated on every query. |
+
+##### Document body
+
+```json
+{
+  "Version":   "2024-01-01",
+  "Statement": [
+    {
+      "Sid":       "<human label>",
+      "Effect":    "Allow" | "Deny",
+      "Action":    ["data:Select", "data:Insert", ...],
+      "Resource":  "data:table:iceberg.sales.*",
+      "Columns":   ["order_id", "country"],
+      "Condition": "country = 'KR'"
+    },
+    ...more statements...
+  ]
+}
+```
+
+| Field | Required | Type | Notes |
+|---|---|---|---|
+| `Version` | yes | string | `2024-01-01` — schema version Ontul understands today. |
+| `Statement` | yes | array | One or more statement blocks. Statements are evaluated in array order; a `Deny` anywhere wins over any `Allow`. |
+| `Sid` | optional | string | Statement label — surfaces in audit logs. Free-form text. |
+| `Effect` | yes | enum | `Allow` or `Deny`. With no statement matching a request → **ABSTAIN** → fail-closed (request denied). |
+| `Action` | yes | string \| array | One or more action verbs scoped to the chango authz space — see action catalog below. Wildcard `*` matches every action. |
+| `Resource` | yes | string \| array | One or more **resource paths** in the form `<category>:<kind>:<dotted name>`. See resource grammar below. Wildcard `*` segments allowed. |
+| `Condition` | optional | string | A SQL `WHERE` fragment chango-trino-authz **injects** into every query touching `Resource`. Use to row-filter (e.g. `country = 'KR'`). |
+| `Columns` | optional | array | Whitelist of columns the user may project / filter on for `Resource`. Other columns are masked / removed from the plan. |
+
+##### Action catalog (the common ones)
+
+Actions are prefixed by category — `data:` for SQL/table actions, `admin:` for IAM mutations, `dag:` for kiok.
+
+| Action | Surface |
+|---|---|
+| `data:Select` | SQL `SELECT` against a table / view. |
+| `data:Insert` | `INSERT`. |
+| `data:Update` | `UPDATE` / `MERGE` update branch. |
+| `data:Delete` | `DELETE` / `MERGE` delete branch. |
+| `data:Create` | `CREATE TABLE` (column DDL). |
+| `data:Drop` | `DROP TABLE`. |
+| `data:CreateSchema` / `data:DropSchema` | namespace / schema DDL. |
+| `data:CreateCatalog` / `data:DropCatalog` | catalog-level DDL (rare; reserved for admins). |
+| `*` | every action — used by `AdministratorAccess`. |
+
+##### Resource grammar
+
+```
+<category>:<kind>:<dotted name>
+```
+
+| Category | Kind | Example | Matches |
+|---|---|---|---|
+| `data` | `catalog` | `data:catalog:iceberg` | the catalog itself (e.g. for `data:CreateSchema`). |
+| `data` | `schema`  | `data:schema:iceberg.test` | one schema. |
+| `data` | `table`   | `data:table:iceberg.test.orders` | one table. |
+| `data` | `table`   | `data:table:iceberg.test.*` | every table in `iceberg.test`. |
+| `data` | `table`   | `data:table:iceberg.*.*` | every table in every schema under `iceberg`. |
+| `data` | `*`       | `data:*:iceberg.test.*` | every kind in `iceberg.test`. |
+| `*`    | `*`       | `*` | everything (admin). |
+
+Wildcards `*` are allowed in **path segments**, not in the middle of a name (`iceberg.te*` is not supported).
+
+##### Evaluation flow (per query, per resource)
+
+1. Trino coordinator computes the set of resources a query touches (catalogs, schemas, tables, columns).
+2. chango-trino-authz asks Ontul: *"may user `<u>` perform `<action>` on `<resource>`?"* for each (action, resource) pair.
+3. Ontul walks every statement of every policy attached to every group `<u>` is in:
+    - Statement matches if `Action` ∋ action **and** `Resource` ∋ resource.
+    - Matching `Deny` → immediate **Deny**.
+    - Matching `Allow` → record. Later statements still evaluated for `Deny` overrides.
+4. After all statements: any `Allow` recorded → **Allow** (with optional `Condition` injected, `Columns` projection enforced). No statements matched → **ABSTAIN** → fail-closed.
+
+##### Worked examples
+
+**(a) Read-only on one namespace** — `alice` may `SELECT` from anything under `iceberg.test`, nothing else:
+
+```json
+{
+  "name": "iceberg-test-read",
+  "document": {
+    "Version": "2024-01-01",
+    "Statement": [{
+      "Sid":      "IcebergTestRead",
+      "Effect":   "Allow",
+      "Action":   ["data:Select"],
+      "Resource": "data:table:iceberg.test.*"
+    }]
+  }
+}
+```
+
+**(b) Read + write on the same namespace, plus the schema DDL** — `spark` (the OS user the kiok DAGs run as) needs to create the schema first and then `INSERT`:
+
+```json
+{
+  "name": "iceberg-test-write",
+  "document": {
+    "Version": "2024-01-01",
+    "Statement": [
+      {
+        "Sid":      "IcebergTestWrite",
+        "Effect":   "Allow",
+        "Action":   ["data:Select", "data:Insert", "data:Update",
+                     "data:Delete", "data:Create", "data:Drop"],
+        "Resource": "data:table:iceberg.test.*"
+      },
+      {
+        "Sid":      "IcebergTestSchema",
+        "Effect":   "Allow",
+        "Action":   ["data:CreateSchema", "data:DropSchema"],
+        "Resource": "data:schema:iceberg.test"
+      }
+    ]
+  }
+}
+```
+
+**(c) Row-filter policy** — `analyst-kr` may read sales rows for Korea only. The `Condition` clause is appended as a `WHERE` predicate to every query that touches `iceberg.sales.*`:
+
+```json
+{
+  "name": "sales-kr-read",
+  "document": {
+    "Version": "2024-01-01",
+    "Statement": [{
+      "Sid":       "SalesKrRead",
+      "Effect":    "Allow",
+      "Action":    ["data:Select"],
+      "Resource":  "data:table:iceberg.sales.*",
+      "Condition": "country = 'KR'"
+    }]
+  }
+}
+```
+
+A Trino `SELECT * FROM iceberg.sales.orders` issued as `analyst-kr` becomes `SELECT * FROM iceberg.sales.orders WHERE country = 'KR'` server-side. The user cannot see other countries, even with `WHERE country = 'JP'` typed manually (the chango-rewritten predicate `AND` s onto whatever the user wrote).
+
+**(d) Column whitelist (column-mask)** — `analyst-kr` may read only three columns; `customer_id` is hidden:
+
+```json
+{
+  "name": "sales-kr-read-cols",
+  "document": {
+    "Version": "2024-01-01",
+    "Statement": [{
+      "Sid":       "SalesKrReadCols",
+      "Effect":    "Allow",
+      "Action":    ["data:Select"],
+      "Resource":  "data:table:iceberg.sales.orders",
+      "Columns":   ["order_id", "country", "total_amount"],
+      "Condition": "country = 'KR'"
+    }]
+  }
+}
+```
+
+`SELECT *` returns only the three whitelisted columns. `SELECT customer_id FROM ...` returns `Access Denied: column customer_id not authorized`.
+
+**(e) Allow + Deny on the same target** — `auditor` may read every sales table, but never `iceberg.sales.salary` even though it matches the broader Allow:
+
+```json
+{
+  "name": "auditor-sales-read",
+  "document": {
+    "Version": "2024-01-01",
+    "Statement": [
+      { "Sid": "BroadRead",  "Effect": "Allow",
+        "Action": ["data:Select"], "Resource": "data:table:iceberg.sales.*" },
+      { "Sid": "BlockSalary", "Effect": "Deny",
+        "Action": ["data:Select"], "Resource": "data:table:iceberg.sales.salary" }
+    ]
+  }
+}
+```
+
+Because `Deny` short-circuits, the order of statements does not matter — `Deny` always wins.
+
+**(f) Administrator** — the seeded `AdministratorAccess` policy:
+
+```json
+{ "Version": "2024-01-01",
+  "Statement": [{ "Sid": "AdministratorAccess",
+                  "Effect": "Allow", "Action": "*", "Resource": "*" }] }
+```
+
+##### POST + verify the policy
+
+```bash
+cat > /tmp/sales-kr-read.json <<'EOF'
+{
+  "name": "sales-kr-read",
+  "document": {
+    "Version": "2024-01-01",
+    "Statement": [{
+      "Sid":       "SalesKrRead",
+      "Effect":    "Allow",
+      "Action":    ["data:Select"],
+      "Resource":  "data:table:iceberg.sales.*",
+      "Condition": "country = 'KR'"
+    }]
+  }
+}
+EOF
+
+curl -sS -X POST $ONTUL/admin/iam/policies \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  --data @/tmp/sales-kr-read.json
+# {"status":"ok","policyName":"sales-kr-read"}
+
+# Read back — every PascalCase field is populated; if `Statement` is `null`,
+# the JSON used lowercase fields and the deserializer dropped them.
+curl -sS -H "Authorization: Bearer $ONTUL_TOK" $ONTUL/admin/iam/policies \
+  | jq '.["sales-kr-read"]'
+```
+
+A common failure mode is forgetting the `Version` field — the policy still saves but Ontul logs a deserialization warning and the policy never matches. Always verify the read-back shows your `Statement` array populated.
+
 Ontul policies use AWS IAM document shape. **`Condition`** is a SQL `WHERE` fragment that chango's `chango-trino-authz` plugin appends to every Trino query that touches `Resource`. **`Columns`** restricts which columns the user can `SELECT`.
 
 ```bash
@@ -561,6 +800,155 @@ trino --server http://$COORD_HOST:$COORD_PORT --user analyst-kr --catalog iceber
       --execute "DELETE FROM sales.orders WHERE order_id=1"
 # Query failed: Access Denied: ...
 ```
+
+## 6. Connect with DBeaver (nginx → Trino Gateway → Trino)
+
+Every JDBC / BI client (DBeaver, Tableau, Superset, Looker, …) talks to the Trino Gateway over HTTP. So far the Gateway has been reached on its allocator-assigned port (`$GW_PORT`, typically in the 19xxx band) — fine for ad-hoc curl but awkward to hand to analysts. The recommended chain is:
+
+```
+client (DBeaver)
+   └─► nginx                    (single well-known listen port per Gateway cluster)
+         └─► Trino Gateway      (picks a backend by Ontul group → cluster-group)
+               └─► Trino        (executes; chango-trino-authz enforces row / column rules)
+```
+
+nginx in chango is a per-cluster feature reconciled by the leader — when a Gateway instance comes or goes, the upstream block re-renders within ~30 seconds. See [Nginx Reverse Proxy](../operations/nginx-proxy.md) for the operations background; this section is the wire-up specific to DBeaver.
+
+### 6.1 Front the Gateway with nginx
+
+#### Via the chango admin UI
+
+1. From the chango admin UI's **Trino Gateway** page click into the `trino-gw` cluster.
+2. Open the **Nginx Proxy** panel.
+3. **Host** — pick `chango-n1` (or any NM with sufficient network reachability for clients).
+4. **Instances** — leave all checked (there is only the one Gateway instance in this lab).
+5. Click **Apply**. The panel writes `/etc/nginx/conf.d/chango_trino-gateway_trino-gw.conf` and reloads nginx. After a few seconds the **Current Proxy URL** banner appears with the public-facing URL — e.g. `http://chango-n1.chango.private:19180`.
+
+#### Via REST
+
+```bash
+curl -sS -X POST $BASE/admin/api/clusters/trino-gw/nginx \
+  -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+  -d "{\"nginxNode\":\"$N1\",\"instances\":[\"trino-gw-gateway-1\"]}"
+```
+
+### 6.2 Pin the nginx URL
+
+```bash
+NGX_HOST=$(curl -sS -H "Authorization: Bearer $TOK" \
+  $BASE/admin/api/clusters/trino-gw/nginx | jq -r .nginxHost)
+NGX_PORT=$(curl -sS -H "Authorization: Bearer $TOK" \
+  $BASE/admin/api/clusters/trino-gw/nginx | jq -r .nginxPort)
+echo "nginx: $NGX_HOST:$NGX_PORT"
+```
+
+Sanity-check from the operator shell — the nginx layer is transparent, so the same Trino REST works:
+
+```bash
+curl -sS -u admin: "http://$NGX_HOST:$NGX_PORT/v1/info" | jq .nodeVersion
+# "<trino-version>"
+```
+
+> **Hostname reachability** — `chango-n1.chango.private` is the FQHN chango writes into `/etc/hosts` on every node. From an analyst laptop outside the chango network, either add the entry to the laptop's hosts file or substitute the raw IP / public DNS that maps to the nginx host. DBeaver does not care which form, but the host segment must resolve from where DBeaver runs.
+
+### 6.3 Configure DBeaver
+
+#### 6.3.1 Driver
+
+DBeaver ships a Trino driver out of the box (search "Trino" in **Database → Driver Manager** to confirm). If you need a specific Trino version (e.g. to match the cluster), in **Driver Manager → Trino → Libraries** add `io.trino:trino-jdbc:<v>` from Maven and remove the bundled one. Use the same version that the cluster reported under `.nodeVersion`.
+
+#### 6.3.2 New connection
+
+In **Database → New Database Connection**, pick **Trino**, click **Next**, and fill the **Main** tab:
+
+| Field | Value |
+|---|---|
+| **Host** | `chango-n1.chango.private` (from `$NGX_HOST`) |
+| **Port** | `19180` (from `$NGX_PORT` — the **nginx** port, not the Gateway's `$GW_PORT`) |
+| **Database / Catalog** | `iceberg` (or leave blank to land in the default schema-less context) |
+| **Username** | `analyst-kr` (any Ontul user — see Phase 1 §5.1) |
+| **Password** | **empty** — chango ships Trino with the Insecure Authenticator by default. The username on the wire is what chango-trino-authz resolves against Ontul. |
+
+Open **Driver properties** and add:
+
+| Property | Value | Why |
+|---|---|---|
+| `SSL` | `false` | nginx is HTTP-only in this lab. Set `true` after you terminate TLS on nginx for production. |
+| `source` | `dbeaver` | shows up in Trino's `query_history` and Gateway routing logs — invaluable for "who is hammering us." |
+| `clientTags` | (optional) — e.g. `bi` | If you set up cluster-group routing rules keyed on tags, this is how the Gateway routes the connection. |
+| `applicationNamePrefix` | (optional) `chango-` | distinguishes BI traffic in coordinator logs. |
+
+Leave everything else default. JDBC URL DBeaver constructs:
+
+```
+jdbc:trino://chango-n1.chango.private:19180/iceberg?SSL=false&source=dbeaver
+```
+
+#### 6.3.3 Test the connection
+
+Click **Test Connection**. DBeaver opens a `GET /v1/info`, gets a `200`, and shows the version banner — the request walked through nginx → Gateway → coordinator → back. Click **Finish**.
+
+In the SQL editor, run:
+
+```sql
+SHOW CATALOGS;
+```
+
+You should see `iceberg`, `jmx`, `system`, `tpcds`, `tpch` — same list `$COORD_HOST:$COORD_PORT` returned in §3.4.
+
+### 6.4 Verify RBAC end-to-end through the JDBC chain
+
+Open the **analyst-kr** connection's SQL editor:
+
+```sql
+SELECT order_id, country, total_amount
+FROM iceberg.sales.orders
+ORDER BY order_id;
+```
+
+Returns only the KR rows — `chango-trino-authz` injected `WHERE country = 'KR'` server-side, exactly as the `trino` CLI verified in §5.3.
+
+Now repeat the connection wizard with **Username = `analyst-jp`** + the same nginx host/port, and run the same query:
+
+```sql
+SELECT order_id, country, total_amount
+FROM iceberg.sales.orders
+ORDER BY order_id;
+```
+
+Returns only the JP rows.
+
+If you applied the column-mask policy in §5.4, `SELECT *` from `analyst-kr` returns only the whitelisted columns; `SELECT customer_id …` fails with `Access Denied: column customer_id not authorized`. The chain — DBeaver, nginx, Gateway, coordinator, chango-trino-authz, Ontul — collapses the policy decision before a single byte leaves the coordinator.
+
+### 6.5 Request chain summary
+
+```
+DBeaver
+  │ HTTP POST /v1/statement (X-Trino-User: analyst-kr)
+  ▼
+nginx :19180 (proxy_pass to GW:$GW_PORT)
+  │
+  ▼
+Trino Gateway :$GW_PORT
+  │ Look up Ontul groups for analyst-kr → resolve cluster-group → pick trino-main
+  ▼
+Trino coordinator :$COORD_PORT
+  │ Parse + plan
+  │ chango-trino-authz asks Ontul: { user=analyst-kr, action=data:Select, resource=data:table:iceberg.sales.orders }
+  │ Inject Condition (`country = 'KR'`) into the plan
+  │ Project only whitelisted Columns
+  ▼
+Trino workers execute filtered + projected plan
+  │ Stream rows back up the chain
+  ▼
+DBeaver result grid
+```
+
+Three things to remember about this chain:
+
+1. **The nginx layer is policy-free** — every Allow / Deny / row-filter / column-mask decision still happens at the Trino coordinator. nginx is purely a TCP/HTTP fan-in.
+2. **The Gateway layer is routing-only** — picking which backend executes the query. RBAC is not applied at the Gateway either.
+3. **Once you flip on TLS at nginx**, you do not have to change anything Trino-side. Flip `SSL=true` in the DBeaver driver properties, point the JDBC URL at the HTTPS port, and the rest of the chain stays put.
 
 ## Phase 1 exit checklist
 

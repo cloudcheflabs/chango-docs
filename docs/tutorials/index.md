@@ -12,8 +12,8 @@ Each phase **brings up only the components it needs** and stops the heavy ones i
 | [1](phase-1-trino-iceberg-rbac.md) | Trino + Trino Gateway + Iceberg complex queries + Ontul RBAC | Foundation | — | (next phase stops Trino cluster) |
 | [2](phase-2-spark-iceberg.md) | Spark `cluster-mode` submit writing Iceberg → read back through Trino | Foundation | Trino cluster | Spark |
 | [3](phase-3-kiok-spark.md) | kiok DAG scheduling a Spark submit (via SSH-to-master) | Foundation + Spark | Trino cluster | kiok · Spark |
-| 4 | Ontul Iceberg table maintenance (snapshot expire, orphan cleanup, compaction) | Foundation | Trino · Spark | — |
-| 5 | Kafka → Flink → Iceberg streaming + RBAC | Foundation | Trino · Spark | — |
+| [4](phase-4-iceberg-maintenance.md) | Ontul Iceberg table maintenance (snapshot expire, orphan cleanup, compaction) | Foundation | Trino · Spark · kiok | — |
+| [5](phase-5-kafka-flink-iceberg.md) | Kafka → Flink → Iceberg streaming + RBAC | Foundation | Trino · Spark · kiok | Kafka · Flink |
 
 > **Foundation** refers to the four components installed in Phase 0 — Ontul, PostgreSQL, ShannonStore, Polaris. Every later phase assumes those are running.
 
