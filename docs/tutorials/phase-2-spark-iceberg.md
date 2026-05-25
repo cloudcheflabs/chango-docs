@@ -1,0 +1,374 @@
+# Phase 2 — Spark batch loads into Iceberg (and read them back via Trino)
+
+[Phase 1](phase-1-trino-iceberg-rbac.md) must be complete (Trino + Trino Gateway both serving queries against the `iceberg` catalog, Ontul RBAC enforced end to end). In this phase you will:
+
+1. Install a **Spark standalone cluster** with the Ontul authz extension wired in.
+2. Submit a **Java uberjar** in **cluster deploy mode** so the driver runs on a Spark worker.
+3. Submit the same workload as **pyspark** in **client deploy mode** so the driver runs alongside the submitter.
+4. Hand off the resulting Iceberg tables to **Trino** (through the Gateway) and confirm both engines see the same data.
+5. Reach the Spark Master/Worker web UIs through the **UI Proxy** with one Ontul login.
+
+> Apache Spark **standalone** mode does not support PyPI applications in cluster deploy mode. Use Java/Scala uberjars for cluster mode, and Python for client mode. Both surface the exact same Iceberg/Polaris/S3A configuration — the difference is only where the driver JVM runs.
+
+## Variables carried over
+
+```bash
+BASE=http://<master-host>:8080
+TOK=<chango admin token>
+N1=nm-chango-n1-19998
+N2=nm-chango-n2-19998
+
+# From Phase 0
+ONTUL_OTOK=<service-principal OTOK from Ontul>
+SS_AK=<ShannonStore access key>
+SS_SK=<ShannonStore secret key>
+
+# From Phase 1
+ADMIN_OTOK=<admin user OTOK>     # for Trino read-back
+```
+
+## 1. Install the Spark cluster
+
+### Via the chango admin UI
+
+1. In the sidebar's **Lakehouse Engines** group click **Spark**.
+2. Click **Install new Spark cluster**:
+    - **Cluster ID** — `spark-main`
+    - **Master nodes** — `chango-n1`
+    - **Worker nodes** — `chango-n2`
+    - **Ontul authz token** — paste the same Phase 0 `trino-system` OTOK.
+    - **Event log** — toggle **Enable**:
+        - **Event log dir** — `s3a://chango-spark-history/events`
+        - **S3 endpoint / region / access key / secret key / path-style** — values from Phase 0.
+3. Click **Install** then **Start**. The cluster card flips to `RUNNING` within ~30 seconds.
+4. Create the eventLog bucket if you don't have it yet — open ShannonStore's admin UI's **Browser → Buckets** page and click **New bucket** → `chango-spark-history`.
+
+### Via REST
+
+```bash
+curl -sS -X POST $BASE/admin/api/spark \
+  -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "{
+    \"clusterId\":\"spark-main\",
+    \"masterNodes\":[\"$N1\"],
+    \"workerNodes\":[\"$N2\"],
+    \"ontulAuthzToken\":\"$ONTUL_OTOK\",
+    \"eventLogEnabled\":true,
+    \"eventLogDir\":\"s3a://chango-spark-history/events\",
+    \"s3Endpoint\":\"http://chango-n2.chango.private:8080\",
+    \"s3Region\":\"us-east-1\",
+    \"s3AccessKey\":\"$SS_AK\",
+    \"s3SecretKey\":\"$SS_SK\",
+    \"s3PathStyleAccess\":true
+  }"
+curl -sS -X POST -H "Authorization: Bearer $TOK" $BASE/admin/api/spark/spark-main/start
+```
+
+The chango installer auto-wires:
+
+- The `chango-spark-authz` extension (table-level allow/deny against Ontul IAM).
+- The Hadoop S3A connector jars (`hadoop-aws` + `aws-java-sdk-bundle`) so `spark.eventLog.dir=s3a://…` and `s3a://…` job artifacts work out of the box. Vanilla Spark does not include these.
+- The Iceberg Spark runtime jars (`iceberg-spark-runtime-3.5_2.12` + `iceberg-aws-bundle`) so Iceberg catalogs work without `--packages` (which is unusable in air-gapped environments) and without fat-jarring Iceberg into every Java uberjar.
+- JDK 17 `--add-opens` defaults on driver and executor so Spark Tungsten and Iceberg run cleanly on Java 17.
+
+Create the bucket Spark will spool event logs into:
+
+```bash
+curl -sS -X POST -H "Authorization: Bearer $SS_TOK" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"chango-spark-history"}' \
+  http://<api-host>:<api-port>/admin/browser/buckets
+```
+
+## 2. Cluster mode — Java uberjar
+
+Spark standalone runs cluster-mode drivers on workers, so the jar must be self-contained for **your application code + your business deps**. Iceberg / Spark / Hadoop / AWS are already on every chango Spark instance's classpath (chango bundles them inside `jars/`), so those go in as `provided` — keeping the uberjar small:
+
+`pom.xml`
+```xml
+<dependencies>
+  <!-- chango Spark already ships all four jars in jars/ — provided keeps the uberjar lean. -->
+  <dependency>
+    <groupId>org.apache.spark</groupId>
+    <artifactId>spark-sql_2.12</artifactId>
+    <version>3.5.8</version>
+    <scope>provided</scope>
+  </dependency>
+  <dependency>
+    <groupId>org.apache.iceberg</groupId>
+    <artifactId>iceberg-spark-runtime-3.5_2.12</artifactId>
+    <version>1.6.1</version>
+    <scope>provided</scope>
+  </dependency>
+  <dependency>
+    <groupId>org.apache.iceberg</groupId>
+    <artifactId>iceberg-aws-bundle</artifactId>
+    <version>1.6.1</version>
+    <scope>provided</scope>
+  </dependency>
+  <!-- your business deps (not provided) — e.g. -->
+  <!-- <dependency>...your-internal-lib...</dependency> -->
+</dependencies>
+```
+
+If you need to target a Spark cluster that is NOT chango-managed (vanilla Apache Spark without these bundled jars), drop the `provided` scope on the Iceberg artifacts so they get fat-jarred — adds ~50 MB but the uberjar becomes portable.
+
+`IcebergTest.java`
+```java
+package com.chango.test;
+import org.apache.spark.sql.SparkSession;
+
+public class IcebergTest {
+    public static void main(String[] args) {
+        SparkSession spark = SparkSession.builder()
+                .appName("chango-iceberg-test").getOrCreate();
+        spark.sql("CREATE SCHEMA IF NOT EXISTS iceberg.sales");
+        spark.sql("DROP TABLE IF EXISTS iceberg.sales.spark_orders");
+        spark.sql("CREATE TABLE iceberg.sales.spark_orders "
+                + "(id BIGINT, country STRING, amount DOUBLE) USING iceberg");
+        spark.sql("INSERT INTO iceberg.sales.spark_orders VALUES "
+                + "(101,'KR',1000.0), (102,'JP',2000.0), (103,'KR',3000.0)");
+        long n = spark.sql("SELECT COUNT(*) AS c FROM iceberg.sales.spark_orders")
+                .collectAsList().get(0).getLong(0);
+        System.out.println("CHANGO_TEST_ROWS=" + n);
+        spark.stop();
+    }
+}
+```
+
+```bash
+mvn package      # produces target/iceberg-test-1.0.jar (~73 MB uberjar)
+```
+
+Get the Polaris catalog credential the Iceberg connector needs:
+
+```bash
+CRED=$(curl -sS -H "Authorization: Bearer $TOK" $BASE/admin/api/polaris/polaris-main/credentials)
+POLARIS_EP=$(echo "$CRED" | jq -r .icebergRestEndpoint)
+POLARIS_CS=$(echo "$CRED" | jq -r .clientSecret)
+```
+
+Submit in **cluster** deploy mode. The chango-managed `spark-defaults.conf` already has the JDK-17 `--add-opens` lines, so the lengthy options below only override them if you want a tighter set. The `--driver-java-options` / `spark.executor.extraJavaOptions` form lands on the actual JVM command line (cluster-mode `DriverWrapper` does not honor `spark.driver.defaultJavaOptions`).
+
+```bash
+ADDOPENS="--add-opens=java.base/java.lang=ALL-UNNAMED \
+--add-opens=java.base/java.io=ALL-UNNAMED \
+--add-opens=java.base/java.nio=ALL-UNNAMED \
+--add-opens=java.base/sun.nio.ch=ALL-UNNAMED \
+--add-opens=java.base/sun.security.action=ALL-UNNAMED"
+
+spark-submit \
+  --master spark://<n1>:8780 \
+  --deploy-mode cluster \
+  --class com.chango.test.IcebergTest \
+  --driver-java-options "$ADDOPENS" \
+  --conf "spark.executor.extraJavaOptions=$ADDOPENS" \
+  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
+  --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog \
+  --conf spark.sql.catalog.iceberg.type=rest \
+  --conf spark.sql.catalog.iceberg.uri=$POLARIS_EP \
+  --conf spark.sql.catalog.iceberg.warehouse=lakehouse \
+  --conf spark.sql.catalog.iceberg.credential=polaris-root:$POLARIS_CS \
+  --conf spark.sql.catalog.iceberg.scope=PRINCIPAL_ROLE:ALL \
+  --conf spark.sql.catalog.iceberg.io-impl=org.apache.iceberg.aws.s3.S3FileIO \
+  --conf spark.sql.catalog.iceberg.s3.endpoint=http://<api-host>:<api-port> \
+  --conf spark.sql.catalog.iceberg.s3.path-style-access=true \
+  --conf spark.sql.catalog.iceberg.s3.access-key-id=$SS_AK \
+  --conf spark.sql.catalog.iceberg.s3.secret-access-key=$SS_SK \
+  --conf spark.sql.catalog.iceberg.s3.region=us-east-1 \
+  file:///path/to/iceberg-test.jar
+```
+
+`spark-submit` does not block in cluster mode — it returns once the driver is registered. The driver writes to a worker-side staging directory:
+
+```bash
+# On the worker host that grabbed the driver
+tail -f /opt/components/spark-main-worker-1/data/worker/<driver-id>/stdout
+```
+
+You should see `CHANGO_TEST_ROWS=3`.
+
+### 2.1 (Optional) Stage the uberjar through S3A
+
+For repeated runs you typically host the jar in object storage so spark-submit does not need a local copy on the master host. ShannonStore is S3-compatible, so the path is `s3a://<bucket>/<key>`. Two prerequisites:
+
+1. Create a bucket (e.g. `spark-jars`).
+2. Upload the jar (any S3-compatible tool: `aws s3 cp`, `mc cp`, ShannonStore's admin UI, or Spark itself via the Hadoop FileSystem API).
+
+Then submit with `s3a://`:
+
+```bash
+spark-submit … s3a://spark-jars/iceberg-test.jar
+```
+
+Because chango already drops `hadoop-aws` + `aws-java-sdk-bundle` into every Spark instance's `jars/`, the worker that fetches the driver jar has the S3A code on its classpath at startup.
+
+## 3. Client mode — pyspark
+
+PySpark runs the driver in the submitter process. Cluster mode is unsupported for Python on standalone — use client mode.
+
+`iceberg_job.py`
+```python
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.appName("chango-iceberg-py").getOrCreate()
+spark.sql("DROP TABLE IF EXISTS iceberg.sales.spark_orders_py")
+spark.sql("CREATE TABLE iceberg.sales.spark_orders_py "
+          "(id BIGINT, country STRING, amount DOUBLE) USING iceberg")
+spark.sql("INSERT INTO iceberg.sales.spark_orders_py VALUES "
+          "(201,'KR',5000.0),(202,'JP',6000.0)")
+n = spark.sql("SELECT COUNT(*) AS c FROM iceberg.sales.spark_orders_py") \
+         .collect()[0]['c']
+print(f"CHANGO_PYSPARK_ROWS={n}")
+spark.stop()
+```
+
+```bash
+spark-submit \
+  --master spark://<n1>:8780 \
+  --deploy-mode client \
+  --driver-java-options "$ADDOPENS" \
+  --conf "spark.executor.extraJavaOptions=$ADDOPENS" \
+  --conf spark.local.dir=/tmp/spark-driver-local \
+  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
+  --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog \
+  --conf spark.sql.catalog.iceberg.type=rest \
+  --conf spark.sql.catalog.iceberg.uri=$POLARIS_EP \
+  --conf spark.sql.catalog.iceberg.warehouse=lakehouse \
+  --conf spark.sql.catalog.iceberg.credential=polaris-root:$POLARIS_CS \
+  --conf spark.sql.catalog.iceberg.scope=PRINCIPAL_ROLE:ALL \
+  --conf spark.sql.catalog.iceberg.io-impl=org.apache.iceberg.aws.s3.S3FileIO \
+  --conf spark.sql.catalog.iceberg.s3.endpoint=http://<api-host>:<api-port> \
+  --conf spark.sql.catalog.iceberg.s3.path-style-access=true \
+  --conf spark.sql.catalog.iceberg.s3.access-key-id=$SS_AK \
+  --conf spark.sql.catalog.iceberg.s3.secret-access-key=$SS_SK \
+  --conf spark.sql.catalog.iceberg.s3.region=us-east-1 \
+  /path/to/iceberg_job.py
+```
+
+You should see `CHANGO_PYSPARK_ROWS=2` inline.
+
+> **No `--packages`** — air-gapped installs cannot reach Maven Central. The Iceberg + S3A jars are already on chango Spark's classpath. For external Java/Scala jars you actually need to add, drop them into a local path or stage them in S3 and use `--jars /path/to/file.jar` or `--jars s3a://bucket/file.jar`.
+
+`spark.local.dir=/tmp/spark-driver-local` overrides the default `data/local` under the spark install dir — that directory is owned by the `spark` Linux user and a foreign submitter may not be able to write there.
+
+### 3.1 PySpark dependency model — pick the right layer
+
+A common confusion is whether to "build a PySpark uberjar". PySpark has **no** uberjar concept — the script itself is the entrypoint. Dependencies fall into three independent layers; each has its own delivery channel:
+
+| Layer | Examples | spark-submit option | Distribution |
+|---|---|---|---|
+| **Java/Scala JARs** | custom UDFs / connectors / business jars (Iceberg + S3A are pre-bundled by chango) | `--jars` (paths or `s3a://` URLs). `--packages` only works when Maven Central is reachable. | driver + executors auto-receive |
+| **Python files** | helper modules `utils.py`, sub-packages `utils.zip` | `--py-files` (paths/URLs) | driver + executors auto-receive on `sys.path` |
+| **Python interpreter + PyPI deps** | numpy, pandas, requests, internal libs | `--archives` (conda/venv-pack tarball) | executors auto-untar + symlink |
+
+`--packages` does **not** know about Python. `--py-files` does not know about JARs. `--archives` is the only path for a real Python environment (numpy / pandas / your internal pure-Python libs). Mixing them is normal.
+
+### 3.2 Staging artifacts in S3 (ShannonStore-compatible)
+
+For repeatable runs all three layers can live in S3. The submitter (CI / Airflow / desktop) does not need to ship local files each time:
+
+```bash
+# 1. ship the main script
+aws s3 cp iceberg_job.py        s3://spark-jobs/iceberg_job.py
+# 2. ship internal Python project as a zip
+(cd src && zip -r ../utils.zip utils)
+aws s3 cp utils.zip             s3://spark-jobs/utils.zip
+# 3. ship a self-contained Python env so executors do not need pip
+conda pack -n my-env -o my-env.tar.gz       # ~200–500 MB typical
+aws s3 cp my-env.tar.gz         s3://spark-jobs/my-env.tar.gz
+```
+
+Submit pointing at S3 — Spark's S3A connector (chango ships it inside `spark/jars/`) lets the driver / executors fetch these directly:
+
+```bash
+spark-submit \
+  --master spark://<n1>:8780 \
+  --deploy-mode client \
+  --driver-java-options "$ADDOPENS" \
+  --conf "spark.executor.extraJavaOptions=$ADDOPENS" \
+  --py-files s3a://spark-jobs/utils.zip \
+  --archives s3a://spark-jobs/my-env.tar.gz#env \
+  --conf spark.pyspark.python=./env/bin/python \
+  --conf spark.pyspark.driver.python=python3 \
+  --conf spark.hadoop.fs.s3a.endpoint=http://<api-host>:<api-port> \
+  --conf spark.hadoop.fs.s3a.access.key=$SS_AK \
+  --conf spark.hadoop.fs.s3a.secret.key=$SS_SK \
+  --conf spark.hadoop.fs.s3a.path.style.access=true \
+  …  # the same Iceberg catalog options as in 3.0 above
+  s3a://spark-jobs/iceberg_job.py
+```
+
+What each line does:
+
+- `--py-files s3a://spark-jobs/utils.zip` — Spark downloads the zip once, adds it to `sys.path` on every executor + the driver. `from utils.helpers import foo` works.
+- `--archives s3a://spark-jobs/my-env.tar.gz#env` — Spark downloads + untars on every executor; the `#env` part is the symlink name so `./env/` exists in the working dir.
+- `spark.pyspark.python=./env/bin/python` — PySpark workers (executors) launch the python inside the unpacked env, so `import numpy` resolves.
+- `spark.pyspark.driver.python=python3` — driver uses the submitter's local python (in client mode the driver IS the submitter). The local python must `import pyspark` cleanly — usually a `pip install pyspark==3.5.8` venv on the submitter host.
+- `s3a://spark-jobs/iceberg_job.py` — the main script. Spark fetches it before launching the driver.
+
+### 3.3 Why no PySpark cluster mode here
+
+Spark **standalone** does not support `--deploy-mode cluster` for `.py` applications — `spark-submit` errors out immediately with *"Cluster deploy mode is currently not supported for python applications on standalone clusters"*. The cluster-mode pattern (driver runs on a worker, deps in `s3a://`) is supported on **YARN** and **Kubernetes**, but chango's Spark integration today is standalone-only. The practical decision:
+
+- Java / Scala workload → **uberjar + cluster mode** (Section 2).
+- PySpark workload → **client mode** (this section); the submitter process holds the driver. Stage `--py-files` / `--archives` in S3 to keep the submitter itself stateless.
+
+If you later add a YARN or Kubernetes Spark cluster, the same `--py-files` + `--archives` + `s3a://main.py` invocation works with `--deploy-mode cluster` — the only change is `--master`.
+
+## 4. Read it back with Trino
+
+The Iceberg catalog is shared. Anything Spark writes is immediately visible in Trino via the Gateway:
+
+```bash
+ADMIN_OTOK=...   # from Phase 1
+curl -sk -u "anyuser:$ADMIN_OTOK" -H 'X-Trino-User: admin' \
+  -X POST https://<gateway-nginx-host>:19300/v1/statement \
+  -d 'SELECT id, country, amount FROM iceberg.sales.spark_orders ORDER BY id'
+```
+
+Follow the `nextUri` chain. The result for the cluster-mode job:
+
+```
+[ [101, "KR", 1000.0], [102, "JP", 2000.0], [103, "KR", 3000.0] ]
+```
+
+The pyspark client-mode job lands in `spark_orders_py`:
+
+```
+[ [201, "KR", 5000.0], [202, "JP", 6000.0] ]
+```
+
+If you run the analyst-kr user from Phase 1 against either table, the Ontul row filter `country='KR'` applies and `JP` rows disappear. The exact same governance Trino enforces also applies to Spark SQL: if you run the same `INSERT` from a user whose Ontul policy does not grant `data:Insert` on the table, the chango-spark-authz extension blocks the statement before the driver issues it.
+
+## 5. Spark UIs through the UI Proxy
+
+Once UI Proxy is installed:
+
+```bash
+curl -sS -X POST $BASE/admin/api/ui-proxy \
+  -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "{
+    \"clusterId\":\"ui-proxy-main\",
+    \"proxyNodes\":[\"$N1\"],
+    \"ontulUrl\":\"http://<ontul-nginx-host>:<ontul-nginx-port>\",
+    \"upstreams\":[
+      \"spark-master=http://chango-n1.chango.private:8781\",
+      \"spark-worker=http://chango-n2.chango.private:8881\",
+      \"trino=http://chango-n1.chango.private:8480\"
+    ]
+  }"
+curl -sS -X POST -H "Authorization: Bearer $TOK" $BASE/admin/api/ui-proxy/ui-proxy-main/start
+```
+
+The proxy uses **host-based** routing: each upstream is reached at `<name>.<your-domain>:<proxy-port>`. Either point DNS at the proxy or add lines to `/etc/hosts`:
+
+```
+<proxy-host-ip>   spark-master spark-worker trino
+```
+
+Then visit `http://spark-master:9180/`, log in with your Ontul user — once authenticated the same session cookie carries you through `spark-worker` and (eventually) `trino` without re-typing the password.
+
+## What you proved
+
+- Cluster mode delivers the driver to a Spark worker JVM — useful when the submitter is a transient orchestrator like an Airflow worker or a CI runner.
+- Client mode keeps the driver next to the submitter — useful in REPL / notebook flows and when the submitter holds large local resources.
+- Both write through the same Iceberg REST catalog (Polaris), put bytes into the same S3-compatible store (ShannonStore), and are immediately readable from a different engine (Trino).
+- The governance model from Phase 1 is engine-agnostic — Ontul groups, policies, and row filters apply to Spark SQL the same way they apply to Trino.

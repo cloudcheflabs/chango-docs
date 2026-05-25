@@ -42,11 +42,13 @@ nav:
       - "Node Preparation": installation/node-preparation.md
       - "Manual Install": installation/manual.md
       - "Automated Install (Ansible)": installation/automated.md
+      - "Local Docker Cluster": installation/docker.md
       - "Getting Started": installation/getting-started.md
   - "Features":
       - "Control Plane": features/control-plane.md
       - "Cluster Topology": features/topology.md
       - "Identity & Access Management": features/iam.md
+      - "Admin Password Recovery": features/admin-password-recovery.md
       - "Encryption & Key Management": features/kms.md
       - "Port Allocator": features/port-allocator.md
       - "Hosts Sync": features/hosts-sync.md
@@ -62,6 +64,17 @@ nav:
       - "Component Operations": operations/component-operations.md
       - "Nginx Reverse Proxy": operations/nginx-proxy.md
       - "Upgrade": operations/upgrade.md
+  - "Tutorials":
+      - "Overview": tutorials/index.md
+      - "Phase 0 — Foundation Install": tutorials/phase-0-foundation.md
+      - "Phase 1 — Trino + Iceberg + RBAC": tutorials/phase-1-trino-iceberg-rbac.md
+      - "Phase 2 — Spark + Iceberg": tutorials/phase-2-spark-iceberg.md
+      - "Phase 2b — Spark via Livy REST": tutorials/phase-2b-spark-via-livy.md
+      - "Phase 3 — kiok DAG (SSH to Spark master)": tutorials/phase-3-kiok-spark.md
+      - "Phase 3b — kiok DAG via Livy REST": tutorials/phase-3b-kiok-via-livy.md
+      - "Phase 4 — Iceberg table maintenance": tutorials/phase-4-iceberg-maintenance.md
+      - "Phase 5 — Kafka + Flink + Iceberg streaming": tutorials/phase-5-kafka-flink-iceberg.md
+      - "Phase 6 — kiok native livy task + Polaris": tutorials/phase-6-kiok-livy-spark-iceberg-polaris.md
 
 
 extra:
