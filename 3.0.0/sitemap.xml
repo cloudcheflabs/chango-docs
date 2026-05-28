@@ -2,150 +2,150 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/architecture/architecture/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/architecture/component-lifecycle/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/architecture/internal-protocol/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/components/catalog/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/components/versions/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/admin-password-recovery/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/backup/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/control-plane/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/hosts-sync/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/iam/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/kms/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/logging/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/monitoring/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/port-allocator/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/topology/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/ui-proxy/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/installation/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/installation/automated/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/installation/docker/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/installation/getting-started/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/installation/manual/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/installation/node-preparation/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/operations/cluster-operations/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/operations/component-operations/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/operations/nginx-proxy/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/operations/upgrade/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-0-foundation/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-1-trino-iceberg-rbac/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-2-spark-iceberg/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-2b-spark-via-livy/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-3-kiok-spark/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-3b-kiok-via-livy/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-4-iceberg-maintenance/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-5-kafka-flink-iceberg/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
     <url>
          <loc>https://cloudcheflabs.github.io/chango-private-docs/3.0.0/tutorials/phase-6-kiok-livy-spark-iceberg-polaris/</loc>
-         <lastmod>2026-05-25</lastmod>
+         <lastmod>2026-05-28</lastmod>
     </url>
 </urlset>

@@ -2087,10 +2087,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#54-column-level-restriction-optional" class="md-nav__link">
+  <a href="#54-column-level-deny-null-mask-sensitive-columns" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.4 Column-level restriction (optional)
+        5.4 Column-level Deny (NULL-mask sensitive columns)
       
     </span>
   </a>
@@ -2098,10 +2098,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#55-deny-check" class="md-nav__link">
+  <a href="#55-column-mask-rewrite-values-with-a-sql-expression" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.5 DENY check
+        5.5 Column Mask (rewrite values with a SQL expression)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56-deny-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6 DENY check
       
     </span>
   </a>
@@ -2664,11 +2675,11 @@
 <li>Click <strong>Install new Trino Gateway cluster</strong>:<ul>
 <li><strong>Cluster ID</strong> — <code>trino-gw</code></li>
 <li><strong>Gateway nodes</strong> — <code>chango-n1</code></li>
-<li><strong>Trino backends</strong> — pick <code>trino-main</code> from the dropdown (chango fills in <code>&lt;coord-host&gt;:&lt;httpPort&gt;</code> from the running coordinator).</li>
+<li><strong>JVM Heap (optional)</strong> — leave blank for the launcher defaults, or set <code>-Xms</code> / <code>-Xmx</code> (e.g. <code>256m</code> / <code>512m</code>) which chango writes into the gateway's <code>conf/jvm.conf</code> and sources via <code>JAVA_OPTS</code> at start.</li>
 </ul>
 </li>
 <li>Click <strong>Install</strong> then <strong>Start</strong>. The cluster card flips to <code>RUNNING</code> within ~30 seconds.</li>
-<li>(Optional) Open the cluster detail and the <strong>Cluster Groups</strong> sub-page; create a <code>default</code> cluster-group that contains <code>trino-main</code>. Every Gateway route needs at least one cluster-group — see the note below.</li>
+<li>Open the cluster detail and the <strong>Cluster Groups</strong> sub-page; create a <code>default</code> cluster-group that contains <code>trino-main</code>. <strong>Every Gateway route needs at least one cluster-group</strong> — routing topology is owned by <code>default</code> (and any other groups you attach), not by raw <code>host:port</code> backends. Also register the gateway-side cluster entry under <code>/admin/api/gateway/clusters</code> with <code>clusterName: trino-main</code> (matching the chango Trino clusterId) and <code>url: http://&lt;coord-host&gt;:&lt;httpPort&gt;</code> — the cluster-group's <code>trinoClusterIds</code> list looks the cluster up by that name.</li>
 </ol>
 <h3 id="via-rest_1">Via REST</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino-gateway<span class="w"> </span><span class="se">\</span>
@@ -2676,10 +2687,22 @@
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="s2">    \&quot;clusterId\&quot;:     \&quot;trino-gw\&quot;,</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="s2">    \&quot;gatewayNodes\&quot;:  [\&quot;</span><span class="nv">$N1</span><span class="s2">\&quot;],</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="s2">    \&quot;trinoBackends\&quot;: \&quot;</span><span class="nv">$COORD_HOST</span><span class="s2">:</span><span class="nv">$COORD_PORT</span><span class="s2">\&quot;</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="s2">  }&quot;</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="s2">    \&quot;gatewayNodes\&quot;:  [\&quot;</span><span class="nv">$N1</span><span class="s2">\&quot;]</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="s2">  }&quot;</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Register trino-main in gateway/clusters + add it to cluster-group &#39;default&#39;.</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/clusters<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;clusterName\&quot;:\&quot;trino-main\&quot;,\&quot;clusterType\&quot;:\&quot;trino\&quot;,</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="s2">       \&quot;url\&quot;:\&quot;http://</span><span class="nv">$COORD_HOST</span><span class="s2">:</span><span class="nv">$COORD_PORT</span><span class="s2">\&quot;,</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="s2">       \&quot;activated\&quot;:true,\&quot;groupName\&quot;:\&quot;default\&quot;}&quot;</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/cluster-groups<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;groupName&quot;:&quot;default&quot;,&quot;trinoClusterIds&quot;:[&quot;trino-main&quot;]}&#39;</span>
 </code></pre></div>
+<blockquote>
+<p>The legacy <code>trinoBackends</code> field (a raw <code>host:port</code> CSV on the install body) was removed — routing is now driven entirely by cluster-groups + the registered gateway clusters that share their <code>clusterName</code> with the chango Trino <code>clusterId</code>. Each Gateway's <code>attachedClusterGroups</code> setting (defaults to <code>default</code>) controls which groups it serves.</p>
+</blockquote>
 <p>Pin the Gateway endpoint — this is what every client uses from now on:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">GW_HOST</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino-gateway<span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">           </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.[] | select(.clusterId==&quot;trino-gw&quot;) | .instances[0].host&#39;</span><span class="k">)</span>
@@ -3294,7 +3317,8 @@
 <a id="__codelineno-33-25" name="__codelineno-33-25" href="#__codelineno-33-25"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.[&quot;sales-kr-read&quot;]&#39;</span>
 </code></pre></div>
 <p>A common failure mode is forgetting the <code>Version</code> field — the policy still saves but Ontul logs a deserialization warning and the policy never matches. Always verify the read-back shows your <code>Statement</code> array populated.</p>
-<p>Ontul policies use AWS IAM document shape. <strong><code>Condition</code></strong> is a SQL <code>WHERE</code> fragment that chango's <code>chango-trino-authz</code> plugin appends to every Trino query that touches <code>Resource</code>. <strong><code>Columns</code></strong> restricts which columns the user can <code>SELECT</code>.</p>
+<p>Ontul policies use AWS IAM document shape. <strong><code>Condition</code></strong> is a SQL <code>WHERE</code> fragment that chango's <code>chango-trino-authz</code> plugin lifts into a Trino <code>ViewExpression</code> via <code>getRowFilters()</code> for every query that touches <code>Resource</code>. <strong><code>Columns</code></strong> plus <code>Effect:"Deny"</code> blocks listed columns (Trino path NULL-masks them). For per-column SQL-expression rewrites use the separate <strong><code>Effect:"Mask"</code></strong> + <code>MaskedColumns</code> form — see §5.5 below.</p>
+<p>Field-name reminder: actions are namespaced (<code>data:Select</code>, not <code>SELECT</code>) and table resources use the <code>data:table:&lt;catalog&gt;.&lt;schema&gt;.&lt;table&gt;</code> prefix. Lowercase or unprefixed forms are silently ignored.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>/tmp/sales-kr-read.json<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
 <a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="s">{</span>
 <a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="s">  &quot;name&quot;: &quot;sales-kr-read&quot;,</span>
@@ -3304,8 +3328,8 @@
 <a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a><span class="s">      {</span>
 <a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="s">        &quot;Sid&quot;: &quot;SalesKrRead&quot;,</span>
 <a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a><span class="s">        &quot;Effect&quot;: &quot;Allow&quot;,</span>
-<a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a><span class="s">        &quot;Action&quot;: [&quot;SELECT&quot;],</span>
-<a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="s">        &quot;Resource&quot;: &quot;iceberg.sales.*&quot;,</span>
+<a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a><span class="s">        &quot;Action&quot;: [&quot;data:Select&quot;],</span>
+<a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="s">        &quot;Resource&quot;: &quot;data:table:iceberg.sales.*&quot;,</span>
 <a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a><span class="s">        &quot;Condition&quot;: &quot;country = &#39;KR&#39;&quot;</span>
 <a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a><span class="s">      }</span>
 <a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a><span class="s">    ]</span>
@@ -3334,36 +3358,72 @@
 <a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a><span class="w">      </span>--execute<span class="w"> </span><span class="s1">&#39;SELECT country, COUNT(*) FROM sales.orders GROUP BY country&#39;</span>
 <a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a><span class="c1"># &quot;KR&quot;,&quot;2&quot;</span>
 </code></pre></div>
-<h3 id="54-column-level-restriction-optional">5.4 Column-level restriction (optional)</h3>
-<p>The same policy schema supports column whitelisting through the <code>Columns</code> field. Example — restrict <code>analyst-kr</code> to <code>order_id</code> + <code>country</code> + <code>total_amount</code> (no <code>customer_id</code>):</p>
+<h3 id="54-column-level-deny-null-mask-sensitive-columns">5.4 Column-level Deny (NULL-mask sensitive columns)</h3>
+<p><code>Columns</code> listed on a Statement with <code>Effect:"Deny"</code> blocks those columns from the user's view of <code>Resource</code>. The chango-trino-authz plugin implements this via Trino's native <code>getColumnMasks()</code> API, replacing the value with <code>NULL</code> while keeping the column name + type in the result schema — joins, group-by, and BI dashboards keep working but the raw value never leaves the coordinator. Example — hide <code>customer_id</code> from <code>analyst-kr</code> on the orders table while keeping the existing allow + row filter:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="p">{</span>
-<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sales-kr-read-cols&quot;</span><span class="p">,</span>
+<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sales-kr-hide-pii&quot;</span><span class="p">,</span>
 <a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="w">  </span><span class="nt">&quot;document&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="w">    </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span>
-<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="w">    </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
-<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a><span class="w">      </span><span class="nt">&quot;Sid&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SalesKrReadCols&quot;</span><span class="p">,</span>
-<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="w">      </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
-<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="w">      </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;SELECT&quot;</span><span class="p">],</span>
-<a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a><span class="w">      </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;iceberg.sales.orders&quot;</span><span class="p">,</span>
-<a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a><span class="w">      </span><span class="nt">&quot;Columns&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;order_id&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;country&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;total_amount&quot;</span><span class="p">],</span>
-<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a><span class="w">      </span><span class="nt">&quot;Condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;country = &#39;KR&#39;&quot;</span>
-<a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a><span class="w">    </span><span class="p">}]</span>
-<a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a><span class="p">}</span>
+<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="w">    </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a><span class="w">      </span><span class="p">{</span>
+<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="w">        </span><span class="nt">&quot;Sid&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SalesKrRead&quot;</span><span class="p">,</span>
+<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="w">        </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+<a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a><span class="w">        </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;data:Select&quot;</span><span class="p">],</span>
+<a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a><span class="w">        </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data:table:iceberg.sales.orders&quot;</span><span class="p">,</span>
+<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a><span class="w">        </span><span class="nt">&quot;Condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;country = &#39;KR&#39;&quot;</span>
+<a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a><span class="w">      </span><span class="p">},</span>
+<a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a><span class="w">      </span><span class="p">{</span>
+<a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a><span class="w">        </span><span class="nt">&quot;Sid&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;HidePii&quot;</span><span class="p">,</span>
+<a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a><span class="w">        </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Deny&quot;</span><span class="p">,</span>
+<a id="__codelineno-36-16" name="__codelineno-36-16" href="#__codelineno-36-16"></a><span class="w">        </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;data:Select&quot;</span><span class="p">],</span>
+<a id="__codelineno-36-17" name="__codelineno-36-17" href="#__codelineno-36-17"></a><span class="w">        </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data:table:iceberg.sales.orders&quot;</span><span class="p">,</span>
+<a id="__codelineno-36-18" name="__codelineno-36-18" href="#__codelineno-36-18"></a><span class="w">        </span><span class="nt">&quot;Columns&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;customer_id&quot;</span><span class="p">]</span>
+<a id="__codelineno-36-19" name="__codelineno-36-19" href="#__codelineno-36-19"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-36-20" name="__codelineno-36-20" href="#__codelineno-36-20"></a><span class="w">    </span><span class="p">]</span>
+<a id="__codelineno-36-21" name="__codelineno-36-21" href="#__codelineno-36-21"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-36-22" name="__codelineno-36-22" href="#__codelineno-36-22"></a><span class="p">}</span>
 </code></pre></div>
-<p>A <code>SELECT customer_id</code> query for that user now fails with <code>Access Denied: not authorized to read column customer_id</code>.</p>
-<h3 id="55-deny-check">5.5 DENY check</h3>
+<p>A <code>SELECT * FROM sales.orders</code> for that user returns rows with <code>customer_id = NULL</code>; the column still appears in <code>DESCRIBE</code> and the result schema, just always null.</p>
+<h3 id="55-column-mask-rewrite-values-with-a-sql-expression">5.5 Column Mask (rewrite values with a SQL expression)</h3>
+<p>For partial reveal patterns — last-4-of-card, hashed email, bucketed salary, role-aware unmasking — use <code>Effect:"Mask"</code> + <code>MaskedColumns</code>. Ontul stores the policy with per-column Trino-dialect SQL expressions and resolves any <code>${user.*}</code> substitutions before responding; the chango-trino-authz plugin lifts each <code>(column, expr)</code> pair into a Trino <code>ViewExpression</code>, so the planner evaluates the mask at the worker on every row.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="p">{</span>
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sales-kr-mask&quot;</span><span class="p">,</span>
+<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="w">  </span><span class="nt">&quot;document&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="w">    </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span>
+<a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a><span class="w">    </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a><span class="w">      </span><span class="nt">&quot;Sid&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;MaskCustomerPii&quot;</span><span class="p">,</span>
+<a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a><span class="w">      </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mask&quot;</span><span class="p">,</span>
+<a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a><span class="w">      </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;data:Select&quot;</span><span class="p">],</span>
+<a id="__codelineno-37-9" name="__codelineno-37-9" href="#__codelineno-37-9"></a><span class="w">      </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data:table:iceberg.sales.customers&quot;</span><span class="p">,</span>
+<a id="__codelineno-37-10" name="__codelineno-37-10" href="#__codelineno-37-10"></a><span class="w">      </span><span class="nt">&quot;MaskedColumns&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-37-11" name="__codelineno-37-11" href="#__codelineno-37-11"></a><span class="w">        </span><span class="nt">&quot;phone&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;&#39;***-***-XXXX&#39;&quot;</span><span class="p">,</span>
+<a id="__codelineno-37-12" name="__codelineno-37-12" href="#__codelineno-37-12"></a><span class="w">        </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;MD5(email)&quot;</span><span class="p">,</span>
+<a id="__codelineno-37-13" name="__codelineno-37-13" href="#__codelineno-37-13"></a><span class="w">        </span><span class="nt">&quot;salary&quot;</span><span class="p">:</span><span class="w">  </span><span class="s2">&quot;ROUND(salary, -3)&quot;</span>
+<a id="__codelineno-37-14" name="__codelineno-37-14" href="#__codelineno-37-14"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-37-15" name="__codelineno-37-15" href="#__codelineno-37-15"></a><span class="w">    </span><span class="p">}]</span>
+<a id="__codelineno-37-16" name="__codelineno-37-16" href="#__codelineno-37-16"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-37-17" name="__codelineno-37-17" href="#__codelineno-37-17"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>analyst-kr</code> running <code>SELECT email, phone, salary FROM sales.customers</code> then sees the masked values:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>email                            | phone         | salary
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>---------------------------------+---------------+-------
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>5d41402abc4b2a76b9719d911017c592 | ***-***-XXXX  | 75000
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>…
+</code></pre></div>
+<p>The columns still exist with their original names + types; only the values are rewritten in the projection. Mask expressions can call any function Trino's expression engine knows (<code>CASE WHEN</code>, <code>MD5</code>, <code>ROUND</code>, <code>SUBSTR</code>, concat via <code>||</code>, etc.). See <a href="https://cloudcheflabs.github.io/ontul-docs/1.0.0/features/iam/#column-masking">Ontul IAM — Column Masking</a> for the full mask-expression catalog and the user-context templating tokens (<code>${user.id}</code>, <code>${user.roles}</code>, <code>${user.attr.&lt;key&gt;}</code>).</p>
+<p><strong>Precedence</strong> (per Ontul docs and the chango plugin): <code>Deny &gt; Mask &gt; Allow</code>. A column listed in both a Deny statement and a Mask statement is NULL-masked — the SQL expression is dropped. Use Deny for "this column must not be reasoned about", Mask for "this column stays useful but the raw value is sensitive".</p>
+<h3 id="56-deny-check">5.6 DENY check</h3>
 <p>Without an explicit <code>INSERT</code> / <code>DELETE</code> action in the policy, mutating statements are denied:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>trino<span class="w"> </span>--server<span class="w"> </span>http://<span class="nv">$COORD_HOST</span>:<span class="nv">$COORD_PORT</span><span class="w"> </span>--user<span class="w"> </span>analyst-kr<span class="w"> </span>--catalog<span class="w"> </span>iceberg<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="w">      </span>--execute<span class="w"> </span><span class="s2">&quot;DELETE FROM sales.orders WHERE order_id=1&quot;</span>
-<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="c1"># Query failed: Access Denied: ...</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>trino<span class="w"> </span>--server<span class="w"> </span>http://<span class="nv">$COORD_HOST</span>:<span class="nv">$COORD_PORT</span><span class="w"> </span>--user<span class="w"> </span>analyst-kr<span class="w"> </span>--catalog<span class="w"> </span>iceberg<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="w">      </span>--execute<span class="w"> </span><span class="s2">&quot;DELETE FROM sales.orders WHERE order_id=1&quot;</span>
+<a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="c1"># Query failed: Access Denied: ...</span>
 </code></pre></div>
 <h2 id="6-connect-with-dbeaver-nginx-trino-gateway-trino">6. Connect with DBeaver (nginx → Trino Gateway → Trino)</h2>
 <p>Every JDBC / BI client (DBeaver, Tableau, Superset, Looker, …) talks to the Trino Gateway over HTTP. So far the Gateway has been reached on its allocator-assigned port (<code>$GW_PORT</code>, typically in the 19xxx band) — fine for ad-hoc curl but awkward to hand to analysts. The recommended chain is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>client (DBeaver)
-<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>   └─► nginx                    (single well-known listen port per Gateway cluster)
-<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>         └─► Trino Gateway      (picks a backend by Ontul group → cluster-group)
-<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>               └─► Trino        (executes; chango-trino-authz enforces row / column rules)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>client (DBeaver)
+<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>   └─► nginx                    (single well-known listen port per Gateway cluster)
+<a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>         └─► Trino Gateway      (picks a backend by Ontul group → cluster-group)
+<a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>               └─► Trino        (executes; chango-trino-authz enforces row / column rules)
 </code></pre></div>
 <p>nginx in chango is a per-cluster feature reconciled by the leader — when a Gateway instance comes or goes, the upstream block re-renders within ~30 seconds. See <a href="../../operations/nginx-proxy/">Nginx Reverse Proxy</a> for the operations background; this section is the wire-up specific to DBeaver.</p>
 <h3 id="61-front-the-gateway-with-nginx">6.1 Front the Gateway with nginx</h3>
@@ -3376,20 +3436,20 @@
 <li>Click <strong>Apply</strong>. The panel writes <code>/etc/nginx/conf.d/chango_trino-gateway_trino-gw.conf</code> and reloads nginx. After a few seconds the <strong>Current Proxy URL</strong> banner appears with the public-facing URL — e.g. <code>http://chango-n1.chango.private:19180</code>.</li>
 </ol>
 <h4 id="via-rest_4">Via REST</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/clusters/trino-gw/nginx<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;nginxNode\&quot;:\&quot;</span><span class="nv">$N1</span><span class="s2">\&quot;,\&quot;instances\&quot;:[\&quot;trino-gw-gateway-1\&quot;]}&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/clusters/trino-gw/nginx<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;nginxNode\&quot;:\&quot;</span><span class="nv">$N1</span><span class="s2">\&quot;,\&quot;instances\&quot;:[\&quot;trino-gw-gateway-1\&quot;]}&quot;</span>
 </code></pre></div>
 <h3 id="62-pin-the-nginx-url">6.2 Pin the nginx URL</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="nv">NGX_HOST</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/clusters/trino-gw/nginx<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.nginxHost<span class="k">)</span>
-<a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="nv">NGX_PORT</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/clusters/trino-gw/nginx<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.nginxPort<span class="k">)</span>
-<a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;nginx: </span><span class="nv">$NGX_HOST</span><span class="s2">:</span><span class="nv">$NGX_PORT</span><span class="s2">&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="nv">NGX_HOST</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/clusters/trino-gw/nginx<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.nginxHost<span class="k">)</span>
+<a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="nv">NGX_PORT</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/clusters/trino-gw/nginx<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.nginxPort<span class="k">)</span>
+<a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;nginx: </span><span class="nv">$NGX_HOST</span><span class="s2">:</span><span class="nv">$NGX_PORT</span><span class="s2">&quot;</span>
 </code></pre></div>
 <p>Sanity-check from the operator shell — the nginx layer is transparent, so the same Trino REST works:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-u<span class="w"> </span>admin:<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$NGX_HOST</span><span class="s2">:</span><span class="nv">$NGX_PORT</span><span class="s2">/v1/info&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.nodeVersion
-<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="c1"># &quot;&lt;trino-version&gt;&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-u<span class="w"> </span>admin:<span class="w"> </span><span class="s2">&quot;http://</span><span class="nv">$NGX_HOST</span><span class="s2">:</span><span class="nv">$NGX_PORT</span><span class="s2">/v1/info&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.nodeVersion
+<a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="c1"># &quot;&lt;trino-version&gt;&quot;</span>
 </code></pre></div>
 <blockquote>
 <p><strong>Hostname reachability</strong> — <code>chango-n1.chango.private</code> is the FQHN chango writes into <code>/etc/hosts</code> on every node. From an analyst laptop outside the chango network, either add the entry to the laptop's hosts file or substitute the raw IP / public DNS that maps to the nginx host. DBeaver does not care which form, but the host segment must resolve from where DBeaver runs.</p>
@@ -3462,48 +3522,48 @@
 </tbody>
 </table>
 <p>Leave everything else default. JDBC URL DBeaver constructs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>jdbc:trino://chango-n1.chango.private:19180/iceberg?SSL=false&amp;source=dbeaver
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>jdbc:trino://chango-n1.chango.private:19180/iceberg?SSL=false&amp;source=dbeaver
 </code></pre></div>
 <h4 id="633-test-the-connection">6.3.3 Test the connection</h4>
 <p>Click <strong>Test Connection</strong>. DBeaver opens a <code>GET /v1/info</code>, gets a <code>200</code>, and shows the version banner — the request walked through nginx → Gateway → coordinator → back. Click <strong>Finish</strong>.</p>
 <p>In the SQL editor, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="k">SHOW</span><span class="w"> </span><span class="n">CATALOGS</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="k">SHOW</span><span class="w"> </span><span class="n">CATALOGS</span><span class="p">;</span>
 </code></pre></div>
 <p>You should see <code>iceberg</code>, <code>jmx</code>, <code>system</code>, <code>tpcds</code>, <code>tpch</code> — same list <code>$COORD_HOST:$COORD_PORT</code> returned in §3.4.</p>
 <h3 id="64-verify-rbac-end-to-end-through-the-jdbc-chain">6.4 Verify RBAC end-to-end through the JDBC chain</h3>
 <p>Open the <strong>analyst-kr</strong> connection's SQL editor:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">order_id</span><span class="p">,</span><span class="w"> </span><span class="n">country</span><span class="p">,</span><span class="w"> </span><span class="n">total_amount</span>
-<a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">iceberg</span><span class="p">.</span><span class="n">sales</span><span class="p">.</span><span class="n">orders</span>
-<a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">order_id</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">order_id</span><span class="p">,</span><span class="w"> </span><span class="n">country</span><span class="p">,</span><span class="w"> </span><span class="n">total_amount</span>
+<a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">iceberg</span><span class="p">.</span><span class="n">sales</span><span class="p">.</span><span class="n">orders</span>
+<a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">order_id</span><span class="p">;</span>
 </code></pre></div>
 <p>Returns only the KR rows — <code>chango-trino-authz</code> injected <code>WHERE country = 'KR'</code> server-side, exactly as the <code>trino</code> CLI verified in §5.3.</p>
 <p>Now repeat the connection wizard with <strong>Username = <code>analyst-jp</code></strong> + the same nginx host/port, and run the same query:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">order_id</span><span class="p">,</span><span class="w"> </span><span class="n">country</span><span class="p">,</span><span class="w"> </span><span class="n">total_amount</span>
-<a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">iceberg</span><span class="p">.</span><span class="n">sales</span><span class="p">.</span><span class="n">orders</span>
-<a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">order_id</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">order_id</span><span class="p">,</span><span class="w"> </span><span class="n">country</span><span class="p">,</span><span class="w"> </span><span class="n">total_amount</span>
+<a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">iceberg</span><span class="p">.</span><span class="n">sales</span><span class="p">.</span><span class="n">orders</span>
+<a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">order_id</span><span class="p">;</span>
 </code></pre></div>
 <p>Returns only the JP rows.</p>
-<p>If you applied the column-mask policy in §5.4, <code>SELECT *</code> from <code>analyst-kr</code> returns only the whitelisted columns; <code>SELECT customer_id …</code> fails with <code>Access Denied: column customer_id not authorized</code>. The chain — DBeaver, nginx, Gateway, coordinator, chango-trino-authz, Ontul — collapses the policy decision before a single byte leaves the coordinator.</p>
+<p>If you applied the §5.4 Deny policy, <code>SELECT *</code> from <code>analyst-kr</code> shows <code>customer_id</code> as <code>NULL</code>; the column stays in the schema but its values never reach the client. If you applied the §5.5 Mask policy instead, <code>phone</code> / <code>email</code> / <code>salary</code> come back rewritten by their SQL expressions (<code>'***-***-XXXX'</code>, <code>MD5(email)</code>, <code>ROUND(salary, -3)</code>). The chain — DBeaver, nginx, Gateway, coordinator, chango-trino-authz, Ontul — collapses the policy decision before a single byte leaves the coordinator.</p>
 <h3 id="65-request-chain-summary">6.5 Request chain summary</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>DBeaver
-<a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a>  │ HTTP POST /v1/statement (X-Trino-User: analyst-kr)
-<a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a>  ▼
-<a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a>nginx :19180 (proxy_pass to GW:$GW_PORT)
-<a id="__codelineno-46-5" name="__codelineno-46-5" href="#__codelineno-46-5"></a>  │
-<a id="__codelineno-46-6" name="__codelineno-46-6" href="#__codelineno-46-6"></a>  ▼
-<a id="__codelineno-46-7" name="__codelineno-46-7" href="#__codelineno-46-7"></a>Trino Gateway :$GW_PORT
-<a id="__codelineno-46-8" name="__codelineno-46-8" href="#__codelineno-46-8"></a>  │ Look up Ontul groups for analyst-kr → resolve cluster-group → pick trino-main
-<a id="__codelineno-46-9" name="__codelineno-46-9" href="#__codelineno-46-9"></a>  ▼
-<a id="__codelineno-46-10" name="__codelineno-46-10" href="#__codelineno-46-10"></a>Trino coordinator :$COORD_PORT
-<a id="__codelineno-46-11" name="__codelineno-46-11" href="#__codelineno-46-11"></a>  │ Parse + plan
-<a id="__codelineno-46-12" name="__codelineno-46-12" href="#__codelineno-46-12"></a>  │ chango-trino-authz asks Ontul: { user=analyst-kr, action=data:Select, resource=data:table:iceberg.sales.orders }
-<a id="__codelineno-46-13" name="__codelineno-46-13" href="#__codelineno-46-13"></a>  │ Inject Condition (`country = &#39;KR&#39;`) into the plan
-<a id="__codelineno-46-14" name="__codelineno-46-14" href="#__codelineno-46-14"></a>  │ Project only whitelisted Columns
-<a id="__codelineno-46-15" name="__codelineno-46-15" href="#__codelineno-46-15"></a>  ▼
-<a id="__codelineno-46-16" name="__codelineno-46-16" href="#__codelineno-46-16"></a>Trino workers execute filtered + projected plan
-<a id="__codelineno-46-17" name="__codelineno-46-17" href="#__codelineno-46-17"></a>  │ Stream rows back up the chain
-<a id="__codelineno-46-18" name="__codelineno-46-18" href="#__codelineno-46-18"></a>  ▼
-<a id="__codelineno-46-19" name="__codelineno-46-19" href="#__codelineno-46-19"></a>DBeaver result grid
+<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>DBeaver
+<a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>  │ HTTP POST /v1/statement (X-Trino-User: analyst-kr)
+<a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a>  ▼
+<a id="__codelineno-48-4" name="__codelineno-48-4" href="#__codelineno-48-4"></a>nginx :19180 (proxy_pass to GW:$GW_PORT)
+<a id="__codelineno-48-5" name="__codelineno-48-5" href="#__codelineno-48-5"></a>  │
+<a id="__codelineno-48-6" name="__codelineno-48-6" href="#__codelineno-48-6"></a>  ▼
+<a id="__codelineno-48-7" name="__codelineno-48-7" href="#__codelineno-48-7"></a>Trino Gateway :$GW_PORT
+<a id="__codelineno-48-8" name="__codelineno-48-8" href="#__codelineno-48-8"></a>  │ Look up Ontul groups for analyst-kr → resolve cluster-group → pick trino-main
+<a id="__codelineno-48-9" name="__codelineno-48-9" href="#__codelineno-48-9"></a>  ▼
+<a id="__codelineno-48-10" name="__codelineno-48-10" href="#__codelineno-48-10"></a>Trino coordinator :$COORD_PORT
+<a id="__codelineno-48-11" name="__codelineno-48-11" href="#__codelineno-48-11"></a>  │ Parse + plan
+<a id="__codelineno-48-12" name="__codelineno-48-12" href="#__codelineno-48-12"></a>  │ chango-trino-authz asks Ontul: { user=analyst-kr, action=data:Select, resource=data:table:iceberg.sales.orders }
+<a id="__codelineno-48-13" name="__codelineno-48-13" href="#__codelineno-48-13"></a>  │ Inject Condition (`country = &#39;KR&#39;`) into the plan
+<a id="__codelineno-48-14" name="__codelineno-48-14" href="#__codelineno-48-14"></a>  │ Project only whitelisted Columns
+<a id="__codelineno-48-15" name="__codelineno-48-15" href="#__codelineno-48-15"></a>  ▼
+<a id="__codelineno-48-16" name="__codelineno-48-16" href="#__codelineno-48-16"></a>Trino workers execute filtered + projected plan
+<a id="__codelineno-48-17" name="__codelineno-48-17" href="#__codelineno-48-17"></a>  │ Stream rows back up the chain
+<a id="__codelineno-48-18" name="__codelineno-48-18" href="#__codelineno-48-18"></a>  ▼
+<a id="__codelineno-48-19" name="__codelineno-48-19" href="#__codelineno-48-19"></a>DBeaver result grid
 </code></pre></div>
 <p>Three things to remember about this chain:</p>
 <ol>
@@ -3548,8 +3608,8 @@
 </table>
 <h2 id="stop-trino-before-moving-on">Stop Trino before moving on</h2>
 <p>Phase 2 (Spark) needs the headroom. Stop the Trino cluster (keep the Gateway running — it is stateless and lightweight):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino/trino-main/stop<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino/trino-main/stop<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
 </code></pre></div>
 <p>Continue with the <a href="../">Tutorials overview</a> for Phase 2 onward.</p>
 
