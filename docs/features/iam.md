@@ -23,12 +23,14 @@ A policy statement looks like:
     {
       "Sid": "allow-events",
       "Effect": "Allow",
-      "Action": ["SELECT"],
-      "Resource": ["lake.db.events"]
+      "Action": ["data:Select"],
+      "Resource": ["data:table:lake.db.events"]
     }
   ]
 }
 ```
+
+> Actions live in the `data:` namespace and table resources in `data:table:` — see [Ontul IAM](https://cloudcheflabs.github.io/ontul-docs/1.0.0/features/iam/) for the full vocabulary plus the `Effect:"Deny"` / `Effect:"Mask"` (`MaskedColumns`) / `Condition` extensions that the chango-trino-authz plugin enforces on every query.
 
 Statements are evaluated as a flat set across every policy attached (directly or via group) to the calling user. The order is the standard AWS one: explicit `Deny` always wins, otherwise the action must match at least one `Allow`.
 

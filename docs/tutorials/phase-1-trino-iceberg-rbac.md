@@ -119,9 +119,9 @@ echo "coordinator: $COORD_HOST:$COORD_PORT"
 2. Click **Install new Trino Gateway cluster**:
     - **Cluster ID** — `trino-gw`
     - **Gateway nodes** — `chango-n1`
-    - **Trino backends** — pick `trino-main` from the dropdown (chango fills in `<coord-host>:<httpPort>` from the running coordinator).
+    - **JVM Heap (optional)** — leave blank for the launcher defaults, or set `-Xms` / `-Xmx` (e.g. `256m` / `512m`) which chango writes into the gateway's `conf/jvm.conf` and sources via `JAVA_OPTS` at start.
 3. Click **Install** then **Start**. The cluster card flips to `RUNNING` within ~30 seconds.
-4. (Optional) Open the cluster detail and the **Cluster Groups** sub-page; create a `default` cluster-group that contains `trino-main`. Every Gateway route needs at least one cluster-group — see the note below.
+4. Open the cluster detail and the **Cluster Groups** sub-page; create a `default` cluster-group that contains `trino-main`. **Every Gateway route needs at least one cluster-group** — routing topology is owned by `default` (and any other groups you attach), not by raw `host:port` backends. Also register the gateway-side cluster entry under `/admin/api/gateway/clusters` with `clusterName: trino-main` (matching the chango Trino clusterId) and `url: http://<coord-host>:<httpPort>` — the cluster-group's `trinoClusterIds` list looks the cluster up by that name.
 
 ### Via REST
 
@@ -131,10 +131,21 @@ curl -sS -X POST $BASE/admin/api/trino-gateway \
   -H 'Content-Type: application/json' \
   -d "{
     \"clusterId\":     \"trino-gw\",
-    \"gatewayNodes\":  [\"$N1\"],
-    \"trinoBackends\": \"$COORD_HOST:$COORD_PORT\"
+    \"gatewayNodes\":  [\"$N1\"]
   }"
+
+# Register trino-main in gateway/clusters + add it to cluster-group 'default'.
+curl -sS -X POST $BASE/admin/api/gateway/clusters \
+  -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+  -d "{\"clusterName\":\"trino-main\",\"clusterType\":\"trino\",
+       \"url\":\"http://$COORD_HOST:$COORD_PORT\",
+       \"activated\":true,\"groupName\":\"default\"}"
+curl -sS -X POST $BASE/admin/api/gateway/cluster-groups \
+  -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+  -d '{"groupName":"default","trinoClusterIds":["trino-main"]}'
 ```
+
+> The legacy `trinoBackends` field (a raw `host:port` CSV on the install body) was removed — routing is now driven entirely by cluster-groups + the registered gateway clusters that share their `clusterName` with the chango Trino `clusterId`. Each Gateway's `attachedClusterGroups` setting (defaults to `default`) controls which groups it serves.
 
 Pin the Gateway endpoint — this is what every client uses from now on:
 
@@ -721,7 +732,9 @@ curl -sS -H "Authorization: Bearer $ONTUL_TOK" $ONTUL/admin/iam/policies \
 
 A common failure mode is forgetting the `Version` field — the policy still saves but Ontul logs a deserialization warning and the policy never matches. Always verify the read-back shows your `Statement` array populated.
 
-Ontul policies use AWS IAM document shape. **`Condition`** is a SQL `WHERE` fragment that chango's `chango-trino-authz` plugin appends to every Trino query that touches `Resource`. **`Columns`** restricts which columns the user can `SELECT`.
+Ontul policies use AWS IAM document shape. **`Condition`** is a SQL `WHERE` fragment that chango's `chango-trino-authz` plugin lifts into a Trino `ViewExpression` via `getRowFilters()` for every query that touches `Resource`. **`Columns`** plus `Effect:"Deny"` blocks listed columns (Trino path NULL-masks them). For per-column SQL-expression rewrites use the separate **`Effect:"Mask"`** + `MaskedColumns` form — see §5.5 below.
+
+Field-name reminder: actions are namespaced (`data:Select`, not `SELECT`) and table resources use the `data:table:<catalog>.<schema>.<table>` prefix. Lowercase or unprefixed forms are silently ignored.
 
 ```bash
 cat > /tmp/sales-kr-read.json <<'EOF'
@@ -733,8 +746,8 @@ cat > /tmp/sales-kr-read.json <<'EOF'
       {
         "Sid": "SalesKrRead",
         "Effect": "Allow",
-        "Action": ["SELECT"],
-        "Resource": "iceberg.sales.*",
+        "Action": ["data:Select"],
+        "Resource": "data:table:iceberg.sales.*",
         "Condition": "country = 'KR'"
       }
     ]
@@ -768,30 +781,75 @@ trino --server http://$COORD_HOST:$COORD_PORT --user analyst-kr --catalog iceber
 # "KR","2"
 ```
 
-### 5.4 Column-level restriction (optional)
+### 5.4 Column-level Deny (NULL-mask sensitive columns)
 
-The same policy schema supports column whitelisting through the `Columns` field. Example — restrict `analyst-kr` to `order_id` + `country` + `total_amount` (no `customer_id`):
+`Columns` listed on a Statement with `Effect:"Deny"` blocks those columns from the user's view of `Resource`. The chango-trino-authz plugin implements this via Trino's native `getColumnMasks()` API, replacing the value with `NULL` while keeping the column name + type in the result schema — joins, group-by, and BI dashboards keep working but the raw value never leaves the coordinator. Example — hide `customer_id` from `analyst-kr` on the orders table while keeping the existing allow + row filter:
 
 ```json
 {
-  "name": "sales-kr-read-cols",
+  "name": "sales-kr-hide-pii",
+  "document": {
+    "Version": "2024-01-01",
+    "Statement": [
+      {
+        "Sid": "SalesKrRead",
+        "Effect": "Allow",
+        "Action": ["data:Select"],
+        "Resource": "data:table:iceberg.sales.orders",
+        "Condition": "country = 'KR'"
+      },
+      {
+        "Sid": "HidePii",
+        "Effect": "Deny",
+        "Action": ["data:Select"],
+        "Resource": "data:table:iceberg.sales.orders",
+        "Columns": ["customer_id"]
+      }
+    ]
+  }
+}
+```
+
+A `SELECT * FROM sales.orders` for that user returns rows with `customer_id = NULL`; the column still appears in `DESCRIBE` and the result schema, just always null.
+
+### 5.5 Column Mask (rewrite values with a SQL expression)
+
+For partial reveal patterns — last-4-of-card, hashed email, bucketed salary, role-aware unmasking — use `Effect:"Mask"` + `MaskedColumns`. Ontul stores the policy with per-column Trino-dialect SQL expressions and resolves any `${user.*}` substitutions before responding; the chango-trino-authz plugin lifts each `(column, expr)` pair into a Trino `ViewExpression`, so the planner evaluates the mask at the worker on every row.
+
+```json
+{
+  "name": "sales-kr-mask",
   "document": {
     "Version": "2024-01-01",
     "Statement": [{
-      "Sid": "SalesKrReadCols",
-      "Effect": "Allow",
-      "Action": ["SELECT"],
-      "Resource": "iceberg.sales.orders",
-      "Columns": ["order_id", "country", "total_amount"],
-      "Condition": "country = 'KR'"
+      "Sid": "MaskCustomerPii",
+      "Effect": "Mask",
+      "Action": ["data:Select"],
+      "Resource": "data:table:iceberg.sales.customers",
+      "MaskedColumns": {
+        "phone":   "'***-***-XXXX'",
+        "email":   "MD5(email)",
+        "salary":  "ROUND(salary, -3)"
+      }
     }]
   }
 }
 ```
 
-A `SELECT customer_id` query for that user now fails with `Access Denied: not authorized to read column customer_id`.
+`analyst-kr` running `SELECT email, phone, salary FROM sales.customers` then sees the masked values:
 
-### 5.5 DENY check
+```
+email                            | phone         | salary
+---------------------------------+---------------+-------
+5d41402abc4b2a76b9719d911017c592 | ***-***-XXXX  | 75000
+…
+```
+
+The columns still exist with their original names + types; only the values are rewritten in the projection. Mask expressions can call any function Trino's expression engine knows (`CASE WHEN`, `MD5`, `ROUND`, `SUBSTR`, concat via `||`, etc.). See [Ontul IAM — Column Masking](https://cloudcheflabs.github.io/ontul-docs/1.0.0/features/iam/#column-masking) for the full mask-expression catalog and the user-context templating tokens (`${user.id}`, `${user.roles}`, `${user.attr.<key>}`).
+
+**Precedence** (per Ontul docs and the chango plugin): `Deny > Mask > Allow`. A column listed in both a Deny statement and a Mask statement is NULL-masked — the SQL expression is dropped. Use Deny for "this column must not be reasoned about", Mask for "this column stays useful but the raw value is sensitive".
+
+### 5.6 DENY check
 
 Without an explicit `INSERT` / `DELETE` action in the policy, mutating statements are denied:
 
@@ -918,7 +976,7 @@ ORDER BY order_id;
 
 Returns only the JP rows.
 
-If you applied the column-mask policy in §5.4, `SELECT *` from `analyst-kr` returns only the whitelisted columns; `SELECT customer_id …` fails with `Access Denied: column customer_id not authorized`. The chain — DBeaver, nginx, Gateway, coordinator, chango-trino-authz, Ontul — collapses the policy decision before a single byte leaves the coordinator.
+If you applied the §5.4 Deny policy, `SELECT *` from `analyst-kr` shows `customer_id` as `NULL`; the column stays in the schema but its values never reach the client. If you applied the §5.5 Mask policy instead, `phone` / `email` / `salary` come back rewritten by their SQL expressions (`'***-***-XXXX'`, `MD5(email)`, `ROUND(salary, -3)`). The chain — DBeaver, nginx, Gateway, coordinator, chango-trino-authz, Ontul — collapses the policy decision before a single byte leaves the coordinator.
 
 ### 6.5 Request chain summary
 
