@@ -64,24 +64,28 @@ Set a cron expression in the destination config — the leader runs the backup o
 
 ## Restoring
 
-Restore is an out-of-band procedure on a fresh master node:
+Restore is an out-of-band procedure on a fresh master node. Chango deliberately ships no systemd unit — the operator drives the master directly via `bin/start-master.sh` / `bin/stop-master.sh` with the cluster root secret in env.
 
-1. **Stop** the chango master systemd unit (if anything is running).
+1. **Stop** the running chango master (if anything is running).
 2. **Download** the desired backup object from S3 (e.g. with `aws s3 cp` or `curl` + SigV4).
 3. **Untar** it into the master's RocksDB parent dir:
 
    ```bash
-   sudo systemctl stop chango-master
+   sudo -u chango /opt/chango/bin/stop-master.sh
+   sudo -u chango /opt/chango/bin/stop-zk.sh
    sudo rm -rf /var/lib/chango/{kms,iam,metadata}
    sudo tar -xzf chango-<timestamp>-<uuid>.tar.gz -C /var/lib/chango/
    sudo chown -R chango:chango /var/lib/chango/
    ```
 
 4. **Supply the cluster root secret** on the new master node (same secret as the source cluster — without it the restored RocksDB is undecryptable).
-5. **Start** the chango master:
+5. **Start** ZooKeeper and the chango master with `CHANGO_MASTER_KEY` supplied from your secret manager:
 
    ```bash
-   sudo systemctl start chango-master
+   export CHANGO_MASTER_KEY=<from secret manager>
+   sudo -u chango -E /opt/chango/bin/start-zk.sh
+   sleep 3
+   sudo -u chango -E /opt/chango/bin/start-master.sh
    ```
 
    The master opens the restored RocksDB, decrypts KEKs with the master DEK derived from the supplied root secret, and resumes leader election. Component instances stored in the metadata RocksDB are visible again immediately.
