@@ -13,6 +13,7 @@ For every component type (`trino`, `spark`, `flink`, `ontul`, `shannonstore`, `p
 | Endpoint | Action |
 |---|---|
 | `GET    /admin/api/<comp>` | List all clusters of this component |
+| `GET    /admin/api/<comp>/install-defaults` | Static install-form defaults — the component's packaged properties surface (every editable key + its default), the set of per-instance keys the form must mark read-only, and any per-role JVM defaults. Drives the Configure-style Create panel. |
 | `POST   /admin/api/<comp>` | Provision a new cluster (install) |
 | `GET    /admin/api/<comp>/<clusterId>` | Cluster details (settings + per-instance pid / status) |
 | `POST   /admin/api/<comp>/<clusterId>/start` | Start every instance |
@@ -38,7 +39,14 @@ The provisioner shape is component-specific but every payload includes at minimu
 - `clusterId` — optional; auto-generated `<comp>-<8hex>` when blank.
 - The node lists per role (`coordinatorNodes`, `workerNodes`, `masterNodes`, `serverNodes`, …) — each entry is an NM nodeId. Repeat the same nodeId twice to land two instances on the same host.
 
+Optional install-time tuning, shared by every component:
+
+- **`properties`** — `Map<String,String>` of overrides applied to the component's main config file at install time. Keys not present here fall back to the packaged default (the same defaults the `install-defaults` endpoint surfaces). Per-instance keys (ports, discovery URI, node id) are owned by the provisioner and cannot be overridden here.
+- **Per-role `JvmConfig`** — `{heapMin, heapMax, extra[]}` blocks keyed by role: `coordinatorJvm`/`workerJvm` for Trino, `masterJvm`/`workerJvm` for Ontul, `apiJvm`/`dataJvm` for ShannonStore, `serverJvm` for Polaris, `gatewayJvm` for Trino Gateway, etc. Each block is optional; missing fields keep the packaged JVM defaults. `extra[]` carries additional `-X…` / `-D…` flags appended verbatim to the JVM command line.
+
 Optional integrations are auto-discovered. For Trino, Spark, and Flink, supplying just an `ontulAuthzToken` is enough — chango finds the first running Ontul cluster and wires its admin port as the authz endpoint. For Polaris and the Trino resource-group manager, supplying a `pgInstanceId` (chango-installed PostgreSQL) is enough — chango fills host / port / superuser from its own records.
+
+The admin UI Create panel is the same shape as Configure: tabs for *Install*, the main `*.properties` file, and *JVM* per role, prefilled from `install-defaults`. Operators can ship a fully tuned cluster on first install without a follow-up Configure pass.
 
 ## Start / stop / restart
 
