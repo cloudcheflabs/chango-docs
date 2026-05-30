@@ -28,8 +28,10 @@ TOK=<chango admin token>
 ONTUL_ADMIN=http://<host>:<ontul-master-admin-port>    # e.g. http://172.31.11.123:19220
 ONTUL_JWT=<JWT from POST $ONTUL_ADMIN/admin/auth/login>
 
-# From Phase 1 / Iceberg e2e — admin user IAM access key on Ontul (raw AK:SK)
-ADMIN_AKSK=<accessKeyId>:<secretAccessKey>             # used as Basic password against the Trino Gateway
+# From Phase 1 / Iceberg e2e — Ontul-issued IAM access key for the user
+# driving this DAG. Standard Basic-auth: username = accessKeyId, password = secretAccessKey.
+TGW_AK=<accessKeyId>
+TGW_SK=<secretAccessKey>
 
 # New for Phase 7
 TGW_URL=http://<host>:8680                             # trino-gateway public endpoint
@@ -66,8 +68,10 @@ Restart the gateway after each step (`POST /admin/api/trino-gateway/tgw-main/res
 Smoke-test from inside the cluster:
 
 ```bash
-# Basic-auth username is informational; the password is "<accessKey>:<secretKey>".
-curl -sS -u "admin:$ADMIN_AKSK" -X POST "$TGW_URL/v1/statement" \
+# Standard Basic-auth: username = accessKeyId, password = secretAccessKey.
+# trino-gateway's OntulAuthClient detects the AKIA-shaped username and sends
+# {"accessKey":"…","secretKey":"…"} to ontul's /v1/api/auth/accesskey.
+curl -sS -u "$TGW_AK:$TGW_SK" -X POST "$TGW_URL/v1/statement" \
      -H 'Content-Type: text/plain' \
      --data 'SELECT count(*), sum(amount) FROM iceberg.test.maint_demo'
 # → follow the nextUri until state=FINISHED, expect [[6,1400]]
@@ -128,9 +132,9 @@ The bucket owner is whoever created it — if that's the shannon admin user, min
 
 ## 4. Register a kiok connection holding the gateway access key
 
-Hardcoding the credential into every `trino.password` field of the DAG would put the secret directly into yaml. kiok supports `${conn.<id>.<key>}` substitution backed by its ConnectionStore, so the DAG below references it as `${conn.gw.trinopass}`.
+The gateway uses standard Basic-auth: **`username = accessKeyId`, `password = secretAccessKey`** — both halves of an ontul-issued IAM access key (`POST /admin/iam/keys` returns `accessKeyId` + `secretAccessKey` + `token`; the first two here, the third is the OTOK usertoken covered below). The Trino Gateway's `OntulAuthClient` detects the AKIA-shaped username and sends `{"accessKey":"…","secretKey":"…"}` to ontul's `/v1/api/auth/accesskey`; ontul resolves the user + group + policies, the chango-trino-authz plugin then applies that user's row filters / column masks. Username/password is for UI sign-in; programmatic clients (this DAG, future engine clients) use access/secret consistently.
 
-The **standard form for `trino.password` is `<accessKeyId>:<secretAccessKey>`** — the user's IAM access key issued by ontul (`POST /admin/iam/keys` returns `accessKeyId` + `secretAccessKey` + `token`; we use the first two here, joined by a colon). The Trino Gateway recognises the colon and sends `{"accessKey":"…","secretKey":"…"}` to ontul's `/v1/api/auth/accesskey`, ontul resolves the user + group + policies, and the chango-trino-authz plugin then applies the row filters / column masks of that user's policy. We keep DAG examples on this form so the credential surface stays uniform — username/password is for UI sign-in, AK:SK is for programmatic access.
+To keep secrets out of the DAG yaml, register a kiok connection and refer to it as `${conn.gw.accesskey}` / `${conn.gw.secretkey}`:
 
 ```bash
 curl -sS -X POST $KIOK_ADMIN/api/v1/connections \
@@ -138,16 +142,17 @@ curl -sS -X POST $KIOK_ADMIN/api/v1/connections \
   -d '{
     "connectionId": "gw",
     "type": "trino",
-    "description": "trino-gateway Basic-auth password = <accessKeyId>:<secretAccessKey> of the IAM user that should drive this DAG",
+    "description": "trino-gateway standard Basic-auth: accesskey + secretkey of the IAM user driving this DAG",
     "properties": {
-      "trinopass": "<accessKeyId>:<secretAccessKey>"
+      "accesskey": "<accessKeyId>",
+      "secretkey": "<secretAccessKey>"
     }
   }'
 ```
 
-If you later rotate the access key, update this connection's `trinopass` (or delete and re-create) — the DAG yaml stays unchanged.
+If you later rotate the access key, update both fields on this connection (or delete and re-create) — the DAG yaml stays unchanged.
 
-> **About `ontul.token` in the DAG** — kiok's ontul operator forwards `ontul.token` as `Authorization: Bearer <value>`, but ontul's `OTOK*` (usertoken from the same access-key set) requires `Authorization: Token <OTOK>`. So the DAG below currently uses an **admin JWT** for `ontul.token`, which has a short TTL — substituting it via the connection store doesn't fix the TTL. Kiok-side work is needed to make ontul-typed connections forward usertoken under the right scheme (or accept the AK:SK form and translate); until that lands, the operator either re-renders the DAG before each run, or kiok manages re-issuance internally.
+> **About `ontul.token` in the DAG** — the field expects an OTOK (the third value from `POST /admin/iam/keys`, the long-lived usertoken). Kiok's ontul operator forwards it under `Authorization: Token <OTOK>` (the scheme ontul requires). Older kiok builds forwarded it as `Bearer` and would 401 against ontul; if you see that, upgrade kiok-main from its `*-pack` release archive.
 
 ## 5. The DAG
 
@@ -165,8 +170,8 @@ tasks:
     config:
       # Hit the gateway, not the coordinator. Basic-auth password = AK:SK.
       trino.url:        "http://<host>:8680"
-      trino.user:       "admin"          # informational — gateway ignores it
-      trino.password:   "${conn.gw.trinopass}"
+      trino.user:       "${conn.gw.accesskey}"          # informational — gateway ignores it
+      trino.password:   "${conn.gw.secretkey}"
       trino.catalog:    "iceberg"
       trino.schema:     "demo"
       trino.pollIntervalMs: "1000"
@@ -179,8 +184,8 @@ tasks:
     timeout: 5m
     config:
       trino.url:        "http://<host>:8680"
-      trino.user:       "admin"
-      trino.password:   "${conn.gw.trinopass}"
+      trino.user:       "${conn.gw.accesskey}"
+      trino.password:   "${conn.gw.secretkey}"
       trino.catalog:    "iceberg"
       trino.schema:     "demo"
       trino.pollIntervalMs: "1000"
@@ -196,8 +201,8 @@ tasks:
     timeout: 5m
     config:
       trino.url:        "http://<host>:8680"
-      trino.user:       "admin"
-      trino.password:   "${conn.gw.trinopass}"
+      trino.user:       "${conn.gw.accesskey}"
+      trino.password:   "${conn.gw.secretkey}"
       trino.catalog:    "iceberg"
       trino.schema:     "demo"
       trino.pollIntervalMs: "1000"
@@ -217,8 +222,8 @@ tasks:
     timeout: 5m
     config:
       trino.url:        "http://<host>:8680"
-      trino.user:       "admin"
-      trino.password:   "${conn.gw.trinopass}"
+      trino.user:       "${conn.gw.accesskey}"
+      trino.password:   "${conn.gw.secretkey}"
       trino.catalog:    "iceberg"
       trino.schema:     "demo"
       trino.pollIntervalMs: "1000"
@@ -238,8 +243,8 @@ tasks:
     timeout: 5m
     config:
       trino.url:        "http://<host>:8680"
-      trino.user:       "admin"
-      trino.password:   "${conn.gw.trinopass}"
+      trino.user:       "${conn.gw.accesskey}"
+      trino.password:   "${conn.gw.secretkey}"
       trino.catalog:    "iceberg"
       trino.schema:     "demo"
       trino.pollIntervalMs: "1000"
