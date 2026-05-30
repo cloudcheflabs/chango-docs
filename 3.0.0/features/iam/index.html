@@ -670,6 +670,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#engine-coverage" class="md-nav__link">
+    Engine coverage
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#default-bootstrap" class="md-nav__link">
     Default bootstrap
   </a>
@@ -1240,6 +1247,35 @@
 <li>Inside the engine, the first-party authz plugin (<code>chango-trino-authz</code>, <code>chango-spark-authz</code>, <code>chango-flink-authz</code>) calls <code>POST &lt;ontul&gt;/v1/api/authz/check-batch</code> for every query, with <code>(user, action, resource)</code> tuples and gets back <code>ALLOW</code> / <code>DENY</code> / <code>ABSTAIN</code> decisions.</li>
 </ul>
 <p>So chango's own IAM governs the admin UI and the REST API. Ontul's IAM governs query-time access to the data. Chango and Ontul are deliberately separate authorities — chango can be re-provisioned without invalidating Ontul tokens, and Ontul can be re-bootstrapped without re-issuing chango admin sessions.</p>
+<h2 id="engine-coverage">Engine coverage</h2>
+<p>All three data-plane engines delegate to the same Ontul authz model, but they do <strong>not</strong> all enforce the same <em>granularity</em>. It depends on the plan-rewrite surface each engine exposes to its first-party plugin:</p>
+<table>
+<thead>
+<tr>
+<th>Engine</th>
+<th>Plugin</th>
+<th>Granularity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trino</td>
+<td><code>chango-trino-authz</code></td>
+<td>Allow / Deny <strong>plus</strong> row-filter (<code>Condition</code>) and column-mask (<code>Columns</code> / <code>MaskedColumns</code>), enforced by rewriting the query plan before execution.</td>
+</tr>
+<tr>
+<td>Spark</td>
+<td><code>chango-spark-authz</code></td>
+<td>Table-level Allow / Deny on <code>data:Select</code> / <code>data:Insert</code>.</td>
+</tr>
+<tr>
+<td>Flink</td>
+<td><code>chango-flink-authz</code></td>
+<td>Table-level Allow / Deny on <code>data:Select</code> / <code>data:Insert</code> — <strong>no</strong> row-filter or column-mask.</td>
+</tr>
+</tbody>
+</table>
+<p>Only Trino exposes a plan-rewrite hook the plugin can use to inject row filters and column masks without re-implementing Calcite. Spark and Flink authorize at the table level: a policy's <code>Condition</code> and <code>Columns</code> fields are simply ignored for those engines. For fine-grained control on a streaming (Flink) read, filter at the source instead — e.g. a topic-per-tenant layout with Kafka ACLs.</p>
 <h2 id="default-bootstrap">Default bootstrap</h2>
 <p>On the very first start of a fresh cluster, the leader creates exactly one user / group / policy:</p>
 <ul>
