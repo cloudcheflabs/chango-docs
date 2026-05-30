@@ -75,6 +75,7 @@ nav:
       - "Phase 4 — Iceberg table maintenance": tutorials/phase-4-iceberg-maintenance.md
       - "Phase 5 — Kafka + Flink + Iceberg streaming": tutorials/phase-5-kafka-flink-iceberg.md
       - "Phase 6 — kiok native livy task + Polaris": tutorials/phase-6-kiok-livy-spark-iceberg-polaris.md
+      - "Phase 7 — kiok DAG (trino-gw + ontul)": tutorials/phase-7-kiok-dag-trino-ontul-via-gateway.md
 
 
 extra:
