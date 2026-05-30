@@ -1,8 +1,8 @@
 # Phase 7 — kiok DAG: trino operator (via Trino Gateway) + ontul operator (S3-hosted Python)
 
-By the end of Phase 4 the lakehouse holds a working Iceberg table (`iceberg.test.maint_demo`, 6 rows, sum=1400) and Ontul's Maintenance scheduler has been verified. Phase 7 puts kiok in front of all of it: a single DAG triggers an Iceberg query against Trino **through the Trino Gateway**, runs a BATCH SQL job on Ontul, and dispatches an S3-hosted Python script to an Ontul worker.
+By the end of Phase 4 the lakehouse holds a working Iceberg table (`iceberg.test.maint_demo`, 6 rows, sum=1400) and Ontul's Maintenance scheduler has been verified. Phase 7 puts kiok in front of all of it: a single DAG creates a fresh Iceberg schema + table through Trino **via the Trino Gateway**, upserts rows with `MERGE INTO` on both engines, verifies the result, and dispatches an S3-hosted Python script to an Ontul worker.
 
-This phase is the **end-to-end engine integration test** for kiok — every other tutorial exercises one engine at a time; here three runners share a DAG.
+This phase is the **end-to-end engine integration test** for kiok — every other tutorial exercises one engine at a time; here three runners share a DAG and the same Iceberg table is mutated by two of them.
 
 ## Topology
 
@@ -126,31 +126,130 @@ aws --endpoint-url http://<shannon-api>:8081 \
 
 The bucket owner is whoever created it — if that's the shannon admin user, mint an IAM access key for *that* user (not a separate `chango` user) and reuse those credentials for Ontul's `lakehouse` connection. The cleaner alternative is to attach the built-in `AdministratorAccess` policy to a dedicated service user via `POST /admin/iam/attach-user-policy` on shannon; do not chase ad-hoc bucket policies.
 
-## 4. The DAG
+## 4. Register a kiok connection holding the gateway AK:SK
+
+Hardcoding `<accessKeyId>:<secretAccessKey>` into every `trino.password` field of the DAG would put the secret directly into yaml. kiok supports `${conn.<id>.<key>}` substitution backed by its ConnectionStore, so the DAG below references it as `${conn.gw.trinopass}`:
+
+```bash
+curl -sS -X POST $KIOK_ADMIN/api/v1/connections \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $KTOK" \
+  -d '{
+    "connectionId": "gw",
+    "type": "trino",
+    "description": "trino-gateway Basic-auth password = ontul admin AK:SK",
+    "properties": {
+      "trinopass": "<accessKeyId>:<secretAccessKey>"
+    }
+  }'
+```
+
+If you later rotate the access key, update this connection's `trinopass` (or delete and re-create) — the DAG yaml stays unchanged.
+
+> **Heads-up about `ontul.token`** — kiok's ontul operator forwards `ontul.token` as `Authorization: Bearer <value>`, but ontul's `OTOK*` (long-lived access-key token) requires `Authorization: Token <OTOK>`. So the DAG below uses an **admin JWT** for `ontul.token`, which has a short TTL — substituting it via the connection store doesn't fix the TTL. Kiok-side work is needed to make ontul-typed connections re-issue or correctly forward OTOK; until that lands, the operator either re-renders the DAG before each run, or kiok manages re-issuance internally.
+
+## 5. The DAG
+
+The DAG creates `iceberg.demo.events`, MERGEs rows through Trino (via the gateway), verifies the result, then MERGEs more rows from Ontul, verifies again, and finally runs the S3-hosted Python script. Every SQL step uses `MERGE INTO` rather than a plain `SELECT` so the tutorial exercises real writes across both engines.
 
 ```yaml
 dag:
-  id: ontul_trino_smoke
+  id: merge_demo_via_gw_and_ontul
   default_timeout: 10m
 
 tasks:
-  - id: trino_via_gateway
+  - id: trino_create_schema
     type: trino
     timeout: 5m
     config:
       # Hit the gateway, not the coordinator. Basic-auth password = AK:SK.
       trino.url:        "http://<host>:8680"
       trino.user:       "admin"          # informational — gateway ignores it
-      trino.password:   "<accessKeyId>:<secretAccessKey>"
+      trino.password:   "${conn.gw.trinopass}"
       trino.catalog:    "iceberg"
-      trino.schema:     "test"
+      trino.schema:     "demo"
       trino.pollIntervalMs: "1000"
     script: |
-      SELECT count(*) AS cnt, sum(amount) AS total FROM iceberg.test.maint_demo
+      CREATE SCHEMA IF NOT EXISTS iceberg.demo
 
-  - id: ontul_batch_sql
+  - id: trino_create_table
+    type: trino
+    requires: [trino_create_schema]
+    timeout: 5m
+    config:
+      trino.url:        "http://<host>:8680"
+      trino.user:       "admin"
+      trino.password:   "${conn.gw.trinopass}"
+      trino.catalog:    "iceberg"
+      trino.schema:     "demo"
+      trino.pollIntervalMs: "1000"
+    script: |
+      CREATE TABLE IF NOT EXISTS iceberg.demo.events (
+        id BIGINT, region VARCHAR, amount DOUBLE
+      )
+
+  # 3 rows, no UPDATE branch yet (table is empty).
+  - id: trino_merge_initial
+    type: trino
+    requires: [trino_create_table]
+    timeout: 5m
+    config:
+      trino.url:        "http://<host>:8680"
+      trino.user:       "admin"
+      trino.password:   "${conn.gw.trinopass}"
+      trino.catalog:    "iceberg"
+      trino.schema:     "demo"
+      trino.pollIntervalMs: "1000"
+    script: |
+      MERGE INTO iceberg.demo.events t
+      USING ( VALUES (CAST(1 AS BIGINT), 'US',   100.0),
+                     (CAST(2 AS BIGINT), 'EU',   200.0),
+                     (CAST(3 AS BIGINT), 'APAC', 150.0) ) AS s(id, region, amount)
+      ON t.id = s.id
+      WHEN NOT MATCHED THEN INSERT (id, region, amount)
+                               VALUES (s.id, s.region, s.amount)
+
+  # id=2 UPDATE (200 → 999); id=4 INSERT 500. Both branches exercised on Trino.
+  - id: trino_merge_update
+    type: trino
+    requires: [trino_merge_initial]
+    timeout: 5m
+    config:
+      trino.url:        "http://<host>:8680"
+      trino.user:       "admin"
+      trino.password:   "${conn.gw.trinopass}"
+      trino.catalog:    "iceberg"
+      trino.schema:     "demo"
+      trino.pollIntervalMs: "1000"
+    script: |
+      MERGE INTO iceberg.demo.events t
+      USING ( VALUES (CAST(2 AS BIGINT), 'EU',    999.0),
+                     (CAST(4 AS BIGINT), 'LATAM', 500.0) ) AS s(id, region, amount)
+      ON t.id = s.id
+      WHEN MATCHED     THEN UPDATE SET region = s.region, amount = s.amount
+      WHEN NOT MATCHED THEN INSERT (id, region, amount)
+                               VALUES (s.id, s.region, s.amount)
+
+  # Expect cnt=4, total=1749 (100 + 999 + 150 + 500).
+  - id: trino_verify
+    type: trino
+    requires: [trino_merge_update]
+    timeout: 5m
+    config:
+      trino.url:        "http://<host>:8680"
+      trino.user:       "admin"
+      trino.password:   "${conn.gw.trinopass}"
+      trino.catalog:    "iceberg"
+      trino.schema:     "demo"
+      trino.pollIntervalMs: "1000"
+    script: |
+      SELECT count(*) AS cnt, sum(amount) AS total FROM iceberg.demo.events
+
+  # Ontul-side MERGE — id=5 INSERT (works), id=2 UPDATE (⚠ known bug, see below).
+  # Calcite rejects `VALUES (...) AS s(a,b,c)` column aliasing, so the source set
+  # is built with explicit `SELECT CAST(... AS ...) AS …` columns.
+  - id: ontul_batch_merge
     type: ontul
-    requires: [trino_via_gateway]
+    requires: [trino_verify]
     timeout: 5m
     config:
       ontul.url:        "http://<host>:19220"
@@ -158,11 +257,34 @@ tasks:
       ontul.jobType:    "BATCH"
       ontul.pollIntervalMs: "1500"
     script: |
-      SELECT count(*) AS cnt, sum(amount) AS total FROM iceberg.test.maint_demo
+      MERGE INTO iceberg.demo.events t
+      USING (
+          SELECT CAST(5 AS BIGINT) AS id, 'AFRICA' AS region, 333.0  AS amount
+          UNION ALL
+          SELECT CAST(2 AS BIGINT) AS id, 'EU'     AS region, 1234.0 AS amount
+      ) s
+      ON t.id = s.id
+      WHEN MATCHED     THEN UPDATE SET amount = s.amount
+      WHEN NOT MATCHED THEN INSERT (id, region, amount)
+                               VALUES (s.id, s.region, s.amount)
+
+  # If Ontul MERGE WHEN MATCHED is fixed, expect cnt=5, total=2082. With the
+  # current bug (see cheat sheet) you'll see cnt=6 because id=2 gets duplicated.
+  - id: ontul_verify
+    type: ontul
+    requires: [ontul_batch_merge]
+    timeout: 5m
+    config:
+      ontul.url:        "http://<host>:19220"
+      ontul.token:      "<ontul admin JWT>"
+      ontul.jobType:    "BATCH"
+      ontul.pollIntervalMs: "1500"
+    script: |
+      SELECT count(*) AS cnt, sum(amount) AS total FROM iceberg.demo.events
 
   - id: ontul_python_s3
     type: ontul
-    requires: [ontul_batch_sql]
+    requires: [ontul_verify]
     timeout: 5m
     config:
       ontul.url:        "http://<host>:19220"
@@ -178,13 +300,15 @@ tasks:
         {"ontul.deps.s3.connectionId": "lakehouse"}
 ```
 
-Three reserved-word gotchas worth calling out:
+Gotchas this DAG exercises:
 
 - `SELECT count(*) AS rows, …` fails in Ontul (Calcite parser) with `Encountered "rows"`. Use a different alias (`cnt`).
+- `VALUES (…) AS s(id, region, amount)` column aliasing **does not bind in Ontul Calcite** — it errors with `MERGE: unknown source key column id (source columns: [EXPR$0, EXPR$1, EXPR$2])`. Workaround: build the source set with explicit `SELECT CAST(… AS BIGINT) AS id, … UNION ALL …` so the column names land via `AS`. Trino accepts the `VALUES … AS s(…)` form unchanged.
 - Bare `accessKey`/`secretKey` in the Ontul connection (no `s3.` prefix); the dotted variant is for ontul-iceberg-connector config, not ConnectionStore.
 - `ontul.deps.s3.connectionId` must be passed per-job in `ontul.jobConfig`. kiok's `ontul.depsConnectionId` field controls *kiok-side* upload only.
+- Polaris refuses `DROP TABLE` on a non-empty Iceberg table, so this DAG is **idempotent on purpose** — `CREATE … IF NOT EXISTS` plus MERGE keys that re-converge to the same state. To start from an empty table run `DELETE FROM iceberg.demo.events` through Trino, then re-trigger the DAG.
 
-## 5. Register + run
+## 6. Register + run
 
 ```bash
 KTOK=$(curl -sS -X POST $KIOK_ADMIN/api/v1/auth/login \
@@ -194,9 +318,9 @@ KTOK=$(curl -sS -X POST $KIOK_ADMIN/api/v1/auth/login \
 
 curl -sS -X POST $KIOK_ADMIN/api/v1/dags \
      -H 'Content-Type: application/x-yaml' -H "Authorization: Bearer $KTOK" \
-     --data-binary @ontul_trino_smoke.yaml
+     --data-binary @merge_demo_via_gw_and_ontul.yaml
 
-RUN_ID=$(curl -sS -X POST $KIOK_ADMIN/api/v1/dags/ontul_trino_smoke/runs \
+RUN_ID=$(curl -sS -X POST $KIOK_ADMIN/api/v1/dags/merge_demo_via_gw_and_ontul/runs \
               -H "Authorization: Bearer $KTOK" -H 'Content-Type: application/json' \
               -d '{}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["runId"])')
 
@@ -210,29 +334,33 @@ for i in $(seq 1 18); do
 done
 
 # tail each task's log to confirm the full lifecycle landed
-for t in trino_via_gateway ontul_batch_sql ontul_python_s3; do
+for t in trino_create_schema trino_create_table trino_merge_initial trino_merge_update \
+         trino_verify ontul_batch_merge ontul_verify ontul_python_s3; do
   echo "==== $t ===="
   curl -sS "$KIOK_ADMIN/api/v1/runs/$RUN_ID/tasks/$t/log?offset=0" \
        -H "Authorization: Bearer $KTOK" | python3 -c 'import sys,json;print(json.load(sys.stdin)["text"])'
 done
 ```
 
-A healthy run looks like:
+A healthy run looks like (truncated):
 
 ```
 FINAL STATE: SUCCESS
-  trino_via_gateway SUCCESS exit=0 externalId=20260529_235501_00022_jh8cu
-  ontul_batch_sql   SUCCESS exit=0 externalId=dbb2adf2-c57b-4efd-91b4-8e3f456490a8
-  ontul_python_s3   SUCCESS exit=0 externalId=30fda0e8-b7c8-4b15-9130-744d2ecfad76
+  trino_create_schema  SUCCESS exit=0
+  trino_create_table   SUCCESS exit=0
+  trino_merge_initial  SUCCESS exit=0
+  trino_merge_update   SUCCESS exit=0
+  trino_verify         SUCCESS exit=0   → [4, 1749.0]
+  ontul_batch_merge    SUCCESS exit=0
+  ontul_verify         SUCCESS exit=0   → [6, 3551.0]   ⚠ 5/2082 once ontul MERGE is fixed
+  ontul_python_s3      SUCCESS exit=0
 
-==== trino_via_gateway ====
-[out] POST http://<host>:8680/v1/statement (user=admin, catalog=iceberg, schema=test, auth=basic)
-[out] Trino query submitted: id=…
-[out] state=QUEUED
+==== trino_verify ====
+[out] POST http://<host>:8680/v1/statement (user=admin, catalog=iceberg, schema=demo, auth=basic)
 [out] state=FINISHED
-[out] [6,1400]
+[out] [4, 1749.0]
 
-==== ontul_batch_sql ====
+==== ontul_batch_merge ====
 [out] POST http://<host>:19220/v1/api/job/submit (type=BATCH, auth=bearer)
 [out] Ontul status: COMPLETED
 
@@ -242,6 +370,8 @@ FINAL STATE: SUCCESS
 [out] [master] Dispatched to worker: <worker-host>:18200
 [out] Ontul status: COMPLETED
 ```
+
+`ontul_verify` returning `[6, 3551.0]` instead of the expected `[5, 2082.0]` is the **known Ontul MERGE bug** described below — the DAG still succeeds end-to-end because every task's exit code is 0; only the row count diverges from the standard-SQL semantics.
 
 The kiok task log streams the **full lifecycle** for every task (submit → dispatched → RUNNING → COMPLETED/FINISHED). The Python script's own stdout lands in the Ontul worker job log, not back in kiok — pull it with `GET $ONTUL_ADMIN/v1/api/job/status/$JOB_ID` if you need the script output for debugging.
 
@@ -253,6 +383,8 @@ The kiok task log streams the **full lifecycle** for every task (submit → disp
 | trino task → `no active cluster in group 'default'` | gateway hasn't fetched topology yet | restart the gateway, wait one pull cycle |
 | ontul BATCH → `Object 'iceberg' not found` | Ontul's iceberg catalog hasn't refreshed since Trino created the table | `POST $ONTUL_ADMIN/admin/catalogs/iceberg/refresh` |
 | ontul BATCH → `Encountered "rows"` | Calcite reserved-word alias | rename the alias, e.g. `cnt` |
+| ontul BATCH → `MERGE: unknown source key column id (source columns: [EXPR$0, EXPR$1, EXPR$2])` | Calcite doesn't bind `VALUES (...) AS s(a,b,c)` column names | replace the `VALUES (...) AS s(...)` source with `SELECT CAST(... AS ...) AS col, ... UNION ALL ...` so the names land via `AS` |
+| ontul BATCH MERGE → `ontul_verify` reports 6 rows / sum=3551 instead of 5 / 2082 | Ontul's iceberg MERGE skips the `WHEN MATCHED THEN UPDATE` path — the matched row survives and a duplicate copy of the new value is INSERTed next to it | known ontul bug; until it's fixed, model `WHEN MATCHED` upserts on Trino (via the gateway) and let Ontul handle only `WHEN NOT MATCHED THEN INSERT` |
 | ontul PYTHON → `ontul.deps.s3.connectionId is required` | the deps connection isn't being threaded through | both `ontul.depsConnectionId` (kiok-side) *and* `ontul.jobConfig` `{"ontul.deps.s3.connectionId":"…"}` (ontul-side) |
 | ontul PYTHON → `connection '…' is missing accessKey/secretKey` | ConnectionStore properties use the dotted (`s3.accessKey`) form | re-register with bare keys |
 
