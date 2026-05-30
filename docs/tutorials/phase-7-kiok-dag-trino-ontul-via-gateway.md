@@ -28,8 +28,10 @@ TOK=<chango admin token>
 ONTUL_ADMIN=http://<host>:<ontul-master-admin-port>    # e.g. http://172.31.11.123:19220
 ONTUL_JWT=<JWT from POST $ONTUL_ADMIN/admin/auth/login>
 
-# From Phase 1 / Iceberg e2e — admin user IAM access key on Ontul (raw AK:SK)
-ADMIN_AKSK=<accessKeyId>:<secretAccessKey>             # used as Basic password against the Trino Gateway
+# From Phase 1 / Iceberg e2e — Ontul-issued IAM access key for the user
+# driving this DAG. Standard Basic-auth: username = accessKeyId, password = secretAccessKey.
+TGW_AK=<accessKeyId>
+TGW_SK=<secretAccessKey>
 
 # New for Phase 7
 TGW_URL=http://<host>:8680                             # trino-gateway public endpoint
@@ -66,8 +68,10 @@ Restart the gateway after each step (`POST /admin/api/trino-gateway/tgw-main/res
 Smoke-test from inside the cluster:
 
 ```bash
-# Basic-auth username is informational; the password is "<accessKey>:<secretKey>".
-curl -sS -u "admin:$ADMIN_AKSK" -X POST "$TGW_URL/v1/statement" \
+# Standard Basic-auth: username = accessKeyId, password = secretAccessKey.
+# trino-gateway's OntulAuthClient detects the AKIA-shaped username and sends
+# {"accessKey":"…","secretKey":"…"} to ontul's /v1/api/auth/accesskey.
+curl -sS -u "$TGW_AK:$TGW_SK" -X POST "$TGW_URL/v1/statement" \
      -H 'Content-Type: text/plain' \
      --data 'SELECT count(*), sum(amount) FROM iceberg.test.maint_demo'
 # → follow the nextUri until state=FINISHED, expect [[6,1400]]
