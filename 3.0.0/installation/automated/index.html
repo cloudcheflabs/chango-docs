@@ -551,8 +551,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#topology" class="md-nav__link">
-    Topology
+  <a href="#topology-default-2-masters-3-zk-3-nms" class="md-nav__link">
+    Topology (default — 2 masters + 3 ZK + 3 NMs)
   </a>
   
 </li>
@@ -575,6 +575,19 @@
   <a href="#3-prepare-the-inventory" class="md-nav__link">
     3. Prepare the inventory
   </a>
+  
+    <nav class="md-nav" aria-label="3. Prepare the inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#single-host-eval-dev" class="md-nav__link">
+    Single-host (eval / dev)
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -602,6 +615,13 @@
         <li class="md-nav__item">
   <a href="#adding-a-master-later-add-masteryml" class="md-nav__link">
     Adding a master later — add-master.yml
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-zk-node-later" class="md-nav__link">
+    Adding a ZK node later
   </a>
   
 </li>
@@ -1212,7 +1232,7 @@
 
 <h1 id="automated-install-ansible">Automated Install (Ansible)</h1>
 <p>This page brings up a chango cluster with the ansible playbooks shipped in the bundle. Use it for any multi-host install you intend to keep running. Scaling the cluster out later (adding a master or a node manager) also uses ansible — <code>add-master.yml</code> and <code>add-nodemanager.yml</code>.</p>
-<p>The end state is identical to the <a href="../manual/">manual install</a>: a chango master + bundled ZooKeeper on the master host, a node manager on every host, no systemd units, the cluster master key held only in operator-controlled secret storage.</p>
+<p>The end state is identical to the <a href="../manual/">manual install</a>: masters running on the chosen master hosts, a bundled ZooKeeper quorum on the chosen ZK hosts (master and ZK groups may overlap but no longer have to), a node manager on every host that runs component workloads, no systemd units, the cluster master key held only in operator-controlled secret storage.</p>
 <h2 id="what-ansible-does-and-what-it-does-not">What ansible does — and what it does not</h2>
 <p>Chango uses ansible <strong>only for these three actions</strong>:</p>
 <table>
@@ -1239,31 +1259,44 @@
 </table>
 <p>Stop / restart / upgrade are <strong>not</strong> ansible's job. After any of the three playbooks above finishes, ansible is out of the picture and the operator runs <code>/opt/chango/bin/*.sh</code> directly on each host. See <a href="../../operations/cluster-operations/">Cluster Operations</a>.</p>
 <p>The bundle deliberately ships no systemd units and no <code>/etc/sysconfig/chango</code> file. The cluster master key never lands on disk under chango's control — at first install ansible stages a one-time copy at <code>/opt/chango/.master-key-bootstrap</code> on the master host, prints its path in the play recap, and expects the operator to move that value into a secret manager and delete the file.</p>
-<h2 id="topology">Topology</h2>
-<p>The smallest cluster is three hosts:</p>
+<h2 id="topology-default-2-masters-3-zk-3-nms">Topology (default — 2 masters + 3 ZK + 3 NMs)</h2>
+<p>The 3.0.0 default install layout is HA-from-day-one: <strong>2 chango masters + 3-node ZooKeeper quorum + 3 node managers</strong> on three hosts. Master and ZK groups are independent — master count is decoupled from ZK count so the quorum sizing is not driven by HA-master sizing.</p>
 <table>
 <thead>
 <tr>
 <th>Host</th>
-<th>Roles</th>
+<th>chango_masters</th>
+<th>chango_zookeepers</th>
+<th>chango_nodemanagers</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>host1</td>
-<td>chango master + node manager</td>
+<td>✓ (zk_id=1)</td>
+<td>✓ (zk_id=1)</td>
+<td>✓</td>
 </tr>
 <tr>
 <td>host2</td>
-<td>node manager</td>
+<td>✓ (zk_id=2)</td>
+<td>✓ (zk_id=2)</td>
+<td>✓</td>
 </tr>
 <tr>
 <td>host3</td>
-<td>node manager</td>
+<td>—</td>
+<td>✓ (zk_id=3)</td>
+<td>✓</td>
 </tr>
 </tbody>
 </table>
-<p>Chango masters are multi-per-host; node managers are singleton-per-host. A master and a node manager can co-locate on the same host. High-availability deployments run 3 masters on 3 different hosts (the bundled ZooKeeper quorum is then a 3-node ensemble).</p>
+<p>Why this default:
+- <strong>2 masters</strong> — leader-election + failover (a single-master cluster has no HA). One leader, one warm follower.
+- <strong>3 ZK nodes</strong> — a write-quorum of 2 (majority of 3), so any single host loss keeps the cluster operational. A 2-node ZK quorum needs both nodes alive and is worse than a single node for availability.
+- <strong>3 NMs</strong> — every host that should run component workloads (Trino workers, Ontul masters/workers, Shannon data nodes, etc.). NM is singleton-per-host.</p>
+<p>Hosts can also be added later via <code>add-master.yml</code> / <code>add-nodemanager.yml</code> (see the bottom of this page). The chango-zookeeper role does not have a dedicated <code>add-</code> playbook — see the <em>Adding a ZK node later</em> section.</p>
+<p>Each host's <code>chango_master_zk_id</code> and <code>chango_zk_id</code> is a distinct positive integer. When a host is in both groups (host1, host2 in the table above) the two ids may be the same value (the master role's id only matters to chango's own master election; the ZK id is the actual ZooKeeper quorum <code>myid</code>). Keep them aligned for sanity — it makes the inventory easier to read.</p>
 <h2 id="1-download-the-chango-bundle-on-the-controller">1. Download the chango bundle on the controller</h2>
 <p>The ansible controller is typically the future master host. Download the lean tarball:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-L<span class="w"> </span>-O<span class="w"> </span>https://github.com/cloudcheflabs/chango-pack/releases/download/chango-archive/chango-3.0.0.tar.gz
@@ -1288,7 +1321,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>ansible
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>cp<span class="w"> </span>inventory.yml.example<span class="w"> </span>inventory.yml
 </code></pre></div>
-<p>A minimal <code>inventory.yml</code>:</p>
+<p>The shipped <code>inventory.yml.example</code> is already the 2-master + 3-ZK + 3-NM default. Edit <code>ansible_host</code> per host and you have a production inventory:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">all</span><span class="p">:</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">vars</span><span class="p">:</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">ansible_user</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rocky</span>
@@ -1301,21 +1334,38 @@
 <a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">        </span><span class="nt">chango-host1</span><span class="p">:</span>
 <a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.11</span>
 <a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">          </span><span class="nt">chango_master_zk_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="nt">chango_nodemanagers</span><span class="p">:</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">      </span><span class="nt">hosts</span><span class="p">:</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">        </span><span class="nt">chango-host1</span><span class="p">:</span><span class="w">                     </span><span class="c1"># same as the master — co-located</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.11</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">        </span><span class="nt">chango-host2</span><span class="p">:</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.12</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">        </span><span class="nt">chango-host3</span><span class="p">:</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.13</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">        </span><span class="nt">chango-host2</span><span class="p">:</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.12</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">          </span><span class="nt">chango_master_zk_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span><span class="nt">chango_zookeepers</span><span class="p">:</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">      </span><span class="nt">hosts</span><span class="p">:</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">        </span><span class="nt">chango-host1</span><span class="p">:</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.11</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">          </span><span class="nt">chango_zk_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">        </span><span class="nt">chango-host2</span><span class="p">:</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.12</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">          </span><span class="nt">chango_zk_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">        </span><span class="nt">chango-host3</span><span class="p">:</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.13</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">          </span><span class="nt">chango_zk_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">    </span><span class="nt">chango_nodemanagers</span><span class="p">:</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">      </span><span class="nt">hosts</span><span class="p">:</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">        </span><span class="nt">chango-host1</span><span class="p">:</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.11</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">        </span><span class="nt">chango-host2</span><span class="p">:</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.12</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">        </span><span class="nt">chango-host3</span><span class="p">:</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="w">          </span><span class="nt">ansible_host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.13</span>
 </code></pre></div>
 <p>Notes:</p>
 <ul>
 <li><code>ansible_host</code> is the <strong>private IP</strong> of each node. Chango uses private IPs for all internal connectivity.</li>
-<li><code>chango_master_zk_id</code> is the ZooKeeper <code>myid</code> for that master's bundled ZK quorum — distinct integers per master.</li>
-<li>A node manager whose <code>ansible_host</code> matches a master's is the co-location case.</li>
+<li><code>chango_master_zk_id</code> distinguishes masters in chango's own leader-election bookkeeping; <code>chango_zk_id</code> is the ZooKeeper quorum <code>myid</code>. Both are distinct positive integers within their respective groups. When a host appears in both groups (host1 / host2 above), aligning the two ids makes the inventory easier to read but is not required.</li>
+<li><code>chango_zookeepers</code> is the group that drives <code>zoo.cfg</code> membership. Adding or removing a host from the ZK quorum is a property of <em>this group</em>, not the masters group.</li>
+<li>A host that appears in <code>chango_zookeepers</code> but not in <code>chango_masters</code> (host3 above) runs ZK + NM only — chango master is not started there. Useful when you want a 3-node ZK quorum without paying for a third master.</li>
 </ul>
+<h3 id="single-host-eval-dev">Single-host (eval / dev)</h3>
+<p>If you really want a single-box install (eval, lab, vagrant), drop both masters / zk count to 1 — put the same host into all three groups. <code>inventory-vagrant.yml</code> is shipped pre-wired for that.</p>
 <h2 id="4-generate-the-cluster-master-key">4. Generate the cluster master key</h2>
 <p>Once, on the controller:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">48</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-c<span class="w"> </span><span class="m">48</span><span class="k">)</span>
@@ -1324,13 +1374,14 @@
 <h2 id="5-run-the-install-playbook">5. Run the install playbook</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>install.yml
 </code></pre></div>
-<p>The playbook runs five plays in order:</p>
+<p>The playbook runs six plays in order:</p>
 <ol>
-<li><strong><code>node-prep</code></strong> — SELinux disabled + ulimit + sysctl on every host.</li>
+<li><strong><code>node-prep</code></strong> — SELinux disabled + ulimit + sysctl on every host (masters + ZK + NMs).</li>
 <li><strong><code>java17</code></strong> — extracts Java 17 under <code>/opt</code> on every host.</li>
 <li><strong><code>java25</code></strong> — extracts Java 25 under <code>/opt</code> on every host (Trino's runtime).</li>
-<li><strong><code>chango-master</code></strong> — installs chango on the master hosts, stages the master key bootstrap file (master only, 0600 root), starts ZK + master once with <code>CHANGO_MASTER_KEY</code> from the controller's environment.</li>
-<li><strong><code>chango-nodemanager</code></strong> — installs chango on the NM hosts, starts the NM once. NM hosts <strong>never</strong> get the bootstrap file.</li>
+<li><strong><code>chango-nodemanager</code></strong> — installs chango on the NM hosts, starts the NM once. NM hosts <strong>never</strong> get the master key bootstrap file. Distribution is extracted here, so later plays (<code>chango-zookeeper</code>, <code>chango-master</code>) only add their role-specific files on top.</li>
+<li><strong><code>chango-zookeeper</code></strong> — renders <code>zoo.cfg</code> from the <code>chango_zookeepers</code> group + writes <code>myid</code> + first-boot starts ZK on each ZK host. Has to run after NM (which extracts the distribution) and before master (which connects to ZK on startup).</li>
+<li><strong><code>chango-master</code></strong> — installs chango on the master hosts (idempotent over the NM extraction), stages the master key bootstrap file (master only, 0600 root), starts master once with <code>CHANGO_MASTER_KEY</code> from the controller's environment. The master immediately connects to the ZK quorum that play 5 brought up.</li>
 </ol>
 <p>Expected runtime: 5 – 10 minutes for a 3-host cluster (component extraction dominates).</p>
 <p>The last task of the master play is an operator-note debug block printing the bootstrap file path on the master host. Read it carefully — that is the one moment a chango-controlled file holds the master key. Move the value into your secret manager, then:</p>
@@ -1345,26 +1396,33 @@
 <p>A response containing <code>accessToken</code> means chango is up. Default login is <code>admin</code> / <code>admin</code>; the first login forces a password change.</p>
 <p>Web UI: <code>http://&lt;master&gt;:8080/admin/</code></p>
 <h2 id="adding-a-master-later-add-masteryml">Adding a master later — <code>add-master.yml</code></h2>
-<p>Use this when you grow a single-master cluster into multi-master HA, or add a master in a new failure domain.</p>
-<p><strong>Prerequisite — extend the bundled ZooKeeper quorum first</strong> (a manual step today; ansible does not drive lifecycle anymore):</p>
-<ol>
-<li>Edit <code>/opt/chango/conf/zk/zoo.cfg</code> on <strong>every</strong> existing master host to add the new server line (<code>server.&lt;id&gt;=&lt;host&gt;:2888:3888</code>).</li>
-<li>Write <code>&lt;id&gt;</code> into <code>/var/lib/chango/zookeeper/myid</code> on the new master host (you will set this up below as part of the install).</li>
-<li>Roll-restart <code>chango-zk</code> on each existing master one by one — see <a href="../../operations/cluster-operations/">Cluster Operations</a>.</li>
-</ol>
-<p>Only then run the playbook:</p>
+<p>Use this when you grow the cluster beyond the 2-master default — e.g. a third master in a new failure domain — or to replace a master after a hardware loss.</p>
+<p>If you do <strong>not</strong> also want to add a ZK node, the existing 3-node ZK quorum stays as-is; the new master just connects to that quorum. The <code>add-master.yml</code> playbook only touches the new master host's chango distribution + first-boot start.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 1. Append the new master to inventory.yml under chango_masters: with a distinct</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1">#    chango_master_zk_id (e.g. 2 if you already had 1).</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1">#    chango_master_zk_id (e.g. 3 if you already had 1 and 2).</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1"># 2. Run, limited to the new host:</span>
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>add-master.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;new-master-host&gt;
 </code></pre></div>
 <p>The playbook prompts for <code>CHANGO MASTER KEY</code> — type the same value you used at first install. The key is <code>private</code> (not echoed) and is passed through to first-boot start <strong>in memory only</strong>; the bootstrap file is not created on the new host.</p>
 <p>CI / non-interactive use: set <code>CHANGO_MASTER_KEY</code> in the controller's environment; the prompt uses that as its default and the playbook runs without an interactive shell.</p>
+<h2 id="adding-a-zk-node-later">Adding a ZK node later</h2>
+<p>There is no <code>add-zookeeper.yml</code> playbook today — ZK quorum changes are inherently a careful, manual roll. Default 3-node quorum handles a single host loss, so most operators never need to grow it. When you do (e.g. a 5-node quorum for a second AZ failure domain):</p>
+<ol>
+<li>Append the new host to <code>inventory.yml</code> under <code>chango_zookeepers:</code> with a distinct <code>chango_zk_id</code>.</li>
+<li>On <strong>every existing ZK host</strong>, append the new <code>server.&lt;id&gt;=&lt;host&gt;:2888:3888</code> line to <code>/opt/chango/conf/zk/zoo.cfg</code> (the playbook will render the same file on the new host).</li>
+<li>Write <code>&lt;id&gt;</code> into <code>/var/lib/chango/zookeeper/myid</code> on the new host (an empty install does this automatically — but if you are re-introducing a known id, set it first).</li>
+<li>Roll-restart <code>start-zk.sh</code> / <code>stop-zk.sh</code> on each existing ZK host one by one, waiting for the quorum to re-form before moving on. See <a href="../../operations/cluster-operations/">Cluster Operations</a>.</li>
+<li>Run the install playbook scoped to the new host so its chango distribution, <code>zoo.cfg</code>, and <code>myid</code> land properly:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>install.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;new-zk-host&gt;<span class="w"> </span>--tags<span class="w"> </span>chango-zookeeper
+</code></pre></div>
+   (The <code>chango-zookeeper</code> role only renders config + starts ZK; safe to re-run on existing hosts as well.)</li>
+</ol>
+<p>Shrinking a quorum (3 → 1) is allowed only when you have isolated downtime — chango treats it like any other roll. Never go from 3 → 2; majority is now both nodes and you have worse availability than 1.</p>
 <h2 id="adding-a-node-manager-later-add-nodemanageryml">Adding a node manager later — <code>add-nodemanager.yml</code></h2>
 <p>Use this for any horizontal scale-out — more capacity for component instances, a new failure domain, a replacement after a hardware loss.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># 1. Append the new node to inventory.yml under chango_nodemanagers:.</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1"># 2. Run, limited to the new host:</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>add-nodemanager.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;new-nm-host&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># 1. Append the new node to inventory.yml under chango_nodemanagers:.</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># 2. Run, limited to the new host:</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>add-nodemanager.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;new-nm-host&gt;
 </code></pre></div>
 <p>Same prompt behavior as <code>add-master.yml</code>. The playbook installs <code>node-prep</code> + Java 17/25 + chango on the new host and runs first-boot start with the master key in env only. The NM registers itself in ZooKeeper and shows up in the admin UI within seconds.</p>
 <h2 id="next">Next</h2>

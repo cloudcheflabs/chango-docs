@@ -1183,7 +1183,7 @@
 
 
 <h1 id="getting-started">Getting Started</h1>
-<p>You have a chango cluster up — the master + bundled ZooKeeper running on the master host, a node manager running on every host. The admin UI is reachable on <code>:8080</code>. This page walks through your first login, sanity-checking the topology, and installing the first managed component.</p>
+<p>You have a chango cluster up — masters running on the hosts in <code>chango_masters</code>, a bundled ZooKeeper quorum running on the hosts in <code>chango_zookeepers</code> (3 nodes by default), and a node manager on every host. The admin UI is reachable on <code>:8080</code>. This page walks through your first login, sanity-checking the topology, and installing the first managed component.</p>
 <h2 id="first-login">First login</h2>
 <p>Open <code>http://&lt;master-host&gt;:8080/admin/</code> in a browser. Sign in with <code>admin / admin</code>. Chango will require a password change on first login.</p>
 <p>You can also drive everything from the REST API:</p>
