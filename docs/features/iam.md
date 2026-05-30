@@ -51,6 +51,18 @@ Chango is the master copy of IAM state, but the actual data-plane components (Tr
 
 So chango's own IAM governs the admin UI and the REST API. Ontul's IAM governs query-time access to the data. Chango and Ontul are deliberately separate authorities — chango can be re-provisioned without invalidating Ontul tokens, and Ontul can be re-bootstrapped without re-issuing chango admin sessions.
 
+## Engine coverage {#engine-coverage}
+
+All three data-plane engines delegate to the same Ontul authz model, but they do **not** all enforce the same *granularity*. It depends on the plan-rewrite surface each engine exposes to its first-party plugin:
+
+| Engine | Plugin | Granularity |
+|---|---|---|
+| Trino | `chango-trino-authz` | Allow / Deny **plus** row-filter (`Condition`) and column-mask (`Columns` / `MaskedColumns`), enforced by rewriting the query plan before execution. |
+| Spark | `chango-spark-authz` | Table-level Allow / Deny on `data:Select` / `data:Insert`. |
+| Flink | `chango-flink-authz` | Table-level Allow / Deny on `data:Select` / `data:Insert` — **no** row-filter or column-mask. |
+
+Only Trino exposes a plan-rewrite hook the plugin can use to inject row filters and column masks without re-implementing Calcite. Spark and Flink authorize at the table level: a policy's `Condition` and `Columns` fields are simply ignored for those engines. For fine-grained control on a streaming (Flink) read, filter at the source instead — e.g. a topic-per-tenant layout with Kafka ACLs.
+
 ## Default bootstrap
 
 On the very first start of a fresh cluster, the leader creates exactly one user / group / policy:
