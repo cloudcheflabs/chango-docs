@@ -126,9 +126,11 @@ aws --endpoint-url http://<shannon-api>:8081 \
 
 The bucket owner is whoever created it — if that's the shannon admin user, mint an IAM access key for *that* user (not a separate `chango` user) and reuse those credentials for Ontul's `lakehouse` connection. The cleaner alternative is to attach the built-in `AdministratorAccess` policy to a dedicated service user via `POST /admin/iam/attach-user-policy` on shannon; do not chase ad-hoc bucket policies.
 
-## 4. Register a kiok connection holding the gateway AK:SK
+## 4. Register a kiok connection holding the gateway access key
 
-Hardcoding `<accessKeyId>:<secretAccessKey>` into every `trino.password` field of the DAG would put the secret directly into yaml. kiok supports `${conn.<id>.<key>}` substitution backed by its ConnectionStore, so the DAG below references it as `${conn.gw.trinopass}`:
+Hardcoding the credential into every `trino.password` field of the DAG would put the secret directly into yaml. kiok supports `${conn.<id>.<key>}` substitution backed by its ConnectionStore, so the DAG below references it as `${conn.gw.trinopass}`.
+
+The **standard form for `trino.password` is `<accessKeyId>:<secretAccessKey>`** — the user's IAM access key issued by ontul (`POST /admin/iam/keys` returns `accessKeyId` + `secretAccessKey` + `token`; we use the first two here, joined by a colon). The Trino Gateway recognises the colon and sends `{"accessKey":"…","secretKey":"…"}` to ontul's `/v1/api/auth/accesskey`, ontul resolves the user + group + policies, and the chango-trino-authz plugin then applies the row filters / column masks of that user's policy. We keep DAG examples on this form so the credential surface stays uniform — username/password is for UI sign-in, AK:SK is for programmatic access.
 
 ```bash
 curl -sS -X POST $KIOK_ADMIN/api/v1/connections \
@@ -136,7 +138,7 @@ curl -sS -X POST $KIOK_ADMIN/api/v1/connections \
   -d '{
     "connectionId": "gw",
     "type": "trino",
-    "description": "trino-gateway Basic-auth password = ontul admin AK:SK",
+    "description": "trino-gateway Basic-auth password = <accessKeyId>:<secretAccessKey> of the IAM user that should drive this DAG",
     "properties": {
       "trinopass": "<accessKeyId>:<secretAccessKey>"
     }
@@ -145,7 +147,7 @@ curl -sS -X POST $KIOK_ADMIN/api/v1/connections \
 
 If you later rotate the access key, update this connection's `trinopass` (or delete and re-create) — the DAG yaml stays unchanged.
 
-> **Heads-up about `ontul.token`** — kiok's ontul operator forwards `ontul.token` as `Authorization: Bearer <value>`, but ontul's `OTOK*` (long-lived access-key token) requires `Authorization: Token <OTOK>`. So the DAG below uses an **admin JWT** for `ontul.token`, which has a short TTL — substituting it via the connection store doesn't fix the TTL. Kiok-side work is needed to make ontul-typed connections re-issue or correctly forward OTOK; until that lands, the operator either re-renders the DAG before each run, or kiok manages re-issuance internally.
+> **About `ontul.token` in the DAG** — kiok's ontul operator forwards `ontul.token` as `Authorization: Bearer <value>`, but ontul's `OTOK*` (usertoken from the same access-key set) requires `Authorization: Token <OTOK>`. So the DAG below currently uses an **admin JWT** for `ontul.token`, which has a short TTL — substituting it via the connection store doesn't fix the TTL. Kiok-side work is needed to make ontul-typed connections forward usertoken under the right scheme (or accept the AK:SK form and translate); until that lands, the operator either re-renders the DAG before each run, or kiok manages re-issuance internally.
 
 ## 5. The DAG
 
