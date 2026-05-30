@@ -2,7 +2,7 @@
 
 This page brings up a chango cluster by running shell commands directly on each host — no ansible, no automation. Use it when you want full visibility of every step, when you are evaluating chango on a single host, or when ansible is not available on the controller (truly air-gapped, restricted network policy, etc.).
 
-The end state is identical to the [automated install](automated.md): a chango master + bundled ZooKeeper on the master host, a node manager on every host, no systemd units, the cluster master key held only in operator-controlled secret storage.
+The end state is identical to the [automated install](automated.md): masters running on the chosen master hosts, a bundled ZooKeeper quorum running on the chosen ZK hosts (master and ZK groups are independent — master count is decoupled from ZK count), a node manager on every host, no systemd units, the cluster master key held only in operator-controlled secret storage.
 
 ## What you will install on each host
 

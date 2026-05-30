@@ -1,6 +1,6 @@
 # Getting Started
 
-You have a chango cluster up — the master + bundled ZooKeeper running on the master host, a node manager running on every host. The admin UI is reachable on `:8080`. This page walks through your first login, sanity-checking the topology, and installing the first managed component.
+You have a chango cluster up — masters running on the hosts in `chango_masters`, a bundled ZooKeeper quorum running on the hosts in `chango_zookeepers` (3 nodes by default), and a node manager on every host. The admin UI is reachable on `:8080`. This page walks through your first login, sanity-checking the topology, and installing the first managed component.
 
 ## First login
 
