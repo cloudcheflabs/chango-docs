@@ -9,7 +9,10 @@ Chango's control-plane state — IAM, KMS, component inventory — lives in thre
 | `kms/` | `/var/lib/chango/kms/` | KEKs wrapped by the cluster master DEK |
 | `iam/` | `/var/lib/chango/iam/` | Users, groups, policies, access keys (password hashes / access secrets are stored hashed / encrypted at the field level inside RocksDB) |
 | `metadata/` | `/var/lib/chango/metadata/` | Component inventory, per-cluster settings, gateway topology, nginx state |
-| `manifest.json` | generated | `timestamp`, `hostname`, `chango.version`, archive checksum |
+| `data/master/patches/` | `<base.data.dir>/master/patches/` | Air-gapped patch library — every patch tarball previously uploaded via `POST /admin/api/patch/upload`, plus its parsed manifest. Included only if the directory exists. |
+| `manifest.json` | generated | `timestamp`, `hostname`, `chango.version`, archive checksum, `patchesIncluded` flag |
+
+Including the patch library means a fresh-install restore can re-serve every previously-uploaded patch without the operator re-uploading from the build host. Followers catch up via PATCH_INDEX / PATCH_FETCH automatically — see [Patch System](patch-system.md#non-leader-catch-up-pr-5).
 
 ## What is NOT in a backup
 
@@ -61,6 +64,18 @@ The response includes the S3 key (`prod/chango-<timestamp>-<uuid>.tar.gz`) and t
 ### Schedule
 
 Set a cron expression in the destination config — the leader runs the backup on that schedule. Default is **off**.
+
+`BackupService` arms its cron scheduler at master bootstrap (before leader election finishes), so a follower with a `backup.cron` setting in the metadata RocksDB keeps the scheduler armed even before it wins leadership. `runBackup()` itself is idempotent — every fire produces an immutable S3 object with a fresh `<backupId>` — so a multi-master race at most causes a duplicate S3 PUT, never corrupted state.
+
+The config UI takes a standard 5-field cron (`min hour dom mon dow`). Examples:
+
+| Cron | Meaning |
+|---|---|
+| `0 2 * * *` | Daily at 02:00 |
+| `0 */6 * * *` | Every 6 hours |
+| `0 3 * * 0` | Sundays at 03:00 |
+
+Leave the field empty to disable scheduled backups; the **Backup Now** button still works.
 
 ## Restoring
 

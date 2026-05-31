@@ -47,7 +47,11 @@ nav:
   - "Features":
       - "Control Plane": features/control-plane.md
       - "Cluster Topology": features/topology.md
+      - "Sticky Leader Election": features/sticky-leader.md
+      - "Leader Forwarding": features/leader-forward.md
+      - "Cluster Readiness": features/cluster-readiness.md
       - "Identity & Access Management": features/iam.md
+      - "Role-Based Access (Stage 1)": features/role-based-access.md
       - "Admin Password Recovery": features/admin-password-recovery.md
       - "Encryption & Key Management": features/kms.md
       - "Port Allocator": features/port-allocator.md
@@ -56,6 +60,8 @@ nav:
       - "Monitoring & Metrics": features/monitoring.md
       - "Logging": features/logging.md
       - "Backup & Restore": features/backup.md
+      - "Patch System": features/patch-system.md
+      - "Config Runtime-Only Policy": features/config-runtime-only.md
   - "Components":
       - "Catalog": components/catalog.md
       - "Versions": components/versions.md

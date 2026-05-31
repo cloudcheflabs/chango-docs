@@ -1,6 +1,30 @@
 # Upgrade
 
+Chango supports two upgrade paths, both online:
+
+| Path | When to use | Touches |
+|---|---|---|
+| **Patch system** (recommended for jar / UI hotfixes) | First-party component (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium) — same major version, swap jars and / or admin UI in place. Also patches chango itself on `branch-3.0.0`. | `lib/*.jar` + `admin-ui/dist/**` only. Never `conf/`, never RocksDB. |
+| **Blue / green** (described below) | Major-version upgrade, or any component chango doesn't own the lifecycle of (Trino, Spark, Flink, Kafka, Postgres, Polaris, Trino Gateway, …). | Brand-new install dirs alongside the old cluster. |
+
 Every component chango manages can be upgraded independently — install a fresh cluster of the new version alongside the old one, migrate workloads, then delete the old cluster. Component upgrades do not require taking the platform down.
+
+## Patch system (recommended for first-party hotfixes)
+
+For a same-major-version upgrade of a first-party component, the patch system is the supported path. The operator builds an air-gapped tarball with `chango-pack patch`, uploads it via the admin UI's Settings → Patches page, and clicks **Apply** — the leader fans out per-host backup + swap + restart with one-click rollback.
+
+```bash
+/opt/chango/bin/chango-pack patch \
+    --component ontul \
+    --version   3.0.0-fix-1 \
+    --type      jar \
+    --jars      /path/to/ontul/lib \
+    --out       dist/ontul-patch-3.0.0-fix-1.tgz
+```
+
+The patch contract is strictly jar / UI — configuration files and RocksDB state are never touched. Patches v1 covers Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium; patches v2 (on `branch-3.0.0` only) additionally covers chango itself.
+
+See [Patch System](../features/patch-system.md) for the full surface, including the rollback flow and the `.bak/<patchId>/` layout.
 
 ## Upgrade a managed component (blue / green)
 
