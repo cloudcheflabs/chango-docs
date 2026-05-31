@@ -613,8 +613,64 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/sticky-leader/" class="md-nav__link">
+        Sticky Leader Election
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/leader-forward/" class="md-nav__link">
+        Leader Forwarding
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/cluster-readiness/" class="md-nav__link">
+        Cluster Readiness
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/iam/" class="md-nav__link">
         Identity & Access Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/role-based-access/" class="md-nav__link">
+        Role-Based Access (Stage 1)
       </a>
     </li>
   
@@ -727,6 +783,34 @@
     <li class="md-nav__item">
       <a href="../../features/backup/" class="md-nav__link">
         Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/patch-system/" class="md-nav__link">
+        Patch System
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/config-runtime-only/" class="md-nav__link">
+        Config Runtime-Only Policy
       </a>
     </li>
   
@@ -913,6 +997,13 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#patch-system-recommended-for-first-party-hotfixes" class="md-nav__link">
+    Patch system (recommended for first-party hotfixes)
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#upgrade-a-managed-component-blue-green" class="md-nav__link">
@@ -1168,16 +1259,49 @@
 
 
 <h1 id="upgrade">Upgrade</h1>
+<p>Chango supports two upgrade paths, both online:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>When to use</th>
+<th>Touches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Patch system</strong> (recommended for jar / UI hotfixes)</td>
+<td>First-party component (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium) — same major version, swap jars and / or admin UI in place. Also patches chango itself on <code>branch-3.0.0</code>.</td>
+<td><code>lib/*.jar</code> + <code>admin-ui/dist/**</code> only. Never <code>conf/</code>, never RocksDB.</td>
+</tr>
+<tr>
+<td><strong>Blue / green</strong> (described below)</td>
+<td>Major-version upgrade, or any component chango doesn't own the lifecycle of (Trino, Spark, Flink, Kafka, Postgres, Polaris, Trino Gateway, …).</td>
+<td>Brand-new install dirs alongside the old cluster.</td>
+</tr>
+</tbody>
+</table>
 <p>Every component chango manages can be upgraded independently — install a fresh cluster of the new version alongside the old one, migrate workloads, then delete the old cluster. Component upgrades do not require taking the platform down.</p>
+<h2 id="patch-system-recommended-for-first-party-hotfixes">Patch system (recommended for first-party hotfixes)</h2>
+<p>For a same-major-version upgrade of a first-party component, the patch system is the supported path. The operator builds an air-gapped tarball with <code>chango-pack patch</code>, uploads it via the admin UI's Settings → Patches page, and clicks <strong>Apply</strong> — the leader fans out per-host backup + swap + restart with one-click rollback.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span>--component<span class="w"> </span>ontul<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0-fix-1<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span>--type<span class="w">      </span>jar<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/ontul/lib<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span>--out<span class="w">       </span>dist/ontul-patch-3.0.0-fix-1.tgz
+</code></pre></div>
+<p>The patch contract is strictly jar / UI — configuration files and RocksDB state are never touched. Patches v1 covers Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium; patches v2 (on <code>branch-3.0.0</code> only) additionally covers chango itself.</p>
+<p>See <a href="../../features/patch-system/">Patch System</a> for the full surface, including the rollback flow and the <code>.bak/&lt;patchId&gt;/</code> layout.</p>
 <h2 id="upgrade-a-managed-component-blue-green">Upgrade a managed component (blue / green)</h2>
 <p>Components don't support in-place version upgrades — chango installs each component cluster as an immutable set of instance dirs (<code>/opt/components/&lt;instanceId&gt;/...</code>). The supported flow is to bring up a fresh cluster of the new version alongside the old one and cut over.</p>
 <p>Example — upgrading Trino from 479 to 480:</p>
 <ol>
 <li><strong>Stage the new tarball</strong> on the master host:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># On master</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>sudo<span class="w"> </span>cp<span class="w"> </span>/path/to/trino-server-480.tar.gz<span class="w"> </span>/opt/chango/components/trino/
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>sudo<span class="w"> </span>chown<span class="w"> </span>chango:chango<span class="w"> </span>/opt/chango/components/trino/trino-server-480.tar.gz
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># On master</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>sudo<span class="w"> </span>cp<span class="w"> </span>/path/to/trino-server-480.tar.gz<span class="w"> </span>/opt/chango/components/trino/
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>sudo<span class="w"> </span>chown<span class="w"> </span>chango:chango<span class="w"> </span>/opt/chango/components/trino/trino-server-480.tar.gz
 </code></pre></div>
 <ol>
 <li>

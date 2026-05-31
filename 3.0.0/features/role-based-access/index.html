@@ -8,20 +8,20 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/topology/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/role-based-access/">
       
       
-        <link rel="prev" href="../control-plane/">
+        <link rel="prev" href="../iam/">
       
       
-        <link rel="next" href="../sticky-leader/">
+        <link rel="next" href="../admin-password-recovery/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
     
     
       
-        <title>Cluster Topology - Chango</title>
+        <title>Role-Based Access (Stage 1) - Chango</title>
       
     
     
@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cluster-topology" class="md-skip">
+        <a href="#role-based-access-stage-1" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cluster Topology
+              Role-Based Access (Stage 1)
             
           </span>
         </div>
@@ -599,114 +599,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Cluster Topology
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../topology/" class="md-nav__link">
         Cluster Topology
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#the-two-rules" class="md-nav__link">
-    The two rules
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-these-rules" class="md-nav__link">
-    Why these rules
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#typical-layouts" class="md-nav__link">
-    Typical layouts
-  </a>
-  
-    <nav class="md-nav" aria-label="Typical layouts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#small-layout-one-master" class="md-nav__link">
-    Small layout (one master)
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#three-masters-n-node-managers-ha" class="md-nav__link">
-    Three masters + N node managers (HA)
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#dedicated-control-hosts" class="md-nav__link">
-    Dedicated control hosts
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#node-identifiers" class="md-nav__link">
-    Node identifiers
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#hostname-model" class="md-nav__link">
-    Hostname model
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#adding-removing-hosts" class="md-nav__link">
-    Adding / removing hosts
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -772,11 +669,121 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../role-based-access/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Role-Based Access (Stage 1)
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Role-Based Access (Stage 1)
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-stage-1-rule" class="md-nav__link">
+    The Stage-1 rule
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-admins-can-do" class="md-nav__link">
+    What admins can do
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-non-admins-can-do" class="md-nav__link">
+    What non-admins can do
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-non-admins-cannot-do" class="md-nav__link">
+    What non-admins cannot do
+  </a>
+  
+    <nav class="md-nav" aria-label="What non-admins cannot do">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-mutations" class="md-nav__link">
+    1. Mutations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-secret-reveal-gets" class="md-nav__link">
+    2. Secret-reveal GETs
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#admin-ui-behaviour" class="md-nav__link">
+    Admin UI behaviour
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-secret-reveal-is-on-the-same-gate-as-mutation" class="md-nav__link">
+    Why secret-reveal is on the same gate as mutation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap" class="md-nav__link">
+    Bootstrap
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-2-planned" class="md-nav__link">
+    Stage-2 (planned)
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1286,88 +1293,119 @@
                   
 
 
-<h1 id="cluster-topology">Cluster Topology</h1>
-<p>Chango's cluster topology has two simple rules — one for masters, one for node managers — and the rest follows.</p>
-<h2 id="the-two-rules">The two rules</h2>
-<p><strong>Master</strong></p>
+<h1 id="role-based-access-stage-1">Role-Based Access (Stage 1)</h1>
+<p>Chango's IAM model is AWS-style — users, groups, policies with <code>Effect: Allow|Deny</code>. The data plane (Trino, Spark, Flink via Ontul authz) enforces fine-grained per-action / per-resource policies on every query. The chango <strong>control plane</strong> — admin REST API and admin UI — currently runs in a simpler <strong>Stage-1 RBAC</strong> mode: every authenticated user can read, only admins can mutate or reveal secrets.</p>
+<p>Stage-2 will swap this blanket admin gate for the same fine-grained <code>canPerform(user, action, resource)</code> check the data plane uses; until then, Stage-1 is the bright line that protects the control plane.</p>
+<h2 id="the-stage-1-rule">The Stage-1 rule</h2>
+<blockquote>
+<p>A user is <strong>admin</strong> iff they hold the <code>AdministratorAccess</code> policy (directly attached or attached to a group they belong to). Every other authenticated user is <strong>read-only</strong>.</p>
+</blockquote>
+<p>The default <code>admin</code> user belongs to <code>admin-group</code>, which holds <code>AdministratorAccess</code> — that's the admin. Any IAM user you create later is non-admin by default; add them to a group with <code>AdministratorAccess</code> to make them admin.</p>
+<h2 id="what-admins-can-do">What admins can do</h2>
+<p>Everything. Every mutating route, every secret-reveal route, every config endpoint, every install / start / stop / restart / scale call. Same surface as the <code>admin</code> user.</p>
+<h2 id="what-non-admins-can-do">What non-admins can do</h2>
+<p>Every authenticated <code>GET</code> that does <strong>not</strong> return a secret. Concretely:</p>
 <ul>
-<li>More than one master may run on the same host (admin ports must differ).</li>
-<li>A master may co-locate with a node manager on the same host.</li>
-<li>HA is achieved by running multiple masters; one is elected leader via ZooKeeper.</li>
+<li>Read the cluster topology, every component's instance list, status, metrics.</li>
+<li>Read the admin UI's nginx / scale / install / configure panels in read-only mode (the form values are visible; the buttons are hidden).</li>
+<li>View backup history (not the destination credentials).</li>
+<li>View the patch library (not upload / apply / rollback).</li>
+<li>Read IAM users / groups / policies (not access keys, not user passwords).</li>
 </ul>
-<p><strong>Node manager</strong></p>
+<h2 id="what-non-admins-cannot-do">What non-admins cannot do</h2>
+<p>Two gates close on the backend:</p>
+<h3 id="1-mutations">1. Mutations</h3>
+<p>Any <code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code> except under <code>/admin/api/auth/*</code>. Examples:</p>
 <ul>
-<li>Exactly one node manager per host.</li>
-<li>A node manager may co-locate with one or more masters on the same host.</li>
+<li><code>POST /admin/api/ontul</code> (install)</li>
+<li><code>POST /admin/api/ontul/&lt;id&gt;/restart</code></li>
+<li><code>POST /admin/api/iam/users</code></li>
+<li><code>POST /admin/api/backup/run</code></li>
+<li><code>POST /admin/api/patch/upload</code></li>
+<li><code>PUT  /admin/api/backup/config</code></li>
+<li><code>POST /admin/api/&lt;comp&gt;/&lt;id&gt;/config</code></li>
+<li><code>POST /admin/api/&lt;comp&gt;/&lt;id&gt;/scale</code></li>
 </ul>
-<p>These rules are enforced at registration time — a second node manager attempting to register against the same host (with a different <code>nodeId</code>) is rejected with <code>IllegalStateException</code>.</p>
-<h2 id="why-these-rules">Why these rules</h2>
-<ul>
-<li><strong>Master = N per host</strong> — masters are stateless (cluster state lives in the leader's RocksDB and ZooKeeper). Running more than one on a single host gives admin-UI / API capacity headroom and a hot standby that can take over in &lt;1 leader-election window.</li>
-<li><strong>NM = 1 per host</strong> — the node manager is the host agent. It owns the host's <code>/opt/components/*</code> install dirs, the host's <code>ps</code> view of every managed process, and the SELinux / sudo / file-ownership surface. Two NMs on one host would fight over those.</li>
-<li><strong>Co-location is fine</strong> — a small cluster (three hosts, one master + three NMs) is the standard layout. On large clusters you split masters off onto dedicated control hosts; on dev / lab clusters everything stacks on one host.</li>
-</ul>
-<h2 id="typical-layouts">Typical layouts</h2>
-<h3 id="small-layout-one-master">Small layout (one master)</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>host1   master + NM   (chango admin, ZK, component instances)
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>host2            NM   (component instances)
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>host3            NM   (component instances)
+<p>A non-admin hitting any of these gets:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">403</span> <span class="ne">Forbidden</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">{</span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="s2">&quot;forbidden: &#39;alice&#39; is not authorized — admin role required.&quot;</span><span class="p">}</span>
 </code></pre></div>
-<p>This is the layout used by the standard install playbook (<code>inventory.yml.example</code>). One master is enough to run a cluster — a master restart costs ~10 s of admin-API unavailability; component processes keep running.</p>
-<h3 id="three-masters-n-node-managers-ha">Three masters + N node managers (HA)</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>host1   master + NM
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>host2   master + NM
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>host3   master + NM
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>host4         NM
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>...
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>hostN         NM
-</code></pre></div>
-<p>Three masters form a ZooKeeper quorum and elect a leader. Losing one master (network blip, restart) causes a sub-second leader re-election with the other two; component processes are unaffected.</p>
-<h3 id="dedicated-control-hosts">Dedicated control hosts</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>host-c1  master           (no NM, no component processes)
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>host-c2  master
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>host-c3  master
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>host1            NM       (every component instance)
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>host2            NM
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>...
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>hostN            NM
-</code></pre></div>
-<p>Used when control-plane and workload need physical isolation (compliance, blast radius).</p>
-<h2 id="node-identifiers">Node identifiers</h2>
-<p>Default identifiers are derived from the host and the role:</p>
-<ul>
-<li>Master: <code>master-&lt;sanitized-hostname&gt;-&lt;adminPort&gt;</code> — the admin port is what makes a second master on the same host distinct (currently a deploy-layer limitation — single master per host is what the bundled systemd unit supports today).</li>
-<li>Node manager: <code>nm-&lt;sanitized-hostname&gt;-&lt;internalPort&gt;</code> — the internal port is in the id for stable backwards compatibility with component records; since only one NM per host is allowed at runtime, the port is effectively constant.</li>
-</ul>
-<p>Both are overridable via <code>chango.master.nodeId</code> / <code>chango.nodemanager.nodeId</code> in <code>chango.properties</code> for environments that need explicit naming.</p>
-<h2 id="hostname-model">Hostname model</h2>
-<p>Chango registers each node by its OS canonical hostname. There are two cases:</p>
+<h3 id="2-secret-reveal-gets">2. Secret-reveal GETs</h3>
+<p>Some <code>GET</code> routes return live secrets in the response body — they're closed to non-admins too:</p>
 <table>
 <thead>
 <tr>
-<th>OS hostname looks like</th>
-<th>Chango behaviour</th>
+<th>Route</th>
+<th>What it reveals</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Real FQDN (<code>host1.example.com</code>, <code>ip-10-0-0-11.region.compute.internal</code>, …)</td>
-<td>Use it as-is. <code>/etc/hosts</code> is not modified — your DNS already resolves it.</td>
+<td><code>GET /admin/api/iam/download-key/&lt;accessKeyId&gt;</code></td>
+<td>The access key's secret + (optionally) session token — single-use download.</td>
 </tr>
 <tr>
-<td>Short (<code>host1</code>, <code>ip-10-0-0-11</code>, …)</td>
-<td>Synthesize <code>&lt;short&gt;.&lt;chango.cluster.domain&gt;</code> (default <code>chango.private</code>) and keep <code>/etc/hosts</code> in sync across all hosts with a managed <code># BEGIN chango … # END chango</code> block.</td>
+<td><code>GET /admin/api/&lt;comp&gt;/&lt;id&gt;/password</code></td>
+<td>The component's superuser / admin password (Postgres, Shannonstore, Ontul, Kiok, NeoRunBase, Mium).</td>
+</tr>
+<tr>
+<td><code>GET /admin/api/&lt;comp&gt;/&lt;id&gt;/admin-password</code></td>
+<td>Same, for components that distinguish admin-password from a sweep-discovered password.</td>
+</tr>
+<tr>
+<td><code>GET /admin/api/polaris/&lt;id&gt;/catalog-config</code></td>
+<td>Polaris catalog body including the S3 secret-access-key.</td>
+</tr>
+<tr>
+<td><code>GET /admin/api/polaris/&lt;id&gt;/catalog-connection</code></td>
+<td>Same.</td>
 </tr>
 </tbody>
 </table>
-<p>See <a href="../hosts-sync/">Hosts Sync</a> for the sync details.</p>
-<h2 id="adding-removing-hosts">Adding / removing hosts</h2>
+<p>Both gates are in <code>AdminApiHandler.handle()</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kt">boolean</span><span class="w"> </span><span class="n">mutating</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="o">!</span><span class="s">&quot;GET&quot;</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">method</span><span class="p">);</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kt">boolean</span><span class="w"> </span><span class="n">revealsSecret</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">startsWith</span><span class="p">(</span><span class="s">&quot;iam/download-key/&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/admin-password&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/password&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/catalog-config&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/catalog-connection&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="err">…</span><span class="p">;</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">mutating</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">revealsSecret</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">rest</span><span class="p">.</span><span class="na">startsWith</span><span class="p">(</span><span class="s">&quot;auth/&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">isAdmin</span><span class="p">(</span><span class="n">authUser</span><span class="p">))</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">403</span><span class="p">;</span>
+</code></pre></div>
+<p><code>auth/*</code> (login, refresh, session, logout, change-password) stays open — that's how a user reaches the admin UI in the first place. <code>change-password</code> runs <code>requireLeader()</code> internally; a non-admin rotating their own password works fine.</p>
+<h2 id="admin-ui-behaviour">Admin UI behaviour</h2>
+<p><code>useAuth()</code> exposes an <code>isAdmin</code> flag derived from the login response (<code>/admin/api/auth/login</code> returns <code>{accessToken, isAdmin}</code>). The non-admin UI:</p>
 <ul>
-<li><strong>Adding</strong> a node manager — prepare the host, add it to the inventory, re-run the install playbook with <code>--limit &lt;new-host&gt;</code>. The new NM registers in ZooKeeper, the leader picks it up, and component install panels in the admin UI start offering it as a target.</li>
-<li><strong>Removing</strong> a node manager — stop <code>chango-nodemanager.service</code> on that host. Its ephemeral znode disappears; the leader removes it from the live registry. Component instances still listed against that nodeId stay in metadata; before reusing the same nodeId on a different host, delete or move those instances first.</li>
-<li><strong>Adding</strong> a master — start a new master process with a fresh <code>nodeId</code> against the same ZooKeeper. It joins the leader election. The existing leader keeps leadership (sticky leader).</li>
-<li><strong>Removing</strong> a master — stop <code>chango-master.service</code>. If it was the leader, the other masters elect a new leader within a second.</li>
+<li>Shows a yellow read-only banner at the top of every page: "You are signed in as a non-admin user. Mutations and secret reveals are hidden."</li>
+<li>Hides every mutating button — <strong>Install</strong>, <strong>Start</strong>, <strong>Stop</strong>, <strong>Restart</strong>, <strong>Scale</strong>, <strong>Configure</strong>, <strong>Delete</strong>, <strong>Apply</strong>, <strong>Upload</strong>, <strong>Backup Now</strong>, <strong>Generate access key</strong>, <strong>Add user / group / policy</strong>, <strong>Attach policy</strong>, …</li>
+<li>Hides every secret-reveal button — <strong>Show password</strong>, <strong>Show admin password</strong>, <strong>Download access key</strong>, <strong>Show catalog connection</strong>.</li>
+<li>Disables the patches dropzone and the IAM "Create user / group / policy" entry points.</li>
 </ul>
+<p>This is consistent across all 14 component pages (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium, Postgres, Polaris, Kafka, Schema Registry, Trino, Trino Gateway, Spark, Flink, UI Proxy), plus the IAM page, the Backup page, the Topology page, and the Settings → Patches page. Read paths are untouched — every status, every metric, every list works the same as for an admin.</p>
+<p>The UI is the convenience layer; the backend gates above are the authoritative ones. An attacker who builds a custom HTTP client and bypasses the UI still hits the 403.</p>
+<h2 id="why-secret-reveal-is-on-the-same-gate-as-mutation">Why secret-reveal is on the same gate as mutation</h2>
+<p>Without the second gate, a non-admin user could call <code>GET /admin/api/iam/download-key/&lt;id&gt;</code> and walk away with another user's secret access key, even though they can not mutate IAM directly. Same for component passwords: <code>GET /admin/api/postgres/pg-main/password</code> would leak the postgres superuser password to anyone who could log in. Stage-1's working assumption is "read-only" means <strong>no secrets</strong>, not just no mutation.</p>
+<h2 id="bootstrap">Bootstrap</h2>
+<p>The default <code>admin</code> user is the only admin out of the box. After the first password rotation, the operator typically:</p>
+<ol>
+<li>Creates a per-human user (e.g. <code>alice</code>).</li>
+<li>Adds <code>alice</code> to <code>admin-group</code>.</li>
+<li>Logs in as <code>alice</code> from then on; uses the original <code>admin</code> only as a break-glass account.</li>
+</ol>
+<p>Non-admin users are typically service principals — kiok DAGs, ansible runners, CI scripts — that only need to read cluster status. Issue them an access key from IAM (admin-only), and call the API with the bearer token derived from that key.</p>
+<h2 id="stage-2-planned">Stage-2 (planned)</h2>
+<p>Stage-2 replaces the blanket admin / non-admin split with per-route <code>canPerform(user, action, resource)</code>:</p>
+<ul>
+<li><code>chango:component:install</code>, <code>chango:component:start</code>, <code>chango:component:restart</code>, <code>chango:component:scale</code>, <code>chango:component:delete</code></li>
+<li><code>chango:iam:read</code>, <code>chango:iam:write</code>, <code>chango:iam:downloadKey</code></li>
+<li><code>chango:backup:run</code>, <code>chango:backup:configure</code></li>
+<li><code>chango:patch:upload</code>, <code>chango:patch:apply</code>, <code>chango:patch:rollback</code></li>
+<li><code>chango:kms:wrap</code>, <code>chango:kms:unwrap</code></li>
+</ul>
+<p>Until that ships, Stage-1 is the source of truth — and Stage-1 is enforced at both the backend (authoritative) and the admin UI (visible).</p>
 
 
 

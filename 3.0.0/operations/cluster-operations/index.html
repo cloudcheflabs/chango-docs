@@ -613,8 +613,64 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/sticky-leader/" class="md-nav__link">
+        Sticky Leader Election
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/leader-forward/" class="md-nav__link">
+        Leader Forwarding
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/cluster-readiness/" class="md-nav__link">
+        Cluster Readiness
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/iam/" class="md-nav__link">
         Identity & Access Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/role-based-access/" class="md-nav__link">
+        Role-Based Access (Stage 1)
       </a>
     </li>
   
@@ -727,6 +783,34 @@
     <li class="md-nav__item">
       <a href="../../features/backup/" class="md-nav__link">
         Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/patch-system/" class="md-nav__link">
+        Patch System
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/config-runtime-only/" class="md-nav__link">
+        Config Runtime-Only Policy
       </a>
     </li>
   
@@ -985,6 +1069,13 @@
         <li class="md-nav__item">
   <a href="#cluster-readiness" class="md-nav__link">
     Cluster readiness
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#config-endpoint-requires-running" class="md-nav__link">
+    Config endpoint requires RUNNING
   </a>
   
 </li>
@@ -1305,7 +1396,7 @@
 <a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-master.sh
 <a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
 </code></pre></div>
-<p>Leadership hands off to one of the followers on stop; when the old leader comes back up it joins as a follower, and the sticky-leader window may then re-elect it.</p>
+<p>Leadership hands off to one of the followers on stop; when the old leader comes back up the <strong>sticky-leader</strong> mechanism re-elects it without a leadership toggle. The leader writes a <code>master-leader-preferred:&lt;expiresAt&gt;</code> hint to ZK during its graceful stop; any follower that receives <code>takeLeadership</code> while the hint is fresh yields back during the <code>deferenceWindowMs</code> window so the original leader can reclaim leadership on restart. See <a href="../../features/sticky-leader/">Sticky Leader Election</a> for the two mechanisms (cold-start deference + hot-restart sticky-back) and the ZK znodes.</p>
 <p>Node managers can be restarted in any order — the order does not affect cluster availability.</p>
 <h2 id="add-another-node-manager">Add another node manager</h2>
 <p>The bundle ships <code>ansible/add-nodemanager.yml</code> for this. It does the same <code>node-prep</code> + Java 17/25 + chango distribution + first-boot start as the initial install, but <strong>never stages the master key on disk</strong> — the playbook prompts you for it interactively and passes it through to first-boot start in memory only. The new host joins the cluster and registers in ZooKeeper; the admin UI sees it within seconds.</p>
@@ -1428,11 +1519,17 @@
 <h2 id="cluster-readiness">Cluster readiness</h2>
 <p>The admin REST API refuses non-auth routes until the cluster is "ready":</p>
 <ul>
-<li>The leader is elected, or this master has pulled a fresh KMS + IAM + metadata snapshot from the leader.</li>
+<li>The leader is elected, has decrypted its KMS / IAM / metadata stores, and has written <code>/chango/leader-ready</code>.</li>
+<li>Every non-leader master has done a mandatory pull from the leader (KMS + IAM + metadata + patch library), marked itself ready under <code>/chango/nodes/masters/&lt;id&gt;</code>, and <code>/chango/cluster-ready = true</code> has been written by the leader.</li>
 <li>ZooKeeper quorum is reachable.</li>
 </ul>
 <p>Until then, requests return <code>503</code> with a JSON body identifying which precondition is unmet. The admin UI shows a "cluster starting" splash.</p>
 <p>The readiness gate timeout is <code>chango.cluster.readiness.timeout.ms</code> (default 120 000). On master startup, the master logs <code>Cluster ready</code> once the gate opens; if it stays closed past the timeout the master exits with a non-zero status. You will see it in <code>/var/log/chango/master.log</code> and the pid file goes stale — re-run <code>bin/start-master.sh</code> after fixing the underlying issue.</p>
+<p>See <a href="../../features/cluster-readiness/">Cluster Readiness</a> for the full flow (leader / non-leader paths, every ZK znode, per-master ready flag) and <a href="../../features/leader-forward/">Leader Forwarding</a> for how follower masters relay mutating admin traffic to the leader once readiness opens.</p>
+<h2 id="config-endpoint-requires-running">Config endpoint requires RUNNING</h2>
+<p><code>POST /admin/api/&lt;comp&gt;/&lt;id&gt;/config</code> (and any file-write endpoint on a component instance) <strong>requires the instance to be RUNNING</strong>. A request against a STOPPED instance returns <code>400 Bad Request</code> with <code>"instance 'X' is STOPPED — config changes require RUNNING; start the instance first."</code>.</p>
+<p>This keeps "admin API state" and "on-disk state" lockstep — components whose <code>start-*.sh</code> re-derives content from chango master settings would otherwise overwrite the just-edited file. Start the instance, apply the config, restart for the change to take effect. See <a href="../../features/config-runtime-only/">Config Runtime-Only Policy</a>.</p>
+<p>For values you need from the very first start (heap size, custom properties), use the install-time <code>properties</code> map + per-role JVM config — not the config endpoint.</p>
 
 
 

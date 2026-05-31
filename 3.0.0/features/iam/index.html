@@ -11,10 +11,10 @@
         <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/iam/">
       
       
-        <link rel="prev" href="../topology/">
+        <link rel="prev" href="../cluster-readiness/">
       
       
-        <link rel="next" href="../admin-password-recovery/">
+        <link rel="next" href="../role-based-access/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
@@ -613,6 +613,48 @@
               
   
   
+  
+    <li class="md-nav__item">
+      <a href="../sticky-leader/" class="md-nav__link">
+        Sticky Leader Election
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../leader-forward/" class="md-nav__link">
+        Leader Forwarding
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster-readiness/" class="md-nav__link">
+        Cluster Readiness
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
     
   
   
@@ -697,10 +739,31 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#stage-1-rbac" class="md-nav__link">
+    Stage-1 RBAC
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
       
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../role-based-access/" class="md-nav__link">
+        Role-Based Access (Stage 1)
+      </a>
     </li>
   
 
@@ -812,6 +875,34 @@
     <li class="md-nav__item">
       <a href="../backup/" class="md-nav__link">
         Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../patch-system/" class="md-nav__link">
+        Patch System
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config-runtime-only/" class="md-nav__link">
+        Config Runtime-Only Policy
       </a>
     </li>
   
@@ -1355,7 +1446,10 @@
 </tr>
 </tbody>
 </table>
-<p>All routes (except <code>auth/login</code> and <code>auth/refresh</code>) require a Bearer access token. Mutating routes additionally require leader status.</p>
+<p>All routes (except <code>auth/login</code> and <code>auth/refresh</code>) require a Bearer access token. Mutating routes additionally require leader status — on a follower master the entire request is transparently forwarded to the leader (see <a href="../leader-forward/">Leader Forwarding</a>).</p>
+<h2 id="stage-1-rbac">Stage-1 RBAC</h2>
+<p>The chango control plane currently runs in <strong>Stage-1 RBAC</strong> mode: an authenticated user is either <strong>admin</strong> (holds the <code>AdministratorAccess</code> policy directly or via a group) or <strong>read-only</strong>. Mutations and <strong>secret-reveal <code>GET</code>s</strong> — <code>iam/download-key/*</code>, <code>/password</code>, <code>/admin-password</code>, <code>/catalog-config</code>, <code>/catalog-connection</code> — are blocked for non-admins at the backend; the admin UI hides the corresponding buttons. Reads otherwise work for every authenticated user.</p>
+<p>See <a href="../role-based-access/">Role-Based Access (Stage 1)</a> for the full surface and the planned Stage-2 fine-grained model.</p>
 
 
 

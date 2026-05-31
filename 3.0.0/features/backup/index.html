@@ -14,7 +14,7 @@
         <link rel="prev" href="../logging/">
       
       
-        <link rel="next" href="../../components/catalog/">
+        <link rel="next" href="../patch-system/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
@@ -615,8 +615,64 @@
   
   
     <li class="md-nav__item">
+      <a href="../sticky-leader/" class="md-nav__link">
+        Sticky Leader Election
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../leader-forward/" class="md-nav__link">
+        Leader Forwarding
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster-readiness/" class="md-nav__link">
+        Cluster Readiness
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../iam/" class="md-nav__link">
         Identity & Access Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../role-based-access/" class="md-nav__link">
+        Role-Based Access (Stage 1)
       </a>
     </li>
   
@@ -853,6 +909,34 @@
   
 </nav>
       
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../patch-system/" class="md-nav__link">
+        Patch System
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config-runtime-only/" class="md-nav__link">
+        Config Runtime-Only Policy
+      </a>
     </li>
   
 
@@ -1250,12 +1334,18 @@
 <td>Component inventory, per-cluster settings, gateway topology, nginx state</td>
 </tr>
 <tr>
+<td><code>data/master/patches/</code></td>
+<td><code>&lt;base.data.dir&gt;/master/patches/</code></td>
+<td>Air-gapped patch library — every patch tarball previously uploaded via <code>POST /admin/api/patch/upload</code>, plus its parsed manifest. Included only if the directory exists.</td>
+</tr>
+<tr>
 <td><code>manifest.json</code></td>
 <td>generated</td>
-<td><code>timestamp</code>, <code>hostname</code>, <code>chango.version</code>, archive checksum</td>
+<td><code>timestamp</code>, <code>hostname</code>, <code>chango.version</code>, archive checksum, <code>patchesIncluded</code> flag</td>
 </tr>
 </tbody>
 </table>
+<p>Including the patch library means a fresh-install restore can re-serve every previously-uploaded patch without the operator re-uploading from the build host. Followers catch up via PATCH_INDEX / PATCH_FETCH automatically — see <a href="../patch-system/#non-leader-catch-up-pr-5">Patch System</a>.</p>
 <h2 id="what-is-not-in-a-backup">What is NOT in a backup</h2>
 <ul>
 <li><strong>The cluster root secret</strong> that derives chango's master DEK. The operator owns and stores this out-of-band; without it the backup is mathematically undecryptable. See <a href="../kms/">KMS</a>.</li>
@@ -1317,6 +1407,31 @@
 <p>The response includes the S3 key (<code>prod/chango-&lt;timestamp&gt;-&lt;uuid&gt;.tar.gz</code>) and the SHA-256 of the archive.</p>
 <h3 id="schedule">Schedule</h3>
 <p>Set a cron expression in the destination config — the leader runs the backup on that schedule. Default is <strong>off</strong>.</p>
+<p><code>BackupService</code> arms its cron scheduler at master bootstrap (before leader election finishes), so a follower with a <code>backup.cron</code> setting in the metadata RocksDB keeps the scheduler armed even before it wins leadership. <code>runBackup()</code> itself is idempotent — every fire produces an immutable S3 object with a fresh <code>&lt;backupId&gt;</code> — so a multi-master race at most causes a duplicate S3 PUT, never corrupted state.</p>
+<p>The config UI takes a standard 5-field cron (<code>min hour dom mon dow</code>). Examples:</p>
+<table>
+<thead>
+<tr>
+<th>Cron</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0 2 * * *</code></td>
+<td>Daily at 02:00</td>
+</tr>
+<tr>
+<td><code>0 */6 * * *</code></td>
+<td>Every 6 hours</td>
+</tr>
+<tr>
+<td><code>0 3 * * 0</code></td>
+<td>Sundays at 03:00</td>
+</tr>
+</tbody>
+</table>
+<p>Leave the field empty to disable scheduled backups; the <strong>Backup Now</strong> button still works.</p>
 <h2 id="restoring">Restoring</h2>
 <p>Restore is an out-of-band procedure on a fresh master node. Chango deliberately ships no systemd unit — the operator drives the master directly via <code>bin/start-master.sh</code> / <code>bin/stop-master.sh</code> with the cluster root secret in env.</p>
 <ol>

@@ -1,0 +1,1652 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/patch-system/">
+      
+      
+        <link rel="prev" href="../backup/">
+      
+      
+        <link rel="next" href="../config-runtime-only/">
+      
+      <link rel="icon" href="../../images/logo/chango-logo.png">
+      <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
+    
+    
+      
+        <title>Patch System - Chango</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.eebd395e.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ecc896b0.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#patch-system" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Chango" class="md-header__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/logo/chango-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Chango
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Patch System
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+            
+              <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+              </label>
+            
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+            
+              <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+              </label>
+            
+          
+        </form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="../.." class="md-tabs__link">
+      Home
+    </a>
+  </li>
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../architecture/architecture/" class="md-tabs__link">
+        Architecture
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../installation/" class="md-tabs__link">
+        Installation
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../control-plane/" class="md-tabs__link md-tabs__link--active">
+        Features
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../components/catalog/" class="md-tabs__link">
+        Components
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../operations/cluster-operations/" class="md-tabs__link">
+        Operations
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../tutorials/" class="md-tabs__link">
+        Tutorials
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Chango" class="md-nav__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/logo/chango-logo.png" alt="logo">
+
+    </a>
+    Chango
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          Architecture
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          Architecture
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/architecture/" class="md-nav__link">
+        Chango Architecture
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/component-lifecycle/" class="md-nav__link">
+        Component Lifecycle
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/internal-protocol/" class="md-nav__link">
+        Internal Protocol
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Installation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Installation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/node-preparation/" class="md-nav__link">
+        Node Preparation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/manual/" class="md-nav__link">
+        Manual Install
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/automated/" class="md-nav__link">
+        Automated Install (Ansible)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/docker/" class="md-nav__link">
+        Local Docker Cluster
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/getting-started/" class="md-nav__link">
+        Getting Started
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          Features
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          Features
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control-plane/" class="md-nav__link">
+        Control Plane
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../topology/" class="md-nav__link">
+        Cluster Topology
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sticky-leader/" class="md-nav__link">
+        Sticky Leader Election
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../leader-forward/" class="md-nav__link">
+        Leader Forwarding
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster-readiness/" class="md-nav__link">
+        Cluster Readiness
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../iam/" class="md-nav__link">
+        Identity & Access Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../role-based-access/" class="md-nav__link">
+        Role-Based Access (Stage 1)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-password-recovery/" class="md-nav__link">
+        Admin Password Recovery
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kms/" class="md-nav__link">
+        Encryption & Key Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../port-allocator/" class="md-nav__link">
+        Port Allocator
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hosts-sync/" class="md-nav__link">
+        Hosts Sync
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ui-proxy/" class="md-nav__link">
+        UI Proxy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../monitoring/" class="md-nav__link">
+        Monitoring & Metrics
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging/" class="md-nav__link">
+        Logging
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup/" class="md-nav__link">
+        Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Patch System
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Patch System
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-problem-it-solves" class="md-nav__link">
+    What problem it solves
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-coverage" class="md-nav__link">
+    Component coverage
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-a-patch-chango-pack-patch" class="md-nav__link">
+    Building a patch — chango-pack patch
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rest-surface" class="md-nav__link">
+    REST surface
+  </a>
+  
+    <nav class="md-nav" aria-label="REST surface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#upload" class="md-nav__link">
+    Upload
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apply" class="md-nav__link">
+    Apply
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rollback" class="md-nav__link">
+    Rollback
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history" class="md-nav__link">
+    History
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#on-disk-layout" class="md-nav__link">
+    On-disk layout
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-leader-catch-up-pr-5" class="md-nav__link">
+    Non-leader catch-up (PR 5)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-inclusion" class="md-nav__link">
+    Backup inclusion
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#admin-ui" class="md-nav__link">
+    Admin UI
+  </a>
+  
+    <nav class="md-nav" aria-label="Admin UI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#settings-patches" class="md-nav__link">
+    Settings → Patches
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#patch-history-card-on-each-component-page" class="md-nav__link">
+    Patch History card on each component page
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#non-admin-readonly" class="md-nav__link">
+    Non-admin readonly
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#invariants" class="md-nav__link">
+    Invariants
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chango-self-patch-v2" class="md-nav__link">
+    Chango self-patch (v2)
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config-runtime-only/" class="md-nav__link">
+        Config Runtime-Only Policy
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          Components
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_5">
+          <span class="md-nav__icon md-icon"></span>
+          Components
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/catalog/" class="md-nav__link">
+        Catalog
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/versions/" class="md-nav__link">
+        Versions
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          Operations
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          Operations
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/cluster-operations/" class="md-nav__link">
+        Cluster Operations
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/component-operations/" class="md-nav__link">
+        Component Operations
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/nginx-proxy/" class="md-nav__link">
+        Nginx Reverse Proxy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/upgrade/" class="md-nav__link">
+        Upgrade
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          Tutorials
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_7">
+          <span class="md-nav__icon md-icon"></span>
+          Tutorials
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-0-foundation/" class="md-nav__link">
+        Phase 0 — Foundation Install
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-1-trino-iceberg-rbac/" class="md-nav__link">
+        Phase 1 — Trino + Iceberg + RBAC
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-2-spark-iceberg/" class="md-nav__link">
+        Phase 2 — Spark + Iceberg
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-2b-spark-via-livy/" class="md-nav__link">
+        Phase 2b — Spark via Livy REST
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-3-kiok-spark/" class="md-nav__link">
+        Phase 3 — kiok DAG (SSH to Spark master)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-3b-kiok-via-livy/" class="md-nav__link">
+        Phase 3b — kiok DAG via Livy REST
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-4-iceberg-maintenance/" class="md-nav__link">
+        Phase 4 — Iceberg table maintenance
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-5-kafka-flink-iceberg/" class="md-nav__link">
+        Phase 5 — Kafka + Flink + Iceberg streaming
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-6-kiok-livy-spark-iceberg-polaris/" class="md-nav__link">
+        Phase 6 — kiok native livy task + Polaris
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-7-kiok-dag-trino-ontul-via-gateway/" class="md-nav__link">
+        Phase 7 — kiok DAG (trino-gw + ontul)
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="patch-system">Patch System</h1>
+<p>Chango ships an air-gapped patch system for swapping a component's JAR files and / or its admin-UI bundle on a running cluster without going through the full install / configure cycle. Patches are jar / UI <strong>only</strong> — they never touch operator-edited configuration (<code>conf/*</code>), per-instance install metadata, RocksDB state, or component data. The control plane treats a patch as an immutable, signed-by-sha256 artifact that flows from <code>chango-pack patch</code> on the build host, through the operator's browser (upload), into the chango master's patch library, and out to every host that runs an instance of the target component.</p>
+<h2 id="what-problem-it-solves">What problem it solves</h2>
+<p>A managed component (Ontul, kiok, ShannonStore, …) has a hotfix you want to deploy across the fleet:</p>
+<ul>
+<li>Without the patch system, the operator either re-runs the full ansible install (overwrites configuration, restages tarballs) or hand-edits <code>lib/*.jar</code> on every host (no audit, no rollback, easy to skew across hosts).</li>
+<li>With the patch system, the operator builds a tarball once with <code>chango-pack patch</code>, uploads it once to the admin UI, and clicks <strong>Apply</strong> — the leader fans out per-host swap + restart with automatic backup and one-click rollback.</li>
+</ul>
+<h2 id="component-coverage">Component coverage</h2>
+<p>Patch v1 supports the first-party components:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ontul</td>
+<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+</tr>
+<tr>
+<td>kiok</td>
+<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+</tr>
+<tr>
+<td>ItdaStream</td>
+<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+</tr>
+<tr>
+<td>ShannonStore</td>
+<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+</tr>
+<tr>
+<td>NeoRunBase</td>
+<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+</tr>
+<tr>
+<td>Mium</td>
+<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+</tr>
+</tbody>
+</table>
+<p>Patch v2 (only on <code>branch-3.0.0</code> of chango itself) additionally supports patching chango itself — the chango master JARs and the chango admin UI bundle. See the <a href="#chango-self-patch-v2">Chango self-patch (v2)</a> section below.</p>
+<p>A patch built for any other component (open-source engines — Trino, Spark, Flink, Kafka, Postgres, Polaris, Trino Gateway, UI Proxy, Schema Registry) is rejected at upload time. Upgrade those via <a href="../../operations/upgrade/">Blue / Green Upgrade</a> — chango does not own their lifecycle the way it does the first-party stack.</p>
+<h2 id="building-a-patch-chango-pack-patch">Building a patch — <code>chango-pack patch</code></h2>
+<p><code>chango-pack</code> is the air-gapped tooling shipped inside the chango release tarball. The <code>patch</code> sub-command builds the upload-ready tarball from a directory of jars and / or a directory of admin-UI dist files:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Java-only patch</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--component<span class="w"> </span>ontul<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0-SNAPSHOT<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span>--type<span class="w">      </span>jar<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/ontul/lib<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span>--out<span class="w">       </span>dist/ontul-patch-3.0.0-SNAPSHOT.tgz
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># admin-UI-only hot patch (no restart needed)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span>--component<span class="w"> </span>kiok<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span>--type<span class="w">      </span>ui<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/kiok/admin-ui/dist<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span>--notes<span class="w">     </span><span class="s2">&quot;fix DAG status colors&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span>--out<span class="w">       </span>dist/kiok-patch-3.0.0-ui.tgz
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="c1"># combined jar + UI</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span>--component<span class="w"> </span>shannonstore<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">    </span>--type<span class="w">      </span>both<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/shannonstore/lib<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/shannonstore/admin-ui/dist<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span>--out<span class="w">       </span>dist/shannonstore-patch-3.0.0.tgz
+</code></pre></div>
+<p>The output is a <code>tgz</code> whose layout is <strong>strictly</strong>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>manifest.json              ← {component, version, type, files[].sha256, builtAt, builtBy, ...}
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>lib/*.jar                  ← required when --type is jar or both
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>admin-ui/dist/**           ← required when --type is ui  or both
+</code></pre></div>
+<p>Any other top-level entry, or any path outside this whitelist, is rejected at upload time. No <code>conf/</code>, no scripts, no full install tree.</p>
+<p>The tooling only needs <code>tar</code>, <code>sha256sum</code>, <code>find</code>, and a POSIX shell — it ships inside <code>/opt/chango/bin/</code> so the same chango release can rebuild patches in-place on the build host.</p>
+<h2 id="rest-surface">REST surface</h2>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /admin/api/patch/upload</code></td>
+<td>Raw tarball (<code>Content-Type: application/gzip</code>) → leader validates whitelist + sha256, stores under <code>data/master/patches/</code>.</td>
+</tr>
+<tr>
+<td><code>GET  /admin/api/patch/library</code></td>
+<td>Lists every uploaded patch. Optional <code>?component=ontul</code> filter.</td>
+</tr>
+<tr>
+<td><code>GET  /admin/api/patch/&lt;patchId&gt;/raw</code></td>
+<td>Authenticated download of the original tarball (used by node managers when the master orchestrates an apply).</td>
+</tr>
+<tr>
+<td><code>POST /admin/api/patch/&lt;patchId&gt;/apply</code></td>
+<td>Body <code>{clusterId, restartMode: "rolling"|"parallel"}</code> — fans out per-host swap + restart.</td>
+</tr>
+<tr>
+<td><code>POST /admin/api/patch/rollback</code></td>
+<td>Body <code>{component, clusterId, to: "lastBackup"|patchId}</code> — restores <code>lib/</code> and <code>admin-ui/</code> from <code>.bak/</code>.</td>
+</tr>
+<tr>
+<td><code>GET  /admin/api/patch/history?component=&amp;clusterId=</code></td>
+<td>Per-cluster applied-patch history (read-only fan-out to each NM's <code>.bak/*</code> dirs).</td>
+</tr>
+</tbody>
+</table>
+<p>All mutating routes are admin-only (Stage-1 RBAC) and leader-only. Followers transparently forward to the leader.</p>
+<h3 id="upload">Upload</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;pw&gt;&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/gzip&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">     </span>--data-binary<span class="w"> </span>@dist/ontul-patch-3.0.0-SNAPSHOT.tgz<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/upload
+</code></pre></div>
+<p>Response:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;patchId&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;ontul-3.0.0-SNAPSHOT-20260530-1f3a&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;component&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ontul&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;3.0.0-SNAPSHOT&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">      </span><span class="s2">&quot;jar&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w">      </span><span class="mi">18234567</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="nt">&quot;sha256&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;…&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nt">&quot;uploadedAt&quot;</span><span class="p">:</span><span class="s2">&quot;2026-05-30T12:34:56Z&quot;</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="apply">Apply</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;clusterId&quot;:&quot;ontul-main&quot;,&quot;restartMode&quot;:&quot;rolling&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/ontul-3.0.0-SNAPSHOT-20260530-1f3a/apply
+</code></pre></div>
+<p>The leader resolves <code>(component, clusterId)</code> to the set of NMs that host an instance, then sends each NM a <code>PATCH_APPLY</code> (<code>OpCode 235</code>) carrying the manifest + a master-side <code>/raw</code> download URL + the explicit <code>instanceIds</code> to swap on that host (the NM has no <code>clusterId</code>/role context of its own). The NM:</p>
+<ol>
+<li><strong>Downloads</strong> the tarball from the master via the authenticated <code>/raw</code> route.</li>
+<li><strong>Backs up</strong> the current <code>lib/</code> (and <code>admin-ui/dist/</code> if <code>type == ui|both</code>) of every targeted instance into <code>&lt;install-dir&gt;/.bak/&lt;patchId&gt;/</code> — unconditional, every apply.</li>
+<li><strong>Overlays</strong> the patch contents on top of the live install dir — <code>lib/*.jar</code> replaces matching jars, <code>admin-ui/dist/**</code> overlays the bundle. No file outside the whitelist is touched.</li>
+<li><strong>Restarts</strong> the instance with the component's existing <code>bin/stop-*.sh</code> + <code>bin/start-*.sh</code> (only when <code>type == jar|both</code> — a UI-only patch needs no restart). <code>JAVA_HOME</code> and the original <code>-Dchango.*</code> system properties are preserved from the live pid's <code>/proc/&lt;pid&gt;/cmdline</code>.</li>
+</ol>
+<p><code>restartMode: "rolling"</code> does this one host at a time and waits for the instance to report RUNNING again before moving on; <code>parallel</code> fires every host together — faster, but expects all instances to tolerate a simultaneous restart.</p>
+<p>The response aggregates per-host results:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;patchId&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;ontul-3.0.0-SNAPSHOT-20260530-1f3a&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;clusterId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ontul-main&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;applied&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">&quot;hosts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;nm-host1-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;instanceIds&quot;</span><span class="p">:[</span><span class="s2">&quot;ontul-main-master&quot;</span><span class="p">],</span><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="s2">&quot;applied&quot;</span><span class="p">},</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;nm-host2-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;instanceIds&quot;</span><span class="p">:[</span><span class="s2">&quot;ontul-main-worker-1&quot;</span><span class="p">],</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="s2">&quot;applied&quot;</span><span class="p">},</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;nm-host3-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;instanceIds&quot;</span><span class="p">:[</span><span class="s2">&quot;ontul-main-worker-2&quot;</span><span class="p">],</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="s2">&quot;applied&quot;</span><span class="p">}</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="rollback">Rollback</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;component&quot;:&quot;ontul&quot;,&quot;clusterId&quot;:&quot;ontul-main&quot;,&quot;to&quot;:&quot;lastBackup&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/rollback
+</code></pre></div>
+<p>Rollback is the inverse of apply: each NM restores <code>lib/</code> and <code>admin-ui/dist/</code> from the requested <code>.bak/&lt;patchId&gt;/</code> directory and restarts the instance. <code>to: "lastBackup"</code> rolls back to the most recent apply; <code>to: "&lt;patchId&gt;"</code> rolls back to a specific past patch. Rollback also writes a fresh <code>.bak/&lt;rollbackId&gt;/</code> so a re-roll-forward stays possible.</p>
+<p>Because <code>.bak/</code> lives <strong>inside the instance install dir</strong>, rollback only sees patches that were applied to that host — not the master's global library. If you wiped <code>/opt/components/&lt;instanceId&gt;/.bak/</code> by hand, the corresponding rollback target is gone.</p>
+<h3 id="history">History</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">     </span><span class="s2">&quot;</span><span class="nv">$BASE</span><span class="s2">/admin/api/patch/history?component=ontul&amp;clusterId=ontul-main&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.
+</code></pre></div>
+<p>Returns the list of patches whose <code>.bak/</code> is still present on the cluster — applied in newest-first order, one row per <code>(patchId, host)</code>. The admin UI uses this to drive the PatchHistoryCard on each component page.</p>
+<h2 id="on-disk-layout">On-disk layout</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>/var/lib/chango/data/master/patches/
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    &lt;patchId&gt;.tgz                ← the raw uploaded tarball
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    &lt;patchId&gt;.json               ← parsed manifest + sha256
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>/opt/components/&lt;instanceId&gt;/
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    lib/                         ← live jars  (overlaid by patch apply)
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    admin-ui/dist/               ← live UI    (overlaid by patch apply)
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    .bak/
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>        &lt;patchId&gt;/
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>            lib.tgz              ← pre-apply backup
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>            admin-ui.tgz         ← pre-apply backup (when applicable)
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>            manifest.json        ← copy of the applied manifest
+</code></pre></div>
+<p>The leader keeps the master library; each NM keeps the per-instance backups. Two different chango clusters never share a <code>.bak/</code>.</p>
+<h2 id="non-leader-catch-up-pr-5">Non-leader catch-up (PR 5)</h2>
+<p>Followers and node managers must not call out to the leader's HTTP API on every PATCH_APPLY — that would couple every NM's apply path to the leader's admin port. Instead, the patch library is treated like any other chango cluster state: replicated lazily over the internal NIO protocol.</p>
+<ul>
+<li><strong>OpCode <code>PATCH_INDEX_REQ</code> / <code>PATCH_INDEX_RES</code></strong> — leader returns a JSON array of every patchId + sha256 currently in its library.</li>
+<li><strong>OpCode <code>PATCH_FETCH_REQ</code> / <code>PATCH_FETCH_RES</code></strong> — body is the patchId as UTF-8; leader streams the tarball back.</li>
+</ul>
+<p>A non-leader master runs <code>PeriodicLeaderPull</code> every 30 s: pull the index, compare with the local <code>patches/</code> dir, fetch any missing tarballs. The same pull runs immediately when this master <strong>loses</strong> leadership so a brand-new follower never serves a stale library.</p>
+<p>This is also what makes the patch system survive a backup / restore: when a fresh chango cluster restores from a backup tarball, the leader's <code>data/master/patches/</code> directory is included (see below), and every newly-elected follower pulls from it on startup.</p>
+<h2 id="backup-inclusion">Backup inclusion</h2>
+<p><code>BackupService.packTarball</code> includes <code>data/master/patches/</code> in the cluster-state backup whenever the directory exists. The manifest reflects this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;backupId&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;20260530-…&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">&quot;patchesDir&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;/var/lib/chango/data/master/patches&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">&quot;patchesIncluded&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="err">...</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>Restoring the backup re-populates the patch library on the new master; followers then catch up via PATCH_INDEX / PATCH_FETCH.</p>
+<h2 id="admin-ui">Admin UI</h2>
+<h3 id="settings-patches">Settings → Patches</h3>
+<p>Sidebar → <strong>Settings → Patches</strong> opens the cluster-wide patch console:</p>
+<ul>
+<li><strong>Upload</strong> — drag-and-drop dropzone. POSTs the raw <code>.tgz</code> body to <code>/admin/api/patch/upload</code> with the operator's bearer token. On success the new patch shows up at the top of the Library.</li>
+<li><strong>Library</strong> — every uploaded patch, newest first, grouped by component. Each row shows <code>version</code>, <code>type</code>, <code>size</code>, <code>sha256</code> (truncated, click to copy), <code>uploadedAt</code>, <code>notes</code>, and an <strong>Apply</strong> button that opens the Apply modal.</li>
+<li><strong>Apply modal</strong> — pick a cluster (autopopulated from the existing instances of the patch's component), pick <code>rolling</code> or <code>parallel</code>, confirm. The modal streams the leader's response and surfaces per-host status as it lands.</li>
+</ul>
+<h3 id="patch-history-card-on-each-component-page">Patch History card on each component page</h3>
+<p>Every component's detail page (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium) shows a <code>PatchHistoryCard</code> in the right-hand panel listing the patches applied to the current cluster — one row per patch with <strong>Rollback</strong> buttons (<code>lastBackup</code> or "rollback to this specific patch").</p>
+<h3 id="non-admin-readonly">Non-admin readonly</h3>
+<p>Non-admin users (members of any group that does <strong>not</strong> hold the <code>AdministratorAccess</code> policy) see the Patches page in read-only mode — the Library is visible, but <strong>Upload</strong>, <strong>Apply</strong>, <strong>Rollback</strong> buttons are hidden, and the dropzone is disabled. The backend enforces the same gate.</p>
+<h2 id="invariants">Invariants</h2>
+<p>The patch system is deliberately narrower than "in-place upgrade":</p>
+<ul>
+<li><strong>Configuration is never touched.</strong> The whitelist excludes <code>conf/</code>. Operator-edited properties files survive every apply / rollback.</li>
+<li><strong>State is never touched.</strong> <code>data/</code>, <code>logs/</code>, RocksDB stores under the component's install dir are untouched. Iceberg files, Kafka logs, NeoRunBase tables are unaffected.</li>
+<li><strong>Backups are unconditional.</strong> Every apply writes a fresh <code>.bak/&lt;patchId&gt;/</code> before overlaying anything. The operator does not have to opt in.</li>
+<li><strong>Patches are immutable.</strong> <code>patchId</code> is a content-derived id; the same tarball uploaded twice deduplicates.</li>
+<li><strong>First-party only (v1).</strong> Open-source engines (Trino, Spark, Flink, …) are not patchable through this system; chango itself is patchable only via <a href="#chango-self-patch-v2">v2</a> on <code>branch-3.0.0</code>.</li>
+</ul>
+<h2 id="chango-self-patch-v2">Chango self-patch (v2)</h2>
+<p>The patch system is also able to patch <strong>chango itself</strong> — the chango master JARs and the chango admin UI — but only on <code>branch-3.0.0</code> of chango (the v2 codepath ships there, not yet on <code>master</code>). Conceptually the contract is identical:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span>--component<span class="w"> </span>chango<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span>--type<span class="w">      </span>both<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/chango/lib<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/chango/admin-ui/dist<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span>--out<span class="w">       </span>dist/chango-patch-3.0.0.tgz
+</code></pre></div>
+<p>What differs is the execution model — chango is patching itself, so it can not be the process that overlays its own running JARs. Apply runs a <strong>3-phase fan-out</strong> through a detached helper:</p>
+<ol>
+<li>Node managers first.</li>
+<li>Follower masters next.</li>
+<li>Leader self last.</li>
+</ol>
+<p>On every target host the master forks a <code>setsid</code>-detached helper that does <code>sleep 3 &amp;&amp; download &amp;&amp; backup .bak/&lt;patchId&gt;/{lib,admin-ui}.tgz &amp;&amp; overlay &amp;&amp; stop-master.sh / stop-node-manager.sh &amp;&amp; start-…sh</code>. The helper preserves <code>CHANGO_MASTER_KEY</code>, <code>JAVA_HOME</code>, and the original <code>-Dchango.*</code> system properties from the running process's <code>/proc/&lt;pid&gt;/cmdline</code>.</p>
+<p>Because the leader writes a <code>master-leader-preferred:&lt;expiresAt&gt;</code> hint to ZooKeeper just before its graceful stop, the <strong>sticky-leader</strong> mechanism (see <a href="../sticky-leader/">Sticky Leader Election</a>) reclaims leadership for the same nodeId once the helper finishes the restart — no leadership toggle, no double KMS / IAM init.</p>
+<p>Self-patch rollback follows the same 3-phase fan-out but the helper restores <code>lib/</code> and <code>admin-ui/dist/</code> from the requested <code>.bak/&lt;patchId&gt;/</code> before restarting. The rollback branch ships in <code>branch-3.0.0</code> only — on <code>master</code> the rollback codepath is still v1-only (apply lands without rollback on the chango self side).</p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+            Back to top
+          </button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      © <script>document.write(new Date().getFullYear())</script> Cloud Chef Labs, Inc. All rights reserved. <a href="mailto:admin@cloudchef-labs.com">admin@cloudchef-labs.com</a>
+
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy", "header.autohide"], "search": "../../assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "3.0.0", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.220ee61c.min.js"></script>
+      
+    
+  </body>
+</html>

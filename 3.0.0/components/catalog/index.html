@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/components/catalog/">
       
       
-        <link rel="prev" href="../../features/backup/">
+        <link rel="prev" href="../../features/config-runtime-only/">
       
       
         <link rel="next" href="../versions/">
@@ -613,8 +613,64 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/sticky-leader/" class="md-nav__link">
+        Sticky Leader Election
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/leader-forward/" class="md-nav__link">
+        Leader Forwarding
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/cluster-readiness/" class="md-nav__link">
+        Cluster Readiness
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/iam/" class="md-nav__link">
         Identity & Access Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/role-based-access/" class="md-nav__link">
+        Role-Based Access (Stage 1)
       </a>
     </li>
   
@@ -727,6 +783,34 @@
     <li class="md-nav__item">
       <a href="../../features/backup/" class="md-nav__link">
         Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/patch-system/" class="md-nav__link">
+        Patch System
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/config-runtime-only/" class="md-nav__link">
+        Config Runtime-Only Policy
       </a>
     </li>
   
@@ -1028,6 +1112,13 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#patch-eligibility" class="md-nav__link">
+    Patch eligibility
+  </a>
   
 </li>
       
@@ -1448,6 +1539,34 @@
 <li>Topology: Proxy x N.</li>
 <li>Auto-discovers upstream Web UIs from running chango components.</li>
 </ul>
+<h2 id="patch-eligibility">Patch eligibility</h2>
+<p>The first-party components are eligible for the <a href="../../features/patch-system/">Patch System</a> — <code>chango-pack patch</code> builds an air-gapped jar / UI tarball; the admin UI's Settings → Patches page applies it across every host. Patches never touch <code>conf/</code> or component data.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Patch v1</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium</td>
+<td>yes</td>
+<td><code>jar</code>, <code>ui</code>, <code>both</code> types supported.</td>
+</tr>
+<tr>
+<td>Chango itself</td>
+<td>v2 (on <code>branch-3.0.0</code> only)</td>
+<td>3-phase fan-out via detached helper, sticky-leader reclaims after restart.</td>
+</tr>
+<tr>
+<td>Trino, Spark, Flink, Kafka, Postgres, Polaris, Trino Gateway, Schema Registry, UI Proxy</td>
+<td>no</td>
+<td>Upgrade via blue / green — see <a href="../../operations/upgrade/">Upgrade</a>.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="what-chango-does-not-do">What chango does NOT do</h2>
 <ul>
 <li><strong>Run your data queries</strong> — that's Trino, Spark, Flink, Ontul.</li>

@@ -614,6 +614,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#admin-ui-tour" class="md-nav__link">
+    Admin UI tour
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#next-steps" class="md-nav__link">
     Next steps
   </a>
@@ -698,8 +705,64 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/sticky-leader/" class="md-nav__link">
+        Sticky Leader Election
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/leader-forward/" class="md-nav__link">
+        Leader Forwarding
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/cluster-readiness/" class="md-nav__link">
+        Cluster Readiness
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/iam/" class="md-nav__link">
         Identity & Access Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/role-based-access/" class="md-nav__link">
+        Role-Based Access (Stage 1)
       </a>
     </li>
   
@@ -812,6 +875,34 @@
     <li class="md-nav__item">
       <a href="../../features/backup/" class="md-nav__link">
         Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/patch-system/" class="md-nav__link">
+        Patch System
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/config-runtime-only/" class="md-nav__link">
+        Config Runtime-Only Policy
       </a>
     </li>
   
@@ -1277,11 +1368,21 @@
 <p>Per-component logs live under <code>/opt/components/&lt;instanceId&gt;/logs/</code> (or the component-specific log path) and are also tailable from the admin UI's Logs panel.</p>
 <h2 id="day-2-lifecycle">Day-2 lifecycle</h2>
 <p>Stop, restart, add another master, add another node manager — all done by the operator running shell scripts directly on the host, not through systemctl. See <a href="../../operations/cluster-operations/">Cluster Operations</a>.</p>
+<h2 id="admin-ui-tour">Admin UI tour</h2>
+<p>The left sidebar has four sections:</p>
+<ul>
+<li><strong>Cluster</strong> — Nodes (masters + NMs, with <code>isLeader</code> / <code>ready</code>), Topology view, Backup, IAM.</li>
+<li><strong>Components</strong> — one page per first-party component (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium, Polaris, Postgres) and one per open-source engine (Trino, Trino Gateway, Spark, Flink, Kafka, Schema Registry, UI Proxy). Each page lists every instance with status, metrics, configure / scale / restart drawers, and a Patch History card (for first-party components).</li>
+<li><strong>Settings → Patches</strong> — cluster-wide patch console: drag-and-drop upload, library (newest first), Apply modal. See <a href="../../features/patch-system/">Patch System</a>.</li>
+<li><strong>Settings → Self</strong> — chango itself: install path, runtime info, the chango master process's start / stop button.</li>
+</ul>
+<p>If you signed in as a non-admin user, every page is read-only — a yellow banner sits at the top, and mutating buttons (Install, Start, Configure, Upload, Backup Now, Generate access key, …) are hidden. See <a href="../../features/role-based-access/">Role-Based Access (Stage 1)</a>.</p>
 <h2 id="next-steps">Next steps</h2>
 <ul>
 <li><a href="../../components/catalog/">Component Catalog</a> — what each layer does and how to wire them together.</li>
 <li><a href="../../features/topology/">Cluster Topology</a> — multi-master, NM placement, co-location rules.</li>
 <li><a href="../../operations/cluster-operations/">Cluster Operations</a> — day-2 actions.</li>
+<li><a href="../../features/patch-system/">Patch System</a> — air-gapped jar / UI hotfix workflow.</li>
 </ul>
 
 

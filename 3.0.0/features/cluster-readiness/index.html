@@ -8,20 +8,20 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/topology/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/cluster-readiness/">
       
       
-        <link rel="prev" href="../control-plane/">
+        <link rel="prev" href="../leader-forward/">
       
       
-        <link rel="next" href="../sticky-leader/">
+        <link rel="next" href="../iam/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
     
     
       
-        <title>Cluster Topology - Chango</title>
+        <title>Cluster Readiness - Chango</title>
       
     
     
@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cluster-topology" class="md-skip">
+        <a href="#cluster-readiness" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cluster Topology
+              Cluster Readiness
             
           </span>
         </div>
@@ -599,114 +599,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Cluster Topology
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../topology/" class="md-nav__link">
         Cluster Topology
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#the-two-rules" class="md-nav__link">
-    The two rules
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-these-rules" class="md-nav__link">
-    Why these rules
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#typical-layouts" class="md-nav__link">
-    Typical layouts
-  </a>
-  
-    <nav class="md-nav" aria-label="Typical layouts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#small-layout-one-master" class="md-nav__link">
-    Small layout (one master)
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#three-masters-n-node-managers-ha" class="md-nav__link">
-    Three masters + N node managers (HA)
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#dedicated-control-hosts" class="md-nav__link">
-    Dedicated control hosts
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#node-identifiers" class="md-nav__link">
-    Node identifiers
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#hostname-model" class="md-nav__link">
-    Hostname model
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#adding-removing-hosts" class="md-nav__link">
-    Adding / removing hosts
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -744,11 +641,87 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../cluster-readiness/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Cluster Readiness
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Cluster Readiness
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-full-flow" class="md-nav__link">
+    The full flow
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-by-step" class="md-nav__link">
+    Step-by-step
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-clients-see-before-readiness" class="md-nav__link">
+    What clients see before readiness
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#patch-system-implication" class="md-nav__link">
+    Patch-system implication
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#config" class="md-nav__link">
+    Config
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-503-on-follower-before-any-forward" class="md-nav__link">
+    Why "503 on follower" before any forward?
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1286,88 +1259,112 @@
                   
 
 
-<h1 id="cluster-topology">Cluster Topology</h1>
-<p>Chango's cluster topology has two simple rules — one for masters, one for node managers — and the rest follows.</p>
-<h2 id="the-two-rules">The two rules</h2>
-<p><strong>Master</strong></p>
-<ul>
-<li>More than one master may run on the same host (admin ports must differ).</li>
-<li>A master may co-locate with a node manager on the same host.</li>
-<li>HA is achieved by running multiple masters; one is elected leader via ZooKeeper.</li>
-</ul>
-<p><strong>Node manager</strong></p>
-<ul>
-<li>Exactly one node manager per host.</li>
-<li>A node manager may co-locate with one or more masters on the same host.</li>
-</ul>
-<p>These rules are enforced at registration time — a second node manager attempting to register against the same host (with a different <code>nodeId</code>) is rejected with <code>IllegalStateException</code>.</p>
-<h2 id="why-these-rules">Why these rules</h2>
-<ul>
-<li><strong>Master = N per host</strong> — masters are stateless (cluster state lives in the leader's RocksDB and ZooKeeper). Running more than one on a single host gives admin-UI / API capacity headroom and a hot standby that can take over in &lt;1 leader-election window.</li>
-<li><strong>NM = 1 per host</strong> — the node manager is the host agent. It owns the host's <code>/opt/components/*</code> install dirs, the host's <code>ps</code> view of every managed process, and the SELinux / sudo / file-ownership surface. Two NMs on one host would fight over those.</li>
-<li><strong>Co-location is fine</strong> — a small cluster (three hosts, one master + three NMs) is the standard layout. On large clusters you split masters off onto dedicated control hosts; on dev / lab clusters everything stacks on one host.</li>
-</ul>
-<h2 id="typical-layouts">Typical layouts</h2>
-<h3 id="small-layout-one-master">Small layout (one master)</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>host1   master + NM   (chango admin, ZK, component instances)
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>host2            NM   (component instances)
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>host3            NM   (component instances)
+<h1 id="cluster-readiness">Cluster Readiness</h1>
+<p>When a chango master starts (cold, restart, or after a self-patch), it does not serve admin REST traffic until it has proven that it holds a fresh, leader-validated copy of the cluster state. Until then every request to <code>/admin/api/&lt;anything except auth/*&gt;</code> returns <code>503 Service Unavailable</code>. This is the readiness gate.</p>
+<p>The gate exists for one reason: <strong>a follower master that has not yet synced from the leader could serve stale (or, on a freshly-wiped node, empty) IAM and silently accept the wrong credentials</strong>. The same applies to KMS keys (envelope-wrapped DEKs would fail to decrypt) and to component metadata (the inventory page would show an empty list).</p>
+<h2 id="the-full-flow">The full flow</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>            ┌──────── leader path ────────┐    ┌──────── non-leader path ─────────┐
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>            │                             │    │                                  │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  start  ─→ │ election: takeLeadership    │    │ election: takeLeadership          │
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>            │ KMS / IAM / metadata init   │    │   (returns immediately as follower)│
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>            │ registry.setLeaderReady(true)│    │ wait for /chango/leader-ready    │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>            │ writes /chango/leader-ready │    │ mandatory pull-from-leader        │
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            │                             │    │   (KMS + IAM + metadata + patches)│
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            │ registry.setMasterReady(self,true)│ enableWireEncryptionIfNeeded() │
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            │ waitForPeersReady()         │    │ registry.setMasterReady(self,true)│
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            │ registry.setClusterReady(true)│  │                                  │
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            │ writes /chango/cluster-ready│    │                                  │
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            └──────────────┬──────────────┘    └────────────────┬─────────────────┘
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>                           │                                    │
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                           └─────────────  both paths  ─────────┘
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                                          │
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>                                  wait for /chango/cluster-ready
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>                                          │
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>                                readinessGate.markReady()
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>                                          │
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                                admin HTTP starts serving 2xx
 </code></pre></div>
-<p>This is the layout used by the standard install playbook (<code>inventory.yml.example</code>). One master is enough to run a cluster — a master restart costs ~10 s of admin-API unavailability; component processes keep running.</p>
-<h3 id="three-masters-n-node-managers-ha">Three masters + N node managers (HA)</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>host1   master + NM
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>host2   master + NM
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>host3   master + NM
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>host4         NM
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>...
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>hostN         NM
-</code></pre></div>
-<p>Three masters form a ZooKeeper quorum and elect a leader. Losing one master (network blip, restart) causes a sub-second leader re-election with the other two; component processes are unaffected.</p>
-<h3 id="dedicated-control-hosts">Dedicated control hosts</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>host-c1  master           (no NM, no component processes)
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>host-c2  master
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>host-c3  master
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>host1            NM       (every component instance)
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>host2            NM
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>...
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>hostN            NM
-</code></pre></div>
-<p>Used when control-plane and workload need physical isolation (compliance, blast radius).</p>
-<h2 id="node-identifiers">Node identifiers</h2>
-<p>Default identifiers are derived from the host and the role:</p>
-<ul>
-<li>Master: <code>master-&lt;sanitized-hostname&gt;-&lt;adminPort&gt;</code> — the admin port is what makes a second master on the same host distinct (currently a deploy-layer limitation — single master per host is what the bundled systemd unit supports today).</li>
-<li>Node manager: <code>nm-&lt;sanitized-hostname&gt;-&lt;internalPort&gt;</code> — the internal port is in the id for stable backwards compatibility with component records; since only one NM per host is allowed at runtime, the port is effectively constant.</li>
-</ul>
-<p>Both are overridable via <code>chango.master.nodeId</code> / <code>chango.nodemanager.nodeId</code> in <code>chango.properties</code> for environments that need explicit naming.</p>
-<h2 id="hostname-model">Hostname model</h2>
-<p>Chango registers each node by its OS canonical hostname. There are two cases:</p>
+<p>The ZK znodes that gate everything:</p>
 <table>
 <thead>
 <tr>
-<th>OS hostname looks like</th>
-<th>Chango behaviour</th>
+<th>ZK path</th>
+<th>Written by</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Real FQDN (<code>host1.example.com</code>, <code>ip-10-0-0-11.region.compute.internal</code>, …)</td>
-<td>Use it as-is. <code>/etc/hosts</code> is not modified — your DNS already resolves it.</td>
+<td><code>/chango/leader-ready</code></td>
+<td>The current leader, after KMS / IAM / metadata init.</td>
+<td>"There is a leader; it has decrypted its stores and is willing to accept pull requests from followers."</td>
 </tr>
 <tr>
-<td>Short (<code>host1</code>, <code>ip-10-0-0-11</code>, …)</td>
-<td>Synthesize <code>&lt;short&gt;.&lt;chango.cluster.domain&gt;</code> (default <code>chango.private</code>) and keep <code>/etc/hosts</code> in sync across all hosts with a managed <code># BEGIN chango … # END chango</code> block.</td>
+<td><code>/chango/cluster-ready</code></td>
+<td>The current leader, after <code>waitForPeersReady()</code>.</td>
+<td>"All masters and at least the minimum required NMs report <code>ready = true</code>."</td>
+</tr>
+<tr>
+<td><code>/chango/nodes/masters/&lt;nodeId&gt;</code></td>
+<td>Each master writes its own <code>ready = true</code> after the pull (non-leader) or after <code>setLeaderReady</code> (leader).</td>
+<td>Per-master ready flag used by the leader's <code>waitForPeersReady()</code>.</td>
 </tr>
 </tbody>
 </table>
-<p>See <a href="../hosts-sync/">Hosts Sync</a> for the sync details.</p>
-<h2 id="adding-removing-hosts">Adding / removing hosts</h2>
-<ul>
-<li><strong>Adding</strong> a node manager — prepare the host, add it to the inventory, re-run the install playbook with <code>--limit &lt;new-host&gt;</code>. The new NM registers in ZooKeeper, the leader picks it up, and component install panels in the admin UI start offering it as a target.</li>
-<li><strong>Removing</strong> a node manager — stop <code>chango-nodemanager.service</code> on that host. Its ephemeral znode disappears; the leader removes it from the live registry. Component instances still listed against that nodeId stay in metadata; before reusing the same nodeId on a different host, delete or move those instances first.</li>
-<li><strong>Adding</strong> a master — start a new master process with a fresh <code>nodeId</code> against the same ZooKeeper. It joins the leader election. The existing leader keeps leadership (sticky leader).</li>
-<li><strong>Removing</strong> a master — stop <code>chango-master.service</code>. If it was the leader, the other masters elect a new leader within a second.</li>
-</ul>
+<p><code>readinessGate.markReady()</code> is a process-local flag — once flipped, the admin HTTP server (<code>AdminHttpServer</code>) starts responding with real status codes; before it is flipped, every request to a non-auth path is shortcircuited to <code>503</code>.</p>
+<h2 id="step-by-step">Step-by-step</h2>
+<ol>
+<li><strong>Master bootstrap</strong>. <code>MasterBootstrap.start()</code> opens RocksDB stores, starts ZooKeeper client, starts internal-protocol NIO server, starts election.</li>
+<li><strong>Election</strong>. <code>MasterLeaderElection</code> may sleep up to <code>deferenceWindowMs</code> (see <a href="../sticky-leader/">Sticky Leader Election</a>) before calling <code>takeLeadership</code>. Whichever master wins runs <code>onLeadershipChange(true)</code> and writes <code>/chango/leader-ready = true</code>.</li>
+<li><strong>Admin HTTP starts, but gated</strong>. The admin HTTP server is up; the <code>ClusterReadinessGate</code> is held <code>false</code>, so every non-auth request returns <code>503</code> with a body identifying which precondition is unmet ("waiting for /chango/leader-ready", "waiting for mandatory pull", "waiting for /chango/cluster-ready").</li>
+<li><strong>Wait for <code>/chango/leader-ready</code></strong>. Both paths block until this znode exists. Cap at <code>chango.cluster.readiness.timeout.ms</code> (default <code>120_000</code>); on timeout the master logs the failure and exits.</li>
+<li><strong>Non-leader: mandatory pull</strong>. The follower runs <code>PeriodicLeaderPull.pullOnce()</code> against the leader's NIO endpoint, fetching KMS state + IAM state + metadata state + the patch library (PR 5). It retries up to 60×1s. If the pull never succeeds, the master throws <code>IllegalStateException("Mandatory startup pull failed; aborting")</code>.</li>
+<li><strong>Wire encryption</strong>. After a successful pull, the follower flips its internal-NIO encryption flag on the same cluster-wide setting the leader uses — without this, the next message it sends would be plain-text against a leader expecting AES-GCM.</li>
+<li><strong>Mark self ready</strong>. <code>registry.setMasterReady(nodeId, true)</code> writes the per-master flag. The periodic pull loop also starts here so the follower keeps syncing changes after readiness flips.</li>
+<li><strong>Leader: wait for peers</strong>. The leader runs <code>waitForPeersReady()</code> — every master in <code>/chango/nodes/masters/*</code> must report <code>ready = true</code>, and at least the minimum NMs must be registered. There is a configurable timeout; on timeout the leader logs <code>"Timed out waiting for peers; writing cluster-ready anyway"</code> and proceeds (a fresh cluster with no NMs is still useful to serve admin UI for installing the first NM).</li>
+<li><strong>Leader writes <code>/chango/cluster-ready</code></strong>. Persistent znode <code>= "true"</code>. This is the cluster-wide all-ready signal.</li>
+<li><strong>All masters wait for <code>/chango/cluster-ready</code>, then flip readiness gate</strong>. <code>readinessGate.markReady()</code> unblocks the admin HTTP path; admin UI splash flips from "cluster starting" to the normal layout.</li>
+</ol>
+<h2 id="what-clients-see-before-readiness">What clients see before readiness</h2>
+<p><code>/admin/api/auth/*</code> is open at the HTTP layer the moment Netty is up — so the admin UI can attempt <code>login</code> and surface the readiness-pending state from the JSON error body rather than from a generic connection refused. Every other path returns:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">503</span> <span class="ne">Service Unavailable</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">{</span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="s2">&quot;cluster starting: waiting for /chango/leader-ready&quot;</span><span class="p">}</span>
+</code></pre></div>
+<p>The admin UI shows a centred "Cluster starting" splash with the current precondition. It polls a lightweight readiness endpoint (which returns the same JSON when not yet ready) until it gets a 2xx, then loads the normal UI.</p>
+<h2 id="patch-system-implication">Patch-system implication</h2>
+<p><code>PeriodicLeaderPull</code> is also where the patch library catches up — every periodic pull fetches the patch index from the leader and downloads any patches the follower does not have. This means a brand-new follower that just finished the readiness flow already has every patch the leader has. See <a href="../patch-system/#non-leader-catch-up-pr-5">Patch System</a>.</p>
+<h2 id="config">Config</h2>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Default</th>
+<th>What it controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.cluster.readiness.timeout.ms</code></td>
+<td><code>120_000</code></td>
+<td>Overall cap on the readiness flow. On timeout the master exits non-zero.</td>
+</tr>
+<tr>
+<td><code>chango.cluster.readiness.poll.interval.ms</code></td>
+<td><code>1_000</code></td>
+<td>How often the leader-ready wait polls ZooKeeper.</td>
+</tr>
+<tr>
+<td><code>chango.master.leader.deference.window.ms</code></td>
+<td><code>3_000</code></td>
+<td>Sticky-leader sleep before joining the election (also used by the hot-restart yield).</td>
+</tr>
+</tbody>
+</table>
+<p>If the master exits with a readiness-timeout failure, <code>/var/log/chango/master.log</code> will end with the unmet precondition. The pid file goes stale; re-run <code>bin/start-master.sh</code> once the upstream problem is fixed (most commonly: ZK quorum down, or the leader's host unreachable from the follower).</p>
+<h2 id="why-503-on-follower-before-any-forward">Why "503 on follower" before any forward?</h2>
+<p>The follower's own readiness gate runs <strong>before</strong> the leader-forward path. A follower that has not pulled yet would forward a request to a leader the operator may also be trying to start — replaying client traffic in that situation makes the admin UI confusing (the operator sees a partial success against a half-started cluster). Holding the gate until <code>/chango/cluster-ready</code> arrives keeps the cluster's "ready" semantics binary.</p>
 
 
 
