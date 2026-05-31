@@ -99,6 +99,16 @@ Ontul-authenticated reverse proxy in front of component web UIs (Spark Master, T
 - Topology: Proxy x N.
 - Auto-discovers upstream Web UIs from running chango components.
 
+## Patch eligibility
+
+The first-party components are eligible for the [Patch System](../features/patch-system.md) — `chango-pack patch` builds an air-gapped jar / UI tarball; the admin UI's Settings → Patches page applies it across every host. Patches never touch `conf/` or component data.
+
+| Component | Patch v1 | Notes |
+|---|---|---|
+| Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium | yes | `jar`, `ui`, `both` types supported. |
+| Chango itself | v2 (on `branch-3.0.0` only) | 3-phase fan-out via detached helper, sticky-leader reclaims after restart. |
+| Trino, Spark, Flink, Kafka, Postgres, Polaris, Trino Gateway, Schema Registry, UI Proxy | no | Upgrade via blue / green — see [Upgrade](../operations/upgrade.md). |
+
 ## What chango does NOT do
 
 - **Run your data queries** — that's Trino, Spark, Flink, Ontul.

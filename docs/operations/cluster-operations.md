@@ -77,7 +77,7 @@ sudo -u chango /opt/chango/bin/stop-master.sh
 sudo -u chango -E /opt/chango/bin/start-master.sh -Dchango.zk.serverList=<zk-quorum>
 ```
 
-Leadership hands off to one of the followers on stop; when the old leader comes back up it joins as a follower, and the sticky-leader window may then re-elect it.
+Leadership hands off to one of the followers on stop; when the old leader comes back up the **sticky-leader** mechanism re-elects it without a leadership toggle. The leader writes a `master-leader-preferred:<expiresAt>` hint to ZK during its graceful stop; any follower that receives `takeLeadership` while the hint is fresh yields back during the `deferenceWindowMs` window so the original leader can reclaim leadership on restart. See [Sticky Leader Election](../features/sticky-leader.md) for the two mechanisms (cold-start deference + hot-restart sticky-back) and the ZK znodes.
 
 Node managers can be restarted in any order — the order does not affect cluster availability.
 
@@ -237,9 +237,20 @@ This is destructive; for HA, do the wipe on every master at the same time, other
 
 The admin REST API refuses non-auth routes until the cluster is "ready":
 
-- The leader is elected, or this master has pulled a fresh KMS + IAM + metadata snapshot from the leader.
+- The leader is elected, has decrypted its KMS / IAM / metadata stores, and has written `/chango/leader-ready`.
+- Every non-leader master has done a mandatory pull from the leader (KMS + IAM + metadata + patch library), marked itself ready under `/chango/nodes/masters/<id>`, and `/chango/cluster-ready = true` has been written by the leader.
 - ZooKeeper quorum is reachable.
 
 Until then, requests return `503` with a JSON body identifying which precondition is unmet. The admin UI shows a "cluster starting" splash.
 
 The readiness gate timeout is `chango.cluster.readiness.timeout.ms` (default 120 000). On master startup, the master logs `Cluster ready` once the gate opens; if it stays closed past the timeout the master exits with a non-zero status. You will see it in `/var/log/chango/master.log` and the pid file goes stale — re-run `bin/start-master.sh` after fixing the underlying issue.
+
+See [Cluster Readiness](../features/cluster-readiness.md) for the full flow (leader / non-leader paths, every ZK znode, per-master ready flag) and [Leader Forwarding](../features/leader-forward.md) for how follower masters relay mutating admin traffic to the leader once readiness opens.
+
+## Config endpoint requires RUNNING
+
+`POST /admin/api/<comp>/<id>/config` (and any file-write endpoint on a component instance) **requires the instance to be RUNNING**. A request against a STOPPED instance returns `400 Bad Request` with `"instance 'X' is STOPPED — config changes require RUNNING; start the instance first."`.
+
+This keeps "admin API state" and "on-disk state" lockstep — components whose `start-*.sh` re-derives content from chango master settings would otherwise overwrite the just-edited file. Start the instance, apply the config, restart for the change to take effect. See [Config Runtime-Only Policy](../features/config-runtime-only.md).
+
+For values you need from the very first start (heap size, custom properties), use the install-time `properties` map + per-role JVM config — not the config endpoint.

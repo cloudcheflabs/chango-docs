@@ -98,8 +98,20 @@ Per-component logs live under `/opt/components/<instanceId>/logs/` (or the compo
 
 Stop, restart, add another master, add another node manager — all done by the operator running shell scripts directly on the host, not through systemctl. See [Cluster Operations](../operations/cluster-operations.md).
 
+## Admin UI tour
+
+The left sidebar has four sections:
+
+- **Cluster** — Nodes (masters + NMs, with `isLeader` / `ready`), Topology view, Backup, IAM.
+- **Components** — one page per first-party component (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium, Polaris, Postgres) and one per open-source engine (Trino, Trino Gateway, Spark, Flink, Kafka, Schema Registry, UI Proxy). Each page lists every instance with status, metrics, configure / scale / restart drawers, and a Patch History card (for first-party components).
+- **Settings → Patches** — cluster-wide patch console: drag-and-drop upload, library (newest first), Apply modal. See [Patch System](../features/patch-system.md).
+- **Settings → Self** — chango itself: install path, runtime info, the chango master process's start / stop button.
+
+If you signed in as a non-admin user, every page is read-only — a yellow banner sits at the top, and mutating buttons (Install, Start, Configure, Upload, Backup Now, Generate access key, …) are hidden. See [Role-Based Access (Stage 1)](../features/role-based-access.md).
+
 ## Next steps
 
 - [Component Catalog](../components/catalog.md) — what each layer does and how to wire them together.
 - [Cluster Topology](../features/topology.md) — multi-master, NM placement, co-location rules.
 - [Cluster Operations](../operations/cluster-operations.md) — day-2 actions.
+- [Patch System](../features/patch-system.md) — air-gapped jar / UI hotfix workflow.

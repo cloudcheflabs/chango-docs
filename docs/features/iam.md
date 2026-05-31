@@ -101,4 +101,10 @@ The IAM RocksDB is included in chango's [Backup & Restore](backup.md) artifact a
 | `POST /admin/api/iam/access-keys` | Issue an access key for a user |
 | `POST /admin/api/sts/assume-role` | Issue short-lived credentials |
 
-All routes (except `auth/login` and `auth/refresh`) require a Bearer access token. Mutating routes additionally require leader status.
+All routes (except `auth/login` and `auth/refresh`) require a Bearer access token. Mutating routes additionally require leader status — on a follower master the entire request is transparently forwarded to the leader (see [Leader Forwarding](leader-forward.md)).
+
+## Stage-1 RBAC
+
+The chango control plane currently runs in **Stage-1 RBAC** mode: an authenticated user is either **admin** (holds the `AdministratorAccess` policy directly or via a group) or **read-only**. Mutations and **secret-reveal `GET`s** — `iam/download-key/*`, `/password`, `/admin-password`, `/catalog-config`, `/catalog-connection` — are blocked for non-admins at the backend; the admin UI hides the corresponding buttons. Reads otherwise work for every authenticated user.
+
+See [Role-Based Access (Stage 1)](role-based-access.md) for the full surface and the planned Stage-2 fine-grained model.
