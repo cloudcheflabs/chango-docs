@@ -42,6 +42,7 @@ nav:
       - "Node Preparation": installation/node-preparation.md
       - "Manual Install": installation/manual.md
       - "Automated Install (Ansible)": installation/automated.md
+      - "Checksums & Bill of Materials": installation/bill-of-materials.md
       - "Getting Started": installation/getting-started.md
   - "Features":
       - "Control Plane": features/control-plane.md
@@ -58,9 +59,11 @@ nav:
       - "Port Allocator": features/port-allocator.md
       - "Hosts Sync": features/hosts-sync.md
       - "UI Proxy": features/ui-proxy.md
+      - "Trino Gateway Routing": features/gateway-routing.md
       - "Monitoring & Metrics": features/monitoring.md
       - "Logging": features/logging.md
       - "Backup & Restore": features/backup.md
+      - "PostgreSQL Backup & Restore": features/postgres-backup.md
       - "Patch System": features/patch-system.md
       - "License Manager": features/license.md
       - "Config Runtime-Only Policy": features/config-runtime-only.md
@@ -71,6 +74,7 @@ nav:
       - "Cluster Operations": operations/cluster-operations.md
       - "Component Operations": operations/component-operations.md
       - "Nginx Reverse Proxy": operations/nginx-proxy.md
+      - "Configuration Reference": operations/configuration.md
       - "JVM & Heap Tuning": operations/jvm-tuning.md
       - "Upgrade": operations/upgrade.md
   - "Tutorials":

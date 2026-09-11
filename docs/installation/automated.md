@@ -76,13 +76,49 @@ When it finishes you have, **next to** the `chango-3.0.0/` directory:
 ```
 chango-bundle-3.0.0/
 ├── chango-3.0.0.tar.gz              # lean — for node-manager hosts
-└── chango-with-comps-3.0.0.tar.gz   # + JDKs + components — for the master host (≈ 4.4 GB)
+├── chango-with-comps-3.0.0.tar.gz   # + JDKs + components — for the master host
+├── checksums.sha256                 # digests of the two tarballs above
+├── component-inventory.tsv          # products: version, digest, licence, source
+├── component-inventory.json         #   the same, CycloneDX
+└── sbom/                            # libraries inside chango's own jars
 chango-bundle-3.0.0.tar.gz           # the directory above, tarred, for air-gapped transfer
+chango-bundle-3.0.0.tar.gz.sha256    # its digest — outside the archive on purpose
 ```
 
 Both tarballs already have the JDK and component binaries staged into their `ansible/roles/*/files/` directories, so the playbook ships them to every host without any extra `cp`.
 
+The checksums and the two bills of materials are what a customer's import-approval process asks for. Verify the media before opening it:
+
+```bash
+sha256sum -c chango-bundle-3.0.0.tar.gz.sha256
+```
+
+See [Checksums & Bill of Materials](bill-of-materials.md) for the rest — what each file covers, why the digests stop where they do, and which licences are worth flagging before a security review rather than during one.
+
 The download is idempotent — re-running `build-with-comps.sh` skips files already present, so an interrupted build resumes cheaply. Force a re-download by deleting the target file first.
+
+### Bundling only the components you need
+
+The full bundle is over 10 GB because it carries every component in the catalogue. A deployment that installs a subset has no reason to move all of it across an air gap.
+
+Stage only what you need under `components/`, then skip the download entirely:
+
+```bash
+CHANGO_SKIP_DOWNLOAD=1 bash build-with-comps/build-with-comps.sh
+```
+
+The installer verifies that every expected component directory extracted non-empty — a guard against a truncated multi-gigabyte extract, which otherwise surfaces much later as a component that cannot be installed. Tell it what to expect so a deliberate subset is not mistaken for a broken extraction:
+
+```yaml
+# inventory.yml
+all:
+  vars:
+    chango_expected_components:
+      - postgresql
+      - shannonstore
+```
+
+Leave it unset for a full bundle; the default lists the whole catalogue.
 
 ## 2. Carry the bundle to the controller and extract it
 

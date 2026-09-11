@@ -53,6 +53,10 @@ PostgreSQL-wire-compatible distributed database that combines OLTP + vector + fu
 ### PostgreSQL (native dependency)
 First-class PostgreSQL provisioner. Chango can install vanilla PostgreSQL as a managed component, stash the superuser password, and reuse the same instance for any component that needs a PG (Polaris metastore, Trino resource groups, NeoRunBase coordinator catalog).
 
+- Installed from a Rocky 9 RPM bundle rather than a tarball, offline via `dnf`, then `initdb`'d per instance. One instance per node-manager host.
+- `--auth-local=peer`, so the `postgres` OS user is the local superuser; remote clients use scram-sha-256.
+- The only managed component whose **data** chango backs up — see [PostgreSQL Backup & Restore](../features/postgres-backup.md). Polaris keeps its metastore here, and that metastore is the only record of where Iceberg table metadata lives.
+
 ## Agent
 
 ### Mium
@@ -76,6 +80,12 @@ Apache Spark, standalone mode. Chango ships a small first-party plugin (`chango-
 
 - Topology: Master + Worker.
 - Optional: ontul authz wiring, S3-backed event log (history server).
+
+### Livy (bundled open source)
+Apache Livy, the REST front end for Spark job submission — used by the kiok tutorials to launch Spark work without an SSH hop to the Spark master.
+
+- Installed alongside a Spark cluster rather than as its own component type.
+- Runs on **Java 11**: Livy 0.8 was built against Java 8/11 and breaks on the Java 17 module system. That is why the bundle carries three JDKs.
 
 ### Trino
 Trino distributed SQL. Chango ships a `SystemAccessControl` plugin (`chango-trino-authz`) that enforces Ontul IAM policies on every query — table allow / deny, column masking, row filters.
