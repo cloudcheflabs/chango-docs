@@ -522,6 +522,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../installation/bill-of-materials/" class="md-nav__link">
+        Checksums & Bill of Materials
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../installation/getting-started/" class="md-nav__link">
         Getting Started
       </a>
@@ -767,6 +781,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/gateway-routing/" class="md-nav__link">
+        Trino Gateway Routing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/monitoring/" class="md-nav__link">
         Monitoring & Metrics
       </a>
@@ -797,6 +825,20 @@
     <li class="md-nav__item">
       <a href="../../features/backup/" class="md-nav__link">
         Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/postgres-backup/" class="md-nav__link">
+        PostgreSQL Backup & Restore
       </a>
     </li>
   
@@ -964,6 +1006,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#libraries-bundled-alongside-the-engines" class="md-nav__link">
+    Libraries bundled alongside the engines
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#first-party-plugins-shipped-with-engines" class="md-nav__link">
     First-party plugins shipped with engines
   </a>
@@ -980,6 +1029,13 @@
         <li class="md-nav__item">
   <a href="#overriding-the-default-version" class="md-nav__link">
     Overriding the default version
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-authoritative-list" class="md-nav__link">
+    The authoritative list
   </a>
   
 </li>
@@ -1064,6 +1120,20 @@
     <li class="md-nav__item">
       <a href="../../operations/nginx-proxy/" class="md-nav__link">
         Nginx Reverse Proxy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/configuration/" class="md-nav__link">
+        Configuration Reference
       </a>
     </li>
   
@@ -1344,6 +1414,10 @@
 </thead>
 <tbody>
 <tr>
+<td>Java 11</td>
+<td>OpenLogic OpenJDK 11.0.27+6 — used by Spark and Livy</td>
+</tr>
+<tr>
 <td>Java 17</td>
 <td>OpenLogic OpenJDK 17.0.7+7 — used by chango itself and most components</td>
 </tr>
@@ -1353,6 +1427,9 @@
 </tr>
 </tbody>
 </table>
+<p>Three, not two. Livy 0.8 was built against Java 8/11 and breaks on the Java 17
+module system, and Spark 3.5 standalone is most stable on the same runtime — so
+they keep their own JDK rather than being forced onto chango's.</p>
 <h2 id="cloud-chef-labs-components">Cloud Chef Labs components</h2>
 <table>
 <thead>
@@ -1450,6 +1527,61 @@
 <td>1.4.1</td>
 <td>Iceberg Catalog</td>
 </tr>
+<tr>
+<td>Livy (Apache)</td>
+<td>0.8.0-incubating</td>
+<td>Spark REST job submission; Scala 2.12, Java 11</td>
+</tr>
+</tbody>
+</table>
+<h2 id="libraries-bundled-alongside-the-engines">Libraries bundled alongside the engines</h2>
+<p>Vanilla Spark and Flink ship without S3A and Iceberg support, and an air-gapped
+host cannot reach Maven Central to add them. These travel in the bundle and are
+dropped into each install's <code>jars/</code> (Spark) or <code>lib/</code> (Flink) directory.</p>
+<table>
+<thead>
+<tr>
+<th>Library</th>
+<th>Version</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>iceberg-spark-runtime-3.5_2.12</td>
+<td>1.6.1</td>
+<td>Spark</td>
+</tr>
+<tr>
+<td>iceberg-flink-runtime-1.19</td>
+<td>1.6.1</td>
+<td>Flink</td>
+</tr>
+<tr>
+<td>iceberg-aws-bundle</td>
+<td>1.6.1</td>
+<td>Spark, Flink</td>
+</tr>
+<tr>
+<td>hadoop-aws</td>
+<td>3.3.4</td>
+<td>Spark — S3A filesystem</td>
+</tr>
+<tr>
+<td>hadoop-client-api / hadoop-client-runtime</td>
+<td>3.3.4</td>
+<td>Spark</td>
+</tr>
+<tr>
+<td>aws-java-sdk-bundle</td>
+<td>1.12.262</td>
+<td>Spark — S3A's AWS SDK</td>
+</tr>
+<tr>
+<td>flink-sql-connector-kafka</td>
+<td>3.2.0-1.19</td>
+<td>Flink</td>
+</tr>
 </tbody>
 </table>
 <h2 id="first-party-plugins-shipped-with-engines">First-party plugins shipped with engines</h2>
@@ -1496,6 +1628,14 @@
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="s1">}&#39;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino
 </code></pre></div>
 <p>Chango does not enforce compatibility across versions — older or newer engine versions may or may not work with the first-party authz plugins shipped at this release. The defaults above are the validated combination.</p>
+<h2 id="the-authoritative-list">The authoritative list</h2>
+<p>This page is written for reading. The machine-readable version is generated from
+the bundle itself and carries a digest and a licence for every artifact:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>column<span class="w"> </span>-t<span class="w"> </span>-s<span class="s1">$&#39;\t&#39;</span><span class="w"> </span>chango-bundle-3.0.0/component-inventory.tsv
+</code></pre></div>
+<p>If the two ever disagree, the inventory is right — it is produced from the files
+being shipped, while this page is maintained by hand. See
+<a href="../../installation/bill-of-materials/">Checksums &amp; Bill of Materials</a>.</p>
 
 
 

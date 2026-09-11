@@ -8,20 +8,20 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/cluster-readiness/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/postgres-backup/">
       
       
-        <link rel="prev" href="../leader-forward/">
+        <link rel="prev" href="../backup/">
       
       
-        <link rel="next" href="../iam/">
+        <link rel="next" href="../patch-system/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
     
     
       
-        <title>Cluster Readiness - Chango</title>
+        <title>PostgreSQL Backup & Restore - Chango</title>
       
     
     
@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cluster-readiness" class="md-skip">
+        <a href="#postgresql-backup-restore" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cluster Readiness
+              PostgreSQL Backup & Restore
             
           </span>
         </div>
@@ -641,87 +641,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Cluster Readiness
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../cluster-readiness/" class="md-nav__link">
         Cluster Readiness
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#the-full-flow" class="md-nav__link">
-    The full flow
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-by-step" class="md-nav__link">
-    Step-by-step
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-clients-see-before-readiness" class="md-nav__link">
-    What clients see before readiness
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#patch-system-implication" class="md-nav__link">
-    Patch-system implication
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#config" class="md-nav__link">
-    Config
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-503-on-follower-before-any-forward" class="md-nav__link">
-    Why "503 on follower" before any forward?
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -913,11 +837,155 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../postgres-backup/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          PostgreSQL Backup & Restore
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         PostgreSQL Backup & Restore
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-runs" class="md-nav__link">
+    How it runs
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#credentials" class="md-nav__link">
+    Credentials
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#format" class="md-nav__link">
+    Format
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-archives-go" class="md-nav__link">
+    Where archives go
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    Configuration
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scheduling" class="md-nav__link">
+    Scheduling
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retention" class="md-nav__link">
+    Retention
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restore" class="md-nav__link">
+    Restore
+  </a>
+  
+    <nav class="md-nav" aria-label="Restore">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#non-fatal-errors" class="md-nav__link">
+    Non-fatal errors
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checksum-verification" class="md-nav__link">
+    Checksum verification
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rest-api" class="md-nav__link">
+    REST API
+  </a>
+  
+    <nav class="md-nav" aria-label="REST API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-back-up-and-wait" class="md-nav__link">
+    Example — back up and wait
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-restore-a-named-archive" class="md-nav__link">
+    Example — restore a named archive
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-does-not-cover" class="md-nav__link">
+    What this does not cover
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1357,112 +1425,245 @@
                   
 
 
-<h1 id="cluster-readiness">Cluster Readiness</h1>
-<p>When a chango master starts (cold, restart, or after a self-patch), it does not serve admin REST traffic until it has proven that it holds a fresh, leader-validated copy of the cluster state. Until then every request to <code>/admin/api/&lt;anything except auth/*&gt;</code> returns <code>503 Service Unavailable</code>. This is the readiness gate.</p>
-<p>The gate exists for one reason: <strong>a follower master that has not yet synced from the leader could serve stale (or, on a freshly-wiped node, empty) IAM and silently accept the wrong credentials</strong>. The same applies to KMS keys (envelope-wrapped DEKs would fail to decrypt) and to component metadata (the inventory page would show an empty list).</p>
-<h2 id="the-full-flow">The full flow</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>            ┌──────── leader path ────────┐    ┌──────── non-leader path ─────────┐
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>            │                             │    │                                  │
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  start  ─→ │ election: takeLeadership    │    │ election: takeLeadership          │
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>            │ KMS / IAM / metadata init   │    │   (returns immediately as follower)│
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>            │ registry.setLeaderReady(true)│    │ wait for /chango/leader-ready    │
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>            │ writes /chango/leader-ready │    │ mandatory pull-from-leader        │
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            │                             │    │   (KMS + IAM + metadata + patches)│
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            │ registry.setMasterReady(self,true)│ enableWireEncryptionIfNeeded() │
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            │ waitForPeersReady()         │    │ registry.setMasterReady(self,true)│
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            │ registry.setClusterReady(true)│  │                                  │
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            │ writes /chango/cluster-ready│    │                                  │
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            └──────────────┬──────────────┘    └────────────────┬─────────────────┘
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>                           │                                    │
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                           └─────────────  both paths  ─────────┘
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                                          │
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>                                  wait for /chango/cluster-ready
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>                                          │
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>                                readinessGate.markReady()
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>                                          │
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                                admin HTTP starts serving 2xx
+<h1 id="postgresql-backup-restore">PostgreSQL Backup &amp; Restore</h1>
+<p>Chango's own <a href="../backup/">backup</a> covers the control plane — KMS, IAM, the component inventory. It does not cover what lives <em>inside</em> a managed PostgreSQL instance, and for most clusters that is the more consequential omission.</p>
+<p>The reason is the Polaris catalog. Polaris keeps its metastore in a chango-managed PostgreSQL, and that metastore is the only record of which Iceberg tables exist and where their metadata files live. Losing it does not lose a single byte of data in object storage — every Parquet file and every manifest is still there — but it loses every pointer into them. The master's archive knows a PostgreSQL instance exists; it knows nothing about its contents.</p>
+<p>So each PostgreSQL instance can be dumped to S3 and restored from it, on demand or on a schedule.</p>
+<h2 id="how-it-runs">How it runs</h2>
+<p>The dump runs on the node manager hosting the instance and is uploaded to S3 from there. It never passes through the master.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Admin UI / REST                    Master (leader)                 Node manager
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>      │                                  │                               │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>      │  POST /postgres/&lt;id&gt;/backup      │                               │
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>      ├─────────────────────────────────►│                               │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>      │  ◄── { jobId, status: RUNNING }  │                               │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>      │                                  │  PG_BACKUP_REQ                │
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>      │                                  ├──────────────────────────────►│
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>      │                                  │   { objectKey, s3 config }    │
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>      │  GET  /postgres/&lt;id&gt;/backup-jobs │                               │  pg_dumpall | gzip
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>      ├─────────────────────────────────►│                               │         │
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>      │  ◄── { status, sizeBytes, … }    │                               │         ▼
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>      │                                  │  ◄────────────────────────────┤   ┌──────────┐
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>      │                                  │   { objectKey, sha256, … }    │   │    S3    │
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                                                                             └──────────┘
 </code></pre></div>
-<p>The ZK znodes that gate everything:</p>
+<p>Two decisions in that picture are worth explaining.</p>
+<p><strong>The dump does not travel through the master.</strong> <code>pg_dumpall</code> is a local binary reading a local data directory, so it can only be produced on the node manager. It is also the one chango artifact with no upper bound — control-plane archives are megabytes, a customer database is whatever it is. Routing it through the master would put an arbitrarily large file on the master's heap and its network path twice, for nothing. Only the outcome comes back.</p>
+<p><strong>Backup and restore are jobs, not request-response.</strong> A dump runs for as long as it runs. Holding the HTTP call open for its duration means the browser gives up first, the operator retries, and two dumps of the same instance run at once. The REST call therefore starts a job and answers immediately; the UI polls it.</p>
+<p>Only one operation runs per instance at a time. Two concurrent backups would merely waste work, but a restore racing anything else on the same instance leaves it in a state neither operation intended, so the second request is refused rather than queued.</p>
+<h2 id="credentials">Credentials</h2>
+<p>Neither direction handles the PostgreSQL superuser password.</p>
+<p>Chango initdb's every managed instance with <code>--auth-local=peer</code>, which makes the <code>postgres</code> OS user the local superuser. Both <code>pg_dumpall</code> and <code>psql</code> run as that user over the local socket, so there is no password to pass on a command line, leak into a process listing, or write to a log.</p>
+<p>The S3 credentials do travel to the node manager, in the request payload — that is what the internal protocol's KMS payload encryption exists for.</p>
+<p>The dump file itself stays <code>0600</code> for its whole life. It is written by <code>postgres</code>, so the node-manager user cannot read it to upload; rather than widening the mode — which would leave a world-readable copy of every database on the host for the length of the upload — ownership moves back to the node-manager user once the dump is complete, and moves to <code>postgres</code> again for a restore.</p>
+<h2 id="format">Format</h2>
+<p><code>pg_dumpall</code> plain SQL, gzipped. One file per instance covering roles, tablespaces and every database.</p>
+<p>A <code>pg_dump -Fc</code> per database would restore faster in parallel, but it would silently drop the globals — and an instance backup that loses its roles restores into a database nobody can log into. The slower format is the one that actually restores.</p>
+<h2 id="where-archives-go">Where archives go</h2>
+<p>The S3 destination is the same <code>backup.s3.*</code> configuration the master's own backup uses, edited on <strong>Settings → Backup</strong> in the admin UI. One bucket and one credential pair serve both. Configuring them twice is how a rotated key ends up applied to one and not the other, with the second failing quietly.</p>
+<p>Only the prefix differs:</p>
 <table>
 <thead>
 <tr>
-<th>ZK path</th>
-<th>Written by</th>
-<th>Meaning</th>
+<th></th>
+<th>Object key</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>/chango/leader-ready</code></td>
-<td>The current leader, after KMS / IAM / metadata init.</td>
-<td>"There is a leader; it has decrypted its stores and is willing to accept pull requests from followers."</td>
+<td>Master control-plane archive</td>
+<td><code>chango-backups/&lt;backupId&gt;.tar.gz</code></td>
 </tr>
 <tr>
-<td><code>/chango/cluster-ready</code></td>
-<td>The current leader, after <code>waitForPeersReady()</code>.</td>
-<td>"All masters and at least the minimum required NMs report <code>ready = true</code>."</td>
-</tr>
-<tr>
-<td><code>/chango/nodes/masters/&lt;nodeId&gt;</code></td>
-<td>Each master writes its own <code>ready = true</code> after the pull (non-leader) or after <code>setLeaderReady</code> (leader).</td>
-<td>Per-master ready flag used by the leader's <code>waitForPeersReady()</code>.</td>
+<td>PostgreSQL archive</td>
+<td><code>chango-postgres-backups/&lt;instanceId&gt;/&lt;timestamp&gt;-&lt;rand&gt;.sql.gz</code></td>
 </tr>
 </tbody>
 </table>
-<p><code>readinessGate.markReady()</code> is a process-local flag — once flipped, the admin HTTP server (<code>AdminHttpServer</code>) starts responding with real status codes; before it is flipped, every request to a non-auth path is shortcircuited to <code>503</code>.</p>
-<h2 id="step-by-step">Step-by-step</h2>
-<ol>
-<li><strong>Master bootstrap</strong>. <code>MasterBootstrap.start()</code> opens RocksDB stores, starts ZooKeeper client, starts internal-protocol NIO server, starts election.</li>
-<li><strong>Election</strong>. <code>MasterLeaderElection</code> may sleep up to <code>deferenceWindowMs</code> (see <a href="../sticky-leader/">Sticky Leader Election</a>) before calling <code>takeLeadership</code>. Whichever master wins runs <code>onLeadershipChange(true)</code> and writes <code>/chango/leader-ready = true</code>.</li>
-<li><strong>Admin HTTP starts, but gated</strong>. The admin HTTP server is up; the <code>ClusterReadinessGate</code> is held <code>false</code>, so every non-auth request returns <code>503</code> with a body identifying which precondition is unmet ("waiting for /chango/leader-ready", "waiting for mandatory pull", "waiting for /chango/cluster-ready").</li>
-<li><strong>Wait for <code>/chango/leader-ready</code></strong>. Both paths block until this znode exists. Cap at <code>chango.cluster.readiness.timeout.ms</code> (default <code>120_000</code>); on timeout the master logs the failure and exits.</li>
-<li><strong>Non-leader: mandatory pull</strong>. The follower runs <code>PeriodicLeaderPull.pullOnce()</code> against the leader's NIO endpoint, fetching KMS state + IAM state + metadata state + the patch library (PR 5). It retries up to 60×1s. If the pull never succeeds, the master throws <code>IllegalStateException("Mandatory startup pull failed; aborting")</code>.</li>
-<li><strong>Wire encryption</strong>. After a successful pull, the follower flips its internal-NIO encryption flag on the same cluster-wide setting the leader uses — without this, the next message it sends would be plain-text against a leader expecting AES-GCM.</li>
-<li><strong>Mark self ready</strong>. <code>registry.setMasterReady(nodeId, true)</code> writes the per-master flag. The periodic pull loop also starts here so the follower keeps syncing changes after readiness flips.</li>
-<li><strong>Leader: wait for peers</strong>. The leader runs <code>waitForPeersReady()</code> — every master in <code>/chango/nodes/masters/*</code> must report <code>ready = true</code>, and at least the minimum NMs must be registered. There is a configurable timeout; on timeout the leader logs <code>"Timed out waiting for peers; writing cluster-ready anyway"</code> and proceeds (a fresh cluster with no NMs is still useful to serve admin UI for installing the first NM).</li>
-<li><strong>Leader writes <code>/chango/cluster-ready</code></strong>. Persistent znode <code>= "true"</code>. This is the cluster-wide all-ready signal.</li>
-<li><strong>All masters wait for <code>/chango/cluster-ready</code>, then flip readiness gate</strong>. <code>readinessGate.markReady()</code> unblocks the admin HTTP path; admin UI splash flips from "cluster starting" to the normal layout.</li>
-</ol>
-<h2 id="what-clients-see-before-readiness">What clients see before readiness</h2>
-<p><code>/admin/api/auth/*</code> is open at the HTTP layer the moment Netty is up — so the admin UI can attempt <code>login</code> and surface the readiness-pending state from the JSON error body rather than from a generic connection refused. Every other path returns:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">503</span> <span class="ne">Service Unavailable</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">{</span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="s2">&quot;cluster starting: waiting for /chango/leader-ready&quot;</span><span class="p">}</span>
-</code></pre></div>
-<p>The admin UI shows a centred "Cluster starting" splash with the current precondition. It polls a lightweight readiness endpoint (which returns the same JSON when not yet ready) until it gets a 2xx, then loads the normal UI.</p>
-<h2 id="patch-system-implication">Patch-system implication</h2>
-<p><code>PeriodicLeaderPull</code> is also where the patch library catches up — every periodic pull fetches the patch index from the leader and downloads any patches the follower does not have. This means a brand-new follower that just finished the readiness flow already has every patch the leader has. See <a href="../patch-system/#non-leader-catch-up-pr-5">Patch System</a>.</p>
-<h2 id="config">Config</h2>
+<p>Each instance gets its own folder, so a listing sorts chronologically per instance and archives from different instances never collide.</p>
+<p>If no S3 destination is configured, the Backup &amp; Restore drawer says so and the <strong>Back up now</strong> button is disabled. There is no point offering an action that is known to fail.</p>
+<h2 id="configuration">Configuration</h2>
+<p>The destination is shared; these three keys are PostgreSQL-specific and live in the metadata store, set from the drawer's <strong>Schedule</strong> tab or <code>POST /admin/api/postgres/backup-config</code>.</p>
 <table>
 <thead>
 <tr>
-<th>Property</th>
+<th>Key</th>
 <th>Default</th>
-<th>What it controls</th>
+<th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>chango.cluster.readiness.timeout.ms</code></td>
-<td><code>120_000</code></td>
-<td>Overall cap on the readiness flow. On timeout the master exits non-zero.</td>
+<td><code>backup.postgres.object-prefix</code></td>
+<td><code>chango-postgres-backups/</code></td>
+<td>Key prefix inside the shared bucket</td>
 </tr>
 <tr>
-<td><code>chango.cluster.readiness.poll.interval.ms</code></td>
-<td><code>1_000</code></td>
-<td>How often the leader-ready wait polls ZooKeeper.</td>
+<td><code>backup.postgres.cron</code></td>
+<td><em>(empty)</em></td>
+<td>5-field UNIX cron; empty means manual only</td>
 </tr>
 <tr>
-<td><code>chango.master.leader.deference.window.ms</code></td>
-<td><code>3_000</code></td>
-<td>Sticky-leader sleep before joining the election (also used by the hot-restart yield).</td>
+<td><code>backup.postgres.retention.days</code></td>
+<td><code>0</code></td>
+<td><code>0</code> keeps archives forever</td>
 </tr>
 </tbody>
 </table>
-<p>If the master exits with a readiness-timeout failure, <code>/var/log/chango/master.log</code> will end with the unmet precondition. The pid file goes stale; re-run <code>bin/start-master.sh</code> once the upstream problem is fixed (most commonly: ZK quorum down, or the leader's host unreachable from the follower).</p>
-<h2 id="why-503-on-follower-before-any-forward">Why "503 on follower" before any forward?</h2>
-<p>The follower's own readiness gate runs <strong>before</strong> the leader-forward path. A follower that has not pulled yet would forward a request to a leader the operator may also be trying to start — replaying client traffic in that situation makes the admin UI confusing (the operator sees a partial success against a half-started cluster). Holding the gate until <code>/chango/cluster-ready</code> arrives keeps the cluster's "ready" semantics binary.</p>
+<p>Static defaults are in <code>chango.properties</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.postgres.backup.timeout.ms</code></td>
+<td><code>21600000</code> (6 h)</td>
+<td>A ceiling on a stuck process, not a budget — a large dump legitimately runs for hours</td>
+</tr>
+<tr>
+<td><code>chango.postgres.backup.job.history</code></td>
+<td><code>50</code></td>
+<td>Jobs kept for the UI's history panel</td>
+</tr>
+<tr>
+<td><code>chango.postgres.backup.object.prefix</code></td>
+<td><code>chango-postgres-backups/</code></td>
+<td>Default for the runtime key above</td>
+</tr>
+<tr>
+<td><code>chango.postgres.bin.dir</code></td>
+<td><code>/usr/pgsql-16/bin</code></td>
+<td>Where <code>pg_dumpall</code> / <code>psql</code> live on a node-manager host</td>
+</tr>
+<tr>
+<td><code>chango.postgres.run.as.user</code></td>
+<td><code>postgres</code></td>
+<td>The OS user, and the local superuser</td>
+</tr>
+<tr>
+<td><code>chango.postgres.backup.log.tail.lines</code></td>
+<td><code>500</code></td>
+<td>Output lines retained from a run</td>
+</tr>
+</tbody>
+</table>
+<p>The last two are host facts rather than chango's to decide, which is why they are configurable: a site that installs PostgreSQL somewhere else needs a way to say so.</p>
+<h2 id="scheduling">Scheduling</h2>
+<p>Set a 5-field UNIX cron on the Schedule tab. When it fires, <strong>every RUNNING instance</strong> is backed up; instances that are stopped are skipped and logged rather than failing the run.</p>
+<p>An invalid expression is rejected on save with a <code>400</code> naming the problem. Accepting it and silently never firing is the failure that gets discovered months later, when the backup is needed.</p>
+<p>The next fire time is shown under the field, so "did I write that correctly" is answerable without waiting for 03:00.</p>
+<p>Two details make the schedule behave under load:</p>
+<ul>
+<li>The next fire time is advanced <strong>before</strong> the backup runs. A dump that takes longer than the interval would otherwise be immediately due again on completion, and a slow instance would back up in a continuous loop.</li>
+<li>Only the leader dispatches. Followers keep the schedule armed — the expression lives in replicated config — so a new leader picks up the very next window rather than waiting for a restart.</li>
+</ul>
+<p>If one instance fails, the others still run. A single unreachable database is not a reason to skip the rest of the fleet.</p>
+<h2 id="retention">Retention</h2>
+<p><code>backup.postgres.retention.days</code> deletes archives older than the window, <strong>after</strong> a successful backup — so a failed run can never be what deletes the last good archive.</p>
+<p>An object whose endpoint reports no <code>LastModified</code> is left alone rather than guessed at. Deleting a backup on missing metadata is not recoverable.</p>
+<h2 id="restore">Restore</h2>
+<p>Restore is always an explicit operator action naming both the instance and the archive. Pick an archive from the list and press <strong>Restore</strong>; a confirmation appears first, because the archive recreates every role and database it contains and therefore <strong>replaces what is in the instance now</strong>. Anything written since the archive was taken is lost.</p>
+<p>There is deliberately no "restore the latest" shortcut. The situation where that would be convenient — everything is broken and the newest archive is the one you want — is also the situation where the newest archive may be the one that recorded the breakage.</p>
+<p>An archive does not have to have come from the instance it is restored into. Restoring a production dump into a staging instance is a legitimate thing to want. It does have to live under the configured prefix, so a restore cannot be pointed at an arbitrary object in the bucket.</p>
+<h3 id="non-fatal-errors">Non-fatal errors</h3>
+<p>A dumpall replay always reports some errors that do not matter: dropping the role it is connected as, recreating the database it is connected to. Running with <code>ON_ERROR_STOP</code> would abort every restore on the first one.</p>
+<p>So <code>psql</code> runs without it, and the <strong>count of errors is returned and displayed</strong> instead. <code>2 non-fatal</code> next to a completed restore is normal for a single-database instance. A number far larger than that is worth reading the job log over. Reporting only "ok" would make a genuinely broken restore indistinguishable from a healthy one.</p>
+<h3 id="checksum-verification">Checksum verification</h3>
+<p><code>POST /postgres/&lt;id&gt;/restore</code> accepts an optional <code>expectSha256</code>. When present it is compared against the downloaded archive and the restore is refused on a mismatch, rather than replaying an archive that changed since it was written.</p>
+<h2 id="rest-api">REST API</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/admin/api/postgres/backup-config</code></td>
+<td>Prefix, cron, retention, and whether the shared S3 destination is usable</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/admin/api/postgres/backup-config</code></td>
+<td>Merge-update of the three runtime keys</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/admin/api/postgres/&lt;id&gt;/backups</code></td>
+<td>Archives for this instance, newest first</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/admin/api/postgres/&lt;id&gt;/backup</code></td>
+<td>Start a backup; answers with the job record</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/admin/api/postgres/&lt;id&gt;/restore</code></td>
+<td>Start a restore — <code>{ objectKey, expectSha256? }</code></td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/admin/api/postgres/&lt;id&gt;/backup-jobs</code></td>
+<td>This instance's jobs, newest first</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/admin/api/postgres/backup-jobs</code></td>
+<td>Every instance's jobs</td>
+</tr>
+</tbody>
+</table>
+<p>A job record:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;jobId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;6058ab64-2f5&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;instanceId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pg-main&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;backup&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;COMPLETED&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">&quot;startedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-09-11T13:51:33Z&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">&quot;finishedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-09-11T13:51:36Z&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">&quot;objectKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;chango-postgres-backups/pg-main/20260911T135136-9839c866.sql.gz&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">&quot;sizeBytes&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1416</span><span class="p">,</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">&quot;sha256&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;…&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="nt">&quot;durationMs&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3104</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>status</code> is <code>RUNNING</code>, <code>COMPLETED</code> or <code>FAILED</code>. A restore record additionally carries <code>nonFatalErrors</code>.</p>
+<h3 id="example-back-up-and-wait">Example — back up and wait</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">BASE</span><span class="o">=</span>http://&lt;master&gt;:8080
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">      </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">      </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;…&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nv">JOB</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/postgres/pg-main/backup<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">      </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">      </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.jobId<span class="k">)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">until</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span><span class="nv">$BASE</span>/admin/api/postgres/pg-main/backup-jobs<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">           </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">           </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>--arg<span class="w"> </span>j<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$JOB</span><span class="s2">&quot;</span><span class="w"> </span><span class="s1">&#39;.[] | select(.jobId==$j) | .status&#39;</span><span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span>!<span class="o">=</span><span class="w"> </span>RUNNING<span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">  </span>sleep<span class="w"> </span><span class="m">3</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="k">done</span>
+</code></pre></div>
+<h3 id="example-restore-a-named-archive">Example — restore a named archive</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/postgres/pg-main/restore<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;objectKey&quot;:&quot;chango-postgres-backups/pg-main/20260911T135136-9839c866.sql.gz&quot;}&#39;</span>
+</code></pre></div>
+<h2 id="what-this-does-not-cover">What this does not cover</h2>
+<ul>
+<li><strong>Point-in-time recovery.</strong> These are logical dumps at an instant, not WAL archiving. Recovery granularity is the backup interval.</li>
+<li><strong>Other components' data.</strong> Iceberg files on ShannonStore, NeoRunBase tables, ItdaStream topics, Kafka logs, kiok workflow state — each component backs up its own. See <a href="../backup/">Backup &amp; Restore</a> for what the control-plane archive covers.</li>
+<li><strong>The chango master key.</strong> Unchanged from the control-plane backup: chango never persists it, and without it the master's archives cannot be opened. PostgreSQL archives are not sealed with it — they are protected by the object store's access control and whatever server-side encryption it offers.</li>
+</ul>
 
 
 

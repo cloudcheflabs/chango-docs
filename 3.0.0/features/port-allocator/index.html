@@ -522,6 +522,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../installation/bill-of-materials/" class="md-nav__link">
+        Checksums & Bill of Materials
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../installation/getting-started/" class="md-nav__link">
         Getting Started
       </a>
@@ -845,6 +859,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../gateway-routing/" class="md-nav__link">
+        Trino Gateway Routing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../monitoring/" class="md-nav__link">
         Monitoring & Metrics
       </a>
@@ -875,6 +903,20 @@
     <li class="md-nav__item">
       <a href="../backup/" class="md-nav__link">
         Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../postgres-backup/" class="md-nav__link">
+        PostgreSQL Backup & Restore
       </a>
     </li>
   
@@ -1057,6 +1099,20 @@
     <li class="md-nav__item">
       <a href="../../operations/nginx-proxy/" class="md-nav__link">
         Nginx Reverse Proxy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/configuration/" class="md-nav__link">
+        Configuration Reference
       </a>
     </li>
   
@@ -1318,79 +1374,139 @@
 <tr>
 <th>Band</th>
 <th>Default base</th>
-<th>Range</th>
 <th>Used for</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>shannonstore-zk-client</code></td>
-<td>2181</td>
-<td>200</td>
+<td><code>shannonstore-zk-client</code> / <code>-peer</code> / <code>-leader</code></td>
+<td>2181 / 2888 / 3888</td>
 <td>ShannonStore bundled ZK</td>
 </tr>
 <tr>
-<td><code>ontul-zk-client</code></td>
-<td>2181</td>
-<td>200</td>
+<td><code>shannonstore-api-nio</code></td>
+<td>9090</td>
+<td>ShannonStore API server — S3</td>
+</tr>
+<tr>
+<td><code>shannonstore-api-admin</code></td>
+<td>8888</td>
+<td>ShannonStore API server — admin</td>
+</tr>
+<tr>
+<td><code>shannonstore-data-nio</code></td>
+<td>9500</td>
+<td>ShannonStore data node</td>
+</tr>
+<tr>
+<td><code>polaris</code></td>
+<td>8180</td>
+<td>Apache Polaris (Iceberg REST catalog)</td>
+</tr>
+<tr>
+<td><code>postgresql</code></td>
+<td>5432</td>
+<td>Managed PostgreSQL</td>
+</tr>
+<tr>
+<td><code>trino-coordinator</code> / <code>trino-worker</code></td>
+<td>8480 / 8580</td>
+<td>Trino</td>
+</tr>
+<tr>
+<td><code>trino-gateway</code></td>
+<td>8680</td>
+<td>Trino Gateway</td>
+</tr>
+<tr>
+<td><code>spark-master</code> / <code>spark-worker</code></td>
+<td>8780 / 8880</td>
+<td>Spark</td>
+</tr>
+<tr>
+<td><code>flink-jobmanager</code> / <code>flink-taskmanager</code></td>
+<td>8980 / 9080</td>
+<td>Flink</td>
+</tr>
+<tr>
+<td><code>kafka-broker</code></td>
+<td>9092</td>
+<td>Kafka</td>
+</tr>
+<tr>
+<td><code>schema-registry</code></td>
+<td>8081</td>
+<td>Confluent Schema Registry</td>
+</tr>
+<tr>
+<td><code>itdastream-broker</code></td>
+<td>9092</td>
+<td>ItdaStream</td>
+</tr>
+<tr>
+<td><code>ontul-zk-client</code> / <code>-peer</code> / <code>-leader</code></td>
+<td>2181 / 2888 / 3888</td>
 <td>Ontul bundled ZK</td>
 </tr>
 <tr>
-<td><code>ontul-master</code></td>
-<td>18080</td>
-<td>200</td>
-<td>Ontul master (admin + internal + flightsql ports)</td>
+<td><code>ontul-master</code> / <code>ontul-worker</code></td>
+<td>18080 / 18200</td>
+<td>Ontul</td>
 </tr>
 <tr>
-<td><code>ontul-worker</code></td>
-<td>18200</td>
-<td>200</td>
-<td>Ontul worker (internal + flight)</td>
+<td><code>neorunbase-coordinator</code> / <code>-datanode</code></td>
+<td>18090 / 18260</td>
+<td>NeoRunBase</td>
 </tr>
 <tr>
-<td><code>mium-master</code></td>
-<td>18600</td>
-<td>200</td>
-<td>Mium master</td>
+<td><code>kiok-master</code> / <code>kiok-worker</code></td>
+<td>18400 / 18500</td>
+<td>kiok</td>
 </tr>
 <tr>
-<td><code>mium-worker</code></td>
-<td>18700</td>
-<td>200</td>
-<td>Mium worker</td>
+<td><code>mium-master</code> / <code>mium-worker</code></td>
+<td>18600 / 18700</td>
+<td>Mium</td>
+</tr>
+<tr>
+<td><code>ui-proxy</code></td>
+<td>9180</td>
+<td>UI Proxy</td>
+</tr>
+<tr>
+<td><code>kafka-registry-nginx</code></td>
+<td>19081</td>
+<td>nginx in front of Schema Registry</td>
+</tr>
+<tr>
+<td><code>itdastream-registry-nginx</code></td>
+<td>19181</td>
+<td>nginx in front of ItdaStream registry</td>
 </tr>
 <tr>
 <td><code>shannonstore-nginx</code></td>
 <td>19200</td>
-<td>200</td>
-<td>Component nginx in front of ShannonStore</td>
+<td>nginx in front of ShannonStore</td>
 </tr>
 <tr>
-<td><code>ontul-nginx</code></td>
-<td>19220</td>
-<td>200</td>
-<td>Component nginx in front of Ontul HTTP</td>
+<td><code>ontul-nginx</code> / <code>ontul-flightsql-nginx</code></td>
+<td>19220 / 19240</td>
+<td>nginx in front of Ontul HTTP / Flight SQL</td>
 </tr>
 <tr>
-<td><code>ontul-flightsql-nginx</code></td>
-<td>19240</td>
-<td>200</td>
-<td>Component nginx in front of Ontul Flight SQL gRPC</td>
+<td><code>neorunbase-nginx</code> / <code>neorunbase-pgwire-nginx</code></td>
+<td>19260 / 19280</td>
+<td>nginx in front of NeoRunBase admin / pgwire</td>
 </tr>
 <tr>
-<td><code>neorunbase-nginx</code></td>
-<td>19260</td>
-<td>200</td>
-<td>Component nginx in front of NeoRunBase admin</td>
-</tr>
-<tr>
-<td><code>neorunbase-pgwire-nginx</code></td>
-<td>19280</td>
-<td>200</td>
-<td>Component nginx stream block for NeoRunBase pgwire</td>
+<td><code>trino-gateway-nginx</code></td>
+<td>19300</td>
+<td>nginx in front of Trino Gateway</td>
 </tr>
 </tbody>
 </table>
+<p>Every component that bundles its own ZooKeeper (Ontul, kiok, NeoRunBase, Kafka, ItdaStream, Mium, ShannonStore) has its own <code>-zk-client</code> / <code>-zk-peer</code> / <code>-zk-leader</code> bands at 2181 / 2888 / 3888. They share the same bases and are separated by host occupancy, not by band — see <a href="#host-awareness">host-awareness</a> below.</p>
+<p>Chango's own ports are fixed rather than allocated: <code>8080</code> (master admin + UI), <code>19999</code> (master internal), <code>19998</code> (node-manager internal), and <code>2181 / 2888 / 3888</code> for the control-plane ZK quorum.</p>
 <p>Defaults live in <code>PortAllocator.DEFAULT_BASE</code>; every band's base and range is overridable in <code>chango.properties</code> (<code>chango.component.port.&lt;band&gt;.base</code> / <code>.range</code>).</p>
 <p>When <code>allocate(host, band, 3)</code> is called, the allocator scans the band from <code>base</code> to <code>base + range</code>, picking the first contiguous 3-port block that is not already in use on that host.</p>
 <h2 id="host-awareness">Host-awareness</h2>
@@ -1415,7 +1531,20 @@
 <li>Delete an unused component instance that has been sitting on the host.</li>
 </ul>
 <h2 id="component-nginx-ports">Component nginx ports</h2>
-<p>The <code>*-nginx</code> bands above are deliberately spaced to non-overlapping 20-port stretches starting at 19200. This is so the operator can list well-known nginx ports per component in their firewall / security-group rules without having to look up which port a particular install landed on. The allocator still picks the actual port within the band, but the band itself is stable.</p>
+<p>The <code>*-nginx</code> bands start at 19200 and their bases are spaced 20 apart, so each component's proxy has a predictable place to look for.</p>
+<p>Note what that does <strong>not</strong> mean: the bases are 20 apart but the default range is 200, so the nominal windows overlap. Collisions still cannot happen — occupancy is derived by scanning every live instance on the host, not by trusting band boundaries — but a component's nginx can legitimately land outside the 20-port stretch after its base if the host is busy.</p>
+<p>For a firewall rule, that leaves two honest options:</p>
+<ul>
+<li>Open each band from its base for the full range (<code>19200–19399</code> for ShannonStore's). Wide, but no re-request when a component is added.</li>
+<li>
+<p>Pin the windows first, by narrowing the range so they really are disjoint:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="na">chango.component.port.shannonstore-nginx.range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">chango.component.port.ontul-nginx.range</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
+</code></pre></div>
+<p>Then the band is exactly the stretch the rule names, and an exhausted band fails loudly at install time instead of quietly using a port nobody opened.</p>
+</li>
+</ul>
+<p>Either way, the ports actually allocated are recorded in each instance's config and readable from the admin UI or <code>GET /admin/api/clusters/&lt;id&gt;</code> — which is the list to hand a security team as installed-state evidence, rather than the bands above.</p>
 
 
 

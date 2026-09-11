@@ -522,6 +522,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../installation/bill-of-materials/" class="md-nav__link">
+        Checksums & Bill of Materials
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../installation/getting-started/" class="md-nav__link">
         Getting Started
       </a>
@@ -767,6 +781,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/gateway-routing/" class="md-nav__link">
+        Trino Gateway Routing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/monitoring/" class="md-nav__link">
         Monitoring & Metrics
       </a>
@@ -797,6 +825,20 @@
     <li class="md-nav__item">
       <a href="../../features/backup/" class="md-nav__link">
         Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/postgres-backup/" class="md-nav__link">
+        PostgreSQL Backup & Restore
       </a>
     </li>
   
@@ -1098,6 +1140,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#livy-bundled-open-source" class="md-nav__link">
+    Livy (bundled open source)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#trino" class="md-nav__link">
     Trino
   </a>
@@ -1251,6 +1300,20 @@
     <li class="md-nav__item">
       <a href="../../operations/nginx-proxy/" class="md-nav__link">
         Nginx Reverse Proxy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/configuration/" class="md-nav__link">
+        Configuration Reference
       </a>
     </li>
   
@@ -1540,6 +1603,11 @@
 </ul>
 <h3 id="postgresql-native-dependency">PostgreSQL (native dependency)</h3>
 <p>First-class PostgreSQL provisioner. Chango can install vanilla PostgreSQL as a managed component, stash the superuser password, and reuse the same instance for any component that needs a PG (Polaris metastore, Trino resource groups, NeoRunBase coordinator catalog).</p>
+<ul>
+<li>Installed from a Rocky 9 RPM bundle rather than a tarball, offline via <code>dnf</code>, then <code>initdb</code>'d per instance. One instance per node-manager host.</li>
+<li><code>--auth-local=peer</code>, so the <code>postgres</code> OS user is the local superuser; remote clients use scram-sha-256.</li>
+<li>The only managed component whose <strong>data</strong> chango backs up — see <a href="../../features/postgres-backup/">PostgreSQL Backup &amp; Restore</a>. Polaris keeps its metastore here, and that metastore is the only record of where Iceberg table metadata lives.</li>
+</ul>
 <h2 id="agent">Agent</h2>
 <h3 id="mium">Mium</h3>
 <p>Cloud Chef Labs' sovereign multi-agent platform. Mium is the Agent layer of the platform — it talks to every other layer natively (Iceberg tables via Trino/Spark, vector + graph via NeoRunBase, streaming via ItdaStream, S3 via ShannonStore, workflows via kiok) without external integration glue.</p>
@@ -1560,6 +1628,12 @@
 <ul>
 <li>Topology: Master + Worker.</li>
 <li>Optional: ontul authz wiring, S3-backed event log (history server).</li>
+</ul>
+<h3 id="livy-bundled-open-source">Livy (bundled open source)</h3>
+<p>Apache Livy, the REST front end for Spark job submission — used by the kiok tutorials to launch Spark work without an SSH hop to the Spark master.</p>
+<ul>
+<li>Installed alongside a Spark cluster rather than as its own component type.</li>
+<li>Runs on <strong>Java 11</strong>: Livy 0.8 was built against Java 8/11 and breaks on the Java 17 module system. That is why the bundle carries three JDKs.</li>
 </ul>
 <h3 id="trino">Trino</h3>
 <p>Trino distributed SQL. Chango ships a <code>SystemAccessControl</code> plugin (<code>chango-trino-authz</code>) that enforces Ontul IAM policies on every query — table allow / deny, column masking, row filters.</p>

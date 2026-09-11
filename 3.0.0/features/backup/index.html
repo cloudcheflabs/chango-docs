@@ -14,7 +14,7 @@
         <link rel="prev" href="../logging/">
       
       
-        <link rel="next" href="../patch-system/">
+        <link rel="next" href="../postgres-backup/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
@@ -522,6 +522,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../installation/bill-of-materials/" class="md-nav__link">
+        Checksums & Bill of Materials
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../installation/getting-started/" class="md-nav__link">
         Getting Started
       </a>
@@ -769,6 +783,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../gateway-routing/" class="md-nav__link">
+        Trino Gateway Routing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../monitoring/" class="md-nav__link">
         Monitoring & Metrics
       </a>
@@ -994,6 +1022,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../postgres-backup/" class="md-nav__link">
+        PostgreSQL Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../patch-system/" class="md-nav__link">
         Patch System
       </a>
@@ -1164,6 +1206,20 @@
     <li class="md-nav__item">
       <a href="../../operations/nginx-proxy/" class="md-nav__link">
         Nginx Reverse Proxy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/configuration/" class="md-nav__link">
+        Configuration Reference
       </a>
     </li>
   
@@ -1478,8 +1534,11 @@
 <h2 id="what-is-not-in-a-backup">What is NOT in a backup</h2>
 <ul>
 <li><strong>The master key.</strong> Chango never persists it — it is an environment variable held in process memory. The operator stores it out-of-band and re-supplies it at restore time. Without it the archive is mathematically undecryptable. See <a href="../kms/#root-of-trust--the-master-key">KMS</a>.</li>
-<li><strong>Per-component data</strong> — Iceberg files on ShannonStore, NeoRunBase tables, ItdaStream topics, Kafka logs, PostgreSQL data dirs, kiok workflow state. Chango's backup is the <em>control-plane</em> backup; each component backs up its own data.</li>
-<li><strong>Logs</strong> — <code>/var/log/chango</code> is operational and excluded.</li>
+<li>
+<p><strong>Per-component data</strong> — Iceberg files on ShannonStore, NeoRunBase tables, ItdaStream topics, Kafka logs, kiok workflow state. Chango's backup is the <em>control-plane</em> backup; each component backs up its own data.</p>
+<p>The exception is <strong>PostgreSQL</strong>, which chango does back up — see <a href="../postgres-backup/">PostgreSQL Backup &amp; Restore</a>. It is separate from this archive because the omission matters more there than elsewhere: Polaris keeps its metastore in a managed PostgreSQL, and that metastore is the only record of which Iceberg tables exist and where their metadata lives. It shares this page's <code>backup.s3.*</code> destination and differs only in object prefix.
+- <strong>Logs</strong> — <code>/var/log/chango</code> is operational and excluded.</p>
+</li>
 </ul>
 <h2 id="configuration">Configuration</h2>
 <p>All keys live in the metadata store (envelope-encrypted) and are set through the admin UI or <code>POST /admin/api/backup/config</code>. They are <strong>runtime config</strong>, not <code>chango.properties</code> entries — see <a href="../config-runtime-only/">Config Runtime-Only Policy</a>.</p>

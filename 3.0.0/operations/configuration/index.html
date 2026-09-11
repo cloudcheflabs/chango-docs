@@ -8,20 +8,20 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/cluster-readiness/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/operations/configuration/">
       
       
-        <link rel="prev" href="../leader-forward/">
+        <link rel="prev" href="../nginx-proxy/">
       
       
-        <link rel="next" href="../iam/">
+        <link rel="next" href="../jvm-tuning/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
     
     
       
-        <title>Cluster Readiness - Chango</title>
+        <title>Configuration Reference - Chango</title>
       
     
     
@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cluster-readiness" class="md-skip">
+        <a href="#configuration-reference" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cluster Readiness
+              Configuration Reference
             
           </span>
         </div>
@@ -243,15 +243,13 @@
         
   
   
-    
-  
 
 
   
   
   
     <li class="md-tabs__item">
-      <a href="../control-plane/" class="md-tabs__link md-tabs__link--active">
+      <a href="../../features/control-plane/" class="md-tabs__link">
         Features
       </a>
     </li>
@@ -277,13 +275,15 @@
         
   
   
+    
+  
 
 
   
   
   
     <li class="md-tabs__item">
-      <a href="../../operations/cluster-operations/" class="md-tabs__link">
+      <a href="../cluster-operations/" class="md-tabs__link md-tabs__link--active">
         Operations
       </a>
     </li>
@@ -556,16 +556,14 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
       
       
-      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
       
       
       
@@ -574,7 +572,7 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
         <label class="md-nav__title" for="__nav_4">
           <span class="md-nav__icon md-icon"></span>
           Features
@@ -587,7 +585,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../control-plane/" class="md-nav__link">
+      <a href="../../features/control-plane/" class="md-nav__link">
         Control Plane
       </a>
     </li>
@@ -601,7 +599,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../topology/" class="md-nav__link">
+      <a href="../../features/topology/" class="md-nav__link">
         Cluster Topology
       </a>
     </li>
@@ -615,7 +613,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sticky-leader/" class="md-nav__link">
+      <a href="../../features/sticky-leader/" class="md-nav__link">
         Sticky Leader Election
       </a>
     </li>
@@ -629,7 +627,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../leader-forward/" class="md-nav__link">
+      <a href="../../features/leader-forward/" class="md-nav__link">
         Leader Forwarding
       </a>
     </li>
@@ -641,87 +639,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Cluster Readiness
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../features/cluster-readiness/" class="md-nav__link">
         Cluster Readiness
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#the-full-flow" class="md-nav__link">
-    The full flow
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-by-step" class="md-nav__link">
-    Step-by-step
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-clients-see-before-readiness" class="md-nav__link">
-    What clients see before readiness
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#patch-system-implication" class="md-nav__link">
-    Patch-system implication
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#config" class="md-nav__link">
-    Config
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-503-on-follower-before-any-forward" class="md-nav__link">
-    Why "503 on follower" before any forward?
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -733,7 +655,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../iam/" class="md-nav__link">
+      <a href="../../features/iam/" class="md-nav__link">
         Identity & Access Management
       </a>
     </li>
@@ -747,7 +669,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../lineage-audit/" class="md-nav__link">
+      <a href="../../features/lineage-audit/" class="md-nav__link">
         Data Lineage & Audit
       </a>
     </li>
@@ -761,7 +683,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../role-based-access/" class="md-nav__link">
+      <a href="../../features/role-based-access/" class="md-nav__link">
         Role-Based Access (Stage 1)
       </a>
     </li>
@@ -775,7 +697,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../admin-password-recovery/" class="md-nav__link">
+      <a href="../../features/admin-password-recovery/" class="md-nav__link">
         Admin Password Recovery
       </a>
     </li>
@@ -789,7 +711,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../kms/" class="md-nav__link">
+      <a href="../../features/kms/" class="md-nav__link">
         Encryption & Key Management
       </a>
     </li>
@@ -803,7 +725,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../product-master-keys/" class="md-nav__link">
+      <a href="../../features/product-master-keys/" class="md-nav__link">
         Product Master Keys
       </a>
     </li>
@@ -817,7 +739,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../port-allocator/" class="md-nav__link">
+      <a href="../../features/port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
     </li>
@@ -831,7 +753,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../hosts-sync/" class="md-nav__link">
+      <a href="../../features/hosts-sync/" class="md-nav__link">
         Hosts Sync
       </a>
     </li>
@@ -845,7 +767,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ui-proxy/" class="md-nav__link">
+      <a href="../../features/ui-proxy/" class="md-nav__link">
         UI Proxy
       </a>
     </li>
@@ -859,7 +781,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../gateway-routing/" class="md-nav__link">
+      <a href="../../features/gateway-routing/" class="md-nav__link">
         Trino Gateway Routing
       </a>
     </li>
@@ -873,7 +795,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../monitoring/" class="md-nav__link">
+      <a href="../../features/monitoring/" class="md-nav__link">
         Monitoring & Metrics
       </a>
     </li>
@@ -887,7 +809,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../logging/" class="md-nav__link">
+      <a href="../../features/logging/" class="md-nav__link">
         Logging
       </a>
     </li>
@@ -901,7 +823,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../backup/" class="md-nav__link">
+      <a href="../../features/backup/" class="md-nav__link">
         Backup & Restore
       </a>
     </li>
@@ -915,7 +837,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../postgres-backup/" class="md-nav__link">
+      <a href="../../features/postgres-backup/" class="md-nav__link">
         PostgreSQL Backup & Restore
       </a>
     </li>
@@ -929,7 +851,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../patch-system/" class="md-nav__link">
+      <a href="../../features/patch-system/" class="md-nav__link">
         Patch System
       </a>
     </li>
@@ -943,7 +865,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../license/" class="md-nav__link">
+      <a href="../../features/license/" class="md-nav__link">
         License Manager
       </a>
     </li>
@@ -957,7 +879,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../config-runtime-only/" class="md-nav__link">
+      <a href="../../features/config-runtime-only/" class="md-nav__link">
         Config Runtime-Only Policy
       </a>
     </li>
@@ -1040,14 +962,16 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
       
       
-      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
       
       
       
@@ -1056,7 +980,7 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
         <label class="md-nav__title" for="__nav_6">
           <span class="md-nav__icon md-icon"></span>
           Operations
@@ -1069,7 +993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/cluster-operations/" class="md-nav__link">
+      <a href="../cluster-operations/" class="md-nav__link">
         Cluster Operations
       </a>
     </li>
@@ -1083,7 +1007,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/component-operations/" class="md-nav__link">
+      <a href="../component-operations/" class="md-nav__link">
         Component Operations
       </a>
     </li>
@@ -1097,7 +1021,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/nginx-proxy/" class="md-nav__link">
+      <a href="../nginx-proxy/" class="md-nav__link">
         Nginx Reverse Proxy
       </a>
     </li>
@@ -1109,11 +1033,150 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../../operations/configuration/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Configuration Reference
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Configuration Reference
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#resolution-order" class="md-nav__link">
+    Resolution order
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#base" class="md-nav__link">
+    Base
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zookeeper" class="md-nav__link">
+    ZooKeeper
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#master" class="md-nav__link">
+    Master
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-manager" class="md-nav__link">
+    Node manager
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-port-bands" class="md-nav__link">
+    Component port bands
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kms" class="md-nav__link">
+    KMS
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iam" class="md-nav__link">
+    IAM
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#admin-recovery-socket" class="md-nav__link">
+    Admin recovery socket
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metadata-store" class="md-nav__link">
+    Metadata store
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cluster-readiness-and-membership" class="md-nav__link">
+    Cluster readiness and membership
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metrics" class="md-nav__link">
+    Metrics
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rpc-timeouts" class="md-nav__link">
+    RPC timeouts
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#admin-tokens-and-http" class="md-nav__link">
+    Admin tokens and HTTP
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#postgresql-backup" class="md-nav__link">
+    PostgreSQL backup
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1125,7 +1188,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/jvm-tuning/" class="md-nav__link">
+      <a href="../jvm-tuning/" class="md-nav__link">
         JVM & Heap Tuning
       </a>
     </li>
@@ -1139,7 +1202,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/upgrade/" class="md-nav__link">
+      <a href="../upgrade/" class="md-nav__link">
         Upgrade
       </a>
     </li>
@@ -1357,112 +1420,533 @@
                   
 
 
-<h1 id="cluster-readiness">Cluster Readiness</h1>
-<p>When a chango master starts (cold, restart, or after a self-patch), it does not serve admin REST traffic until it has proven that it holds a fresh, leader-validated copy of the cluster state. Until then every request to <code>/admin/api/&lt;anything except auth/*&gt;</code> returns <code>503 Service Unavailable</code>. This is the readiness gate.</p>
-<p>The gate exists for one reason: <strong>a follower master that has not yet synced from the leader could serve stale (or, on a freshly-wiped node, empty) IAM and silently accept the wrong credentials</strong>. The same applies to KMS keys (envelope-wrapped DEKs would fail to decrypt) and to component metadata (the inventory page would show an empty list).</p>
-<h2 id="the-full-flow">The full flow</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>            ┌──────── leader path ────────┐    ┌──────── non-leader path ─────────┐
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>            │                             │    │                                  │
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  start  ─→ │ election: takeLeadership    │    │ election: takeLeadership          │
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>            │ KMS / IAM / metadata init   │    │   (returns immediately as follower)│
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>            │ registry.setLeaderReady(true)│    │ wait for /chango/leader-ready    │
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>            │ writes /chango/leader-ready │    │ mandatory pull-from-leader        │
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            │                             │    │   (KMS + IAM + metadata + patches)│
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            │ registry.setMasterReady(self,true)│ enableWireEncryptionIfNeeded() │
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            │ waitForPeersReady()         │    │ registry.setMasterReady(self,true)│
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            │ registry.setClusterReady(true)│  │                                  │
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            │ writes /chango/cluster-ready│    │                                  │
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            └──────────────┬──────────────┘    └────────────────┬─────────────────┘
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>                           │                                    │
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                           └─────────────  both paths  ─────────┘
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                                          │
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>                                  wait for /chango/cluster-ready
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>                                          │
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>                                readinessGate.markReady()
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>                                          │
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                                admin HTTP starts serving 2xx
-</code></pre></div>
-<p>The ZK znodes that gate everything:</p>
+<h1 id="configuration-reference">Configuration Reference</h1>
+<p>Every setting chango reads from <code>chango.properties</code>, with its default and what changing it does.</p>
+<p>Some settings are deliberately <strong>not</strong> here — the S3 backup destination, the gateway topology, per-component settings. Those live in the replicated metadata store and are edited from the admin UI, so that a value is the same on every master and survives a reinstall. See <a href="../../features/config-runtime-only/">Config Runtime-Only Policy</a> for where the line falls and why.</p>
+<h2 id="resolution-order">Resolution order</h2>
+<p>Highest priority first:</p>
+<ol>
+<li><code>-Dkey=value</code> — a JVM system property on the start command</li>
+<li><code>KEY_WITH_UNDERSCORES</code> — an environment variable (<code>chango.master.admin.port</code> → <code>CHANGO_MASTER_ADMIN_PORT</code>)</li>
+<li><code>conf/chango.properties</code></li>
+<li>Built-in defaults in <code>ChangoConfig</code></li>
+</ol>
+<p>Values may reference other keys with <code>${other.key}</code>, which is how the RocksDB paths are all derived from <code>chango.base.data.dir</code>.</p>
+<p>The start scripts do <strong>not</strong> persist the <code>-D</code> arguments they were given. A master restarted without them falls back to the file, which is why <a href="../../features/backup/#restoring">Backup &amp; Restore</a> tells you to re-pass the same arguments the cluster was first started with.</p>
+<h2 id="base">Base</h2>
 <table>
 <thead>
 <tr>
-<th>ZK path</th>
-<th>Written by</th>
-<th>Meaning</th>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>/chango/leader-ready</code></td>
-<td>The current leader, after KMS / IAM / metadata init.</td>
-<td>"There is a leader; it has decrypted its stores and is willing to accept pull requests from followers."</td>
+<td><code>chango.base.data.dir</code></td>
+<td><code>./data</code></td>
+<td>Root of every RocksDB store and staged package</td>
 </tr>
 <tr>
-<td><code>/chango/cluster-ready</code></td>
-<td>The current leader, after <code>waitForPeersReady()</code>.</td>
-<td>"All masters and at least the minimum required NMs report <code>ready = true</code>."</td>
+<td><code>chango.log.path</code></td>
+<td><code>./logs</code></td>
+<td></td>
 </tr>
 <tr>
-<td><code>/chango/nodes/masters/&lt;nodeId&gt;</code></td>
-<td>Each master writes its own <code>ready = true</code> after the pull (non-leader) or after <code>setLeaderReady</code> (leader).</td>
-<td>Per-master ready flag used by the leader's <code>waitForPeersReady()</code>.</td>
+<td><code>chango.log.level</code></td>
+<td><code>INFO</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.log.mode</code></td>
+<td><code>ASYNC_FILE</code></td>
+<td><code>ASYNC_FILE</code>, <code>FILE</code>, <code>CONSOLE</code></td>
 </tr>
 </tbody>
 </table>
-<p><code>readinessGate.markReady()</code> is a process-local flag — once flipped, the admin HTTP server (<code>AdminHttpServer</code>) starts responding with real status codes; before it is flipped, every request to a non-auth path is shortcircuited to <code>503</code>.</p>
-<h2 id="step-by-step">Step-by-step</h2>
-<ol>
-<li><strong>Master bootstrap</strong>. <code>MasterBootstrap.start()</code> opens RocksDB stores, starts ZooKeeper client, starts internal-protocol NIO server, starts election.</li>
-<li><strong>Election</strong>. <code>MasterLeaderElection</code> may sleep up to <code>deferenceWindowMs</code> (see <a href="../sticky-leader/">Sticky Leader Election</a>) before calling <code>takeLeadership</code>. Whichever master wins runs <code>onLeadershipChange(true)</code> and writes <code>/chango/leader-ready = true</code>.</li>
-<li><strong>Admin HTTP starts, but gated</strong>. The admin HTTP server is up; the <code>ClusterReadinessGate</code> is held <code>false</code>, so every non-auth request returns <code>503</code> with a body identifying which precondition is unmet ("waiting for /chango/leader-ready", "waiting for mandatory pull", "waiting for /chango/cluster-ready").</li>
-<li><strong>Wait for <code>/chango/leader-ready</code></strong>. Both paths block until this znode exists. Cap at <code>chango.cluster.readiness.timeout.ms</code> (default <code>120_000</code>); on timeout the master logs the failure and exits.</li>
-<li><strong>Non-leader: mandatory pull</strong>. The follower runs <code>PeriodicLeaderPull.pullOnce()</code> against the leader's NIO endpoint, fetching KMS state + IAM state + metadata state + the patch library (PR 5). It retries up to 60×1s. If the pull never succeeds, the master throws <code>IllegalStateException("Mandatory startup pull failed; aborting")</code>.</li>
-<li><strong>Wire encryption</strong>. After a successful pull, the follower flips its internal-NIO encryption flag on the same cluster-wide setting the leader uses — without this, the next message it sends would be plain-text against a leader expecting AES-GCM.</li>
-<li><strong>Mark self ready</strong>. <code>registry.setMasterReady(nodeId, true)</code> writes the per-master flag. The periodic pull loop also starts here so the follower keeps syncing changes after readiness flips.</li>
-<li><strong>Leader: wait for peers</strong>. The leader runs <code>waitForPeersReady()</code> — every master in <code>/chango/nodes/masters/*</code> must report <code>ready = true</code>, and at least the minimum NMs must be registered. There is a configurable timeout; on timeout the leader logs <code>"Timed out waiting for peers; writing cluster-ready anyway"</code> and proceeds (a fresh cluster with no NMs is still useful to serve admin UI for installing the first NM).</li>
-<li><strong>Leader writes <code>/chango/cluster-ready</code></strong>. Persistent znode <code>= "true"</code>. This is the cluster-wide all-ready signal.</li>
-<li><strong>All masters wait for <code>/chango/cluster-ready</code>, then flip readiness gate</strong>. <code>readinessGate.markReady()</code> unblocks the admin HTTP path; admin UI splash flips from "cluster starting" to the normal layout.</li>
-</ol>
-<h2 id="what-clients-see-before-readiness">What clients see before readiness</h2>
-<p><code>/admin/api/auth/*</code> is open at the HTTP layer the moment Netty is up — so the admin UI can attempt <code>login</code> and surface the readiness-pending state from the JSON error body rather than from a generic connection refused. Every other path returns:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">503</span> <span class="ne">Service Unavailable</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">{</span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="s2">&quot;cluster starting: waiting for /chango/leader-ready&quot;</span><span class="p">}</span>
-</code></pre></div>
-<p>The admin UI shows a centred "Cluster starting" splash with the current precondition. It polls a lightweight readiness endpoint (which returns the same JSON when not yet ready) until it gets a 2xx, then loads the normal UI.</p>
-<h2 id="patch-system-implication">Patch-system implication</h2>
-<p><code>PeriodicLeaderPull</code> is also where the patch library catches up — every periodic pull fetches the patch index from the leader and downloads any patches the follower does not have. This means a brand-new follower that just finished the readiness flow already has every patch the leader has. See <a href="../patch-system/#non-leader-catch-up-pr-5">Patch System</a>.</p>
-<h2 id="config">Config</h2>
+<h2 id="zookeeper">ZooKeeper</h2>
 <table>
 <thead>
 <tr>
-<th>Property</th>
+<th>Key</th>
 <th>Default</th>
-<th>What it controls</th>
+<th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>chango.cluster.readiness.timeout.ms</code></td>
-<td><code>120_000</code></td>
-<td>Overall cap on the readiness flow. On timeout the master exits non-zero.</td>
+<td><code>chango.zk.serverList</code></td>
+<td><code>localhost:2181</code></td>
+<td><strong>Must be set for any multi-host install.</strong> The default is right for a single-box dev setup and wrong everywhere else — a node manager left on it retries forever and never registers, and the master then reports "no registered node manager" when a component is installed. <code>start-node-manager.sh</code> refuses to launch rather than let that happen silently</td>
 </tr>
 <tr>
-<td><code>chango.cluster.readiness.poll.interval.ms</code></td>
-<td><code>1_000</code></td>
-<td>How often the leader-ready wait polls ZooKeeper.</td>
+<td><code>chango.zk.rootPath</code></td>
+<td><code>/chango</code></td>
+<td>Chroot for all chango znodes</td>
+</tr>
+<tr>
+<td><code>chango.zk.sessionTimeoutMs</code></td>
+<td><code>30000</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.zk.connectionTimeoutMs</code></td>
+<td><code>10000</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="master">Master</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.master.nodeId</code></td>
+<td><em>(derived)</em></td>
+<td><code>master-&lt;hostname&gt;-&lt;adminPort&gt;</code>. Sticky-leader election needs it stable across restarts — set it explicitly only if the hostname is not</td>
+</tr>
+<tr>
+<td><code>chango.master.host</code></td>
+<td><code>0.0.0.0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.master.admin.port</code></td>
+<td><code>8080</code></td>
+<td>Admin UI + REST API</td>
+</tr>
+<tr>
+<td><code>chango.master.internal.port</code></td>
+<td><code>19999</code></td>
+<td>Internal NIO protocol</td>
+</tr>
+<tr>
+<td><code>chango.master.zk.client.port</code></td>
+<td><code>2181</code></td>
+<td>Control-plane ZK. Also fed to the <a href="../../features/port-allocator/">port allocator</a> so a component-bundled ZK on the same host does not get the same default</td>
+</tr>
+<tr>
+<td><code>chango.master.zk.peer.port</code></td>
+<td><code>2888</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.master.zk.leader.port</code></td>
+<td><code>3888</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.master.admin.worker.threads</code></td>
+<td><code>8</code></td>
+<td>Pool for blocking admin handlers (component install / start / stop), kept off the Netty event loop so package I/O does not stall other requests</td>
+</tr>
+<tr>
+<td><code>chango.master.admin.ui.static.path</code></td>
+<td><code>./chango-admin-ui/dist</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.master.admin.ui.context.path</code></td>
+<td><code>/admin</code></td>
+<td>Set to <code>/</code> to serve at the root. <strong>Must match the UI build's <code>CHANGO_ADMIN_UI_BASE</code></strong> — the SPA is compiled with its base path</td>
 </tr>
 <tr>
 <td><code>chango.master.leader.deference.window.ms</code></td>
-<td><code>3_000</code></td>
-<td>Sticky-leader sleep before joining the election (also used by the hot-restart yield).</td>
+<td><code>3000</code></td>
+<td>How long a starting master waits for the previous incumbent to reclaim leadership. See <a href="../../features/sticky-leader/">Sticky Leader Election</a></td>
+</tr>
+<tr>
+<td><code>chango.master.components.dir</code></td>
+<td><code>./components</code></td>
+<td>Where component packages are read from before being pushed to node managers</td>
+</tr>
+<tr>
+<td><code>chango.master.component.install.timeout.ms</code></td>
+<td><code>600000</code></td>
+<td>Must cover transferring a multi-hundred-MB package</td>
+</tr>
+<tr>
+<td><code>chango.master.component.op.timeout.ms</code></td>
+<td><code>120000</code></td>
+<td>Start / stop / restart / delete</td>
+</tr>
+<tr>
+<td><code>chango.master.component.transfer.chunk.bytes</code></td>
+<td><code>4194304</code></td>
+<td>Streaming frame size, so neither side buffers a whole package</td>
 </tr>
 </tbody>
 </table>
-<p>If the master exits with a readiness-timeout failure, <code>/var/log/chango/master.log</code> will end with the unmet precondition. The pid file goes stale; re-run <code>bin/start-master.sh</code> once the upstream problem is fixed (most commonly: ZK quorum down, or the leader's host unreachable from the follower).</p>
-<h2 id="why-503-on-follower-before-any-forward">Why "503 on follower" before any forward?</h2>
-<p>The follower's own readiness gate runs <strong>before</strong> the leader-forward path. A follower that has not pulled yet would forward a request to a leader the operator may also be trying to start — replaying client traffic in that situation makes the admin UI confusing (the operator sees a partial success against a half-started cluster). Holding the gate until <code>/chango/cluster-ready</code> arrives keeps the cluster's "ready" semantics binary.</p>
+<h2 id="node-manager">Node manager</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.nodemanager.nodeId</code></td>
+<td><em>(derived)</em></td>
+<td><code>nm-&lt;hostname&gt;-&lt;internalPort&gt;</code></td>
+</tr>
+<tr>
+<td><code>chango.nodemanager.host</code></td>
+<td><code>0.0.0.0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.nodemanager.internal.port</code></td>
+<td><code>19998</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.nodemanager.components.state.dir</code></td>
+<td><code>./data/components</code></td>
+<td>Component metadata, staged packages, process logs</td>
+</tr>
+<tr>
+<td><code>chango.nodemanager.component.java.homes</code></td>
+<td><em>(three JDKs)</em></td>
+<td><code>&lt;version&gt;:&lt;home&gt;</code> pairs. Spark and Livy get Java 11, most components Java 17, Trino Java 25 — see <a href="../../components/versions/#jdks">Versions</a></td>
+</tr>
+<tr>
+<td><code>chango.nodemanager.component.op.timeout.ms</code></td>
+<td><code>120000</code></td>
+<td>A start command that does not exit within this window is treated as a foreground process and left running</td>
+</tr>
+<tr>
+<td><code>chango.nodemanager.health.check.interval.ms</code></td>
+<td><code>10000</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.nodemanager.health.check.timeout.ms</code></td>
+<td><code>5000</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.nodemanager.health.max.consecutive.failures</code></td>
+<td><code>3</code></td>
+<td>Failures before the node is marked unhealthy</td>
+</tr>
+<tr>
+<td><code>chango.nodemanager.shutdown.drain.timeout.seconds</code></td>
+<td><code>60</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="component-port-bands">Component port bands</h2>
+<p>Each band has a <code>.base</code> and a <code>.range</code>, both overridable:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="na">chango.component.port.&lt;band&gt;.base</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">19200</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="na">chango.component.port.&lt;band&gt;.range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">200</span>
+</code></pre></div>
+<p>Defaults are the allocator's built-ins — <code>200</code> for every range. The full band list and the firewall implications are in <a href="../../features/port-allocator/">Port Allocator</a>.</p>
+<h2 id="kms">KMS</h2>
+<p>Master and a co-located node manager keep separate sub-trees so they do not contend for RocksDB's single-writer <code>LOCK</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.kms.enabled</code></td>
+<td><code>true</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.master.kms.rocksdb.path</code></td>
+<td><code>${chango.base.data.dir}/master/kms</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.nm.kms.rocksdb.path</code></td>
+<td><code>${chango.base.data.dir}/nm/kms</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.kms.master.key.env</code></td>
+<td><code>CHANGO_MASTER_KEY</code></td>
+<td>The environment variable the master key is read from. Chango never persists the key itself</td>
+</tr>
+<tr>
+<td><code>chango.kms.master.key.previous.env</code></td>
+<td><code>CHANGO_MASTER_KEY_PREVIOUS</code></td>
+<td>Retired keys still accepted <strong>for reading</strong>, comma-separated, so a rotation rolls through the cluster without downtime and archives sealed under an older key stay restorable. Writes always use the current key</td>
+</tr>
+<tr>
+<td><code>chango.kms.pbkdf2.iterations</code></td>
+<td><code>200000</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.kms.encrypt.internal.protocol</code></td>
+<td><code>true</code></td>
+<td>Encrypts internal-protocol payloads — which is what protects credentials in transit to a node manager</td>
+</tr>
+<tr>
+<td><code>chango.kms.internal.protocol.key.id</code></td>
+<td><code>internal-protocol</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.kms.fetch.max.retries</code></td>
+<td><code>60</code></td>
+<td>A starting node manager waits for the leader's keystore</td>
+</tr>
+<tr>
+<td><code>chango.kms.fetch.retry.interval.ms</code></td>
+<td><code>1000</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="iam">IAM</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.master.iam.rocksdb.path</code></td>
+<td><code>${chango.base.data.dir}/master/iam</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.nm.iam.rocksdb.path</code></td>
+<td><code>${chango.base.data.dir}/nm/iam</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.iam.admin.user</code></td>
+<td><code>admin</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.iam.admin.password</code></td>
+<td><code>admin</code></td>
+<td>The bootstrap password only. Chango <strong>blocks every non-auth route</strong> until it is rotated, so this value stops working on first login</td>
+</tr>
+<tr>
+<td><code>chango.iam.audit.dir</code></td>
+<td><code>${chango.base.data.dir}/master/iam-audit</code></td>
+<td>Operator audit log — currently only <code>iam:reset-password</code> writes here</td>
+</tr>
+</tbody>
+</table>
+<h2 id="admin-recovery-socket">Admin recovery socket</h2>
+<p>A local Unix domain socket (mode <code>600</code>) for out-of-band operator commands. Authentication is OS-level: only a process sharing the master's filesystem identity can connect, and there is no network surface. See <a href="../../features/admin-password-recovery/">Admin Password Recovery</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.admin.socket.enabled</code></td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>chango.admin.socket.path</code></td>
+<td><code>${chango.base.data.dir}/master/admin.sock</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="metadata-store">Metadata store</h2>
+<p>Master only — a node manager has no metadata RocksDB.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.master.metadata.rocksdb.path</code></td>
+<td><code>${chango.base.data.dir}/master/metadata</code></td>
+</tr>
+<tr>
+<td><code>chango.metadata.kms.key.id</code></td>
+<td><code>metadata-encryption</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="cluster-readiness-and-membership">Cluster readiness and membership</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.cluster.min.nodemanagers.ready</code></td>
+<td><code>0</code></td>
+<td>Node managers that must register before the master reports ready. <code>0</code> means do not wait</td>
+</tr>
+<tr>
+<td><code>chango.cluster.peers.ready.timeout.ms</code></td>
+<td><code>60000</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.cluster.hosts.sync.enabled</code></td>
+<td><code>true</code></td>
+<td>Each node rewrites a chango-managed block in <code>/etc/hosts</code> with every cluster node's <code>&lt;private-ip&gt; &lt;fqhn&gt;</code>, so hostname-based connections resolve without DNS. Entries outside the block are untouched — see <a href="../../features/hosts-sync/">Hosts Sync</a></td>
+</tr>
+<tr>
+<td><code>chango.cluster.hosts.sync.interval.ms</code></td>
+<td><code>30000</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.cluster.domain</code></td>
+<td><code>chango.private</code></td>
+<td>Internal DNS domain; every node's FQHN is <code>&lt;short-hostname&gt;.&lt;domain&gt;</code></td>
+</tr>
+<tr>
+<td><code>chango.cluster.nginx.reconcile.interval.ms</code></td>
+<td><code>15000</code></td>
+<td>How often the leader reconciles each ShannonStore cluster's nginx upstream against the live API servers</td>
+</tr>
+</tbody>
+</table>
+<h2 id="metrics">Metrics</h2>
+<p>In-memory only; resets on master restart. Backs the admin UI's CPU / memory charts.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.metrics.collect.interval.seconds</code></td>
+<td><code>10</code></td>
+</tr>
+<tr>
+<td><code>chango.metrics.retention.seconds</code></td>
+<td><code>3600</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="rpc-timeouts">RPC timeouts</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.query.rpc.timeout.ms</code></td>
+<td><code>30000</code></td>
+</tr>
+<tr>
+<td><code>chango.internal.rpc.timeout.ms</code></td>
+<td><code>10000</code></td>
+</tr>
+<tr>
+<td><code>chango.master.broadcast.timeout.ms</code></td>
+<td><code>5000</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="admin-tokens-and-http">Admin tokens and HTTP</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.admin.token.access.expiry.ms</code></td>
+<td><code>900000</code></td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><code>chango.admin.token.refresh.expiry.ms</code></td>
+<td><code>86400000</code></td>
+<td>24 h</td>
+</tr>
+<tr>
+<td><code>chango.admin.http.max.content.size.bytes</code></td>
+<td><code>10485760</code></td>
+<td>10 MiB. Raise it for large patch uploads</td>
+</tr>
+</tbody>
+</table>
+<h2 id="postgresql-backup">PostgreSQL backup</h2>
+<p>Static defaults for <a href="../../features/postgres-backup/">PostgreSQL Backup &amp; Restore</a>. The schedule, retention and prefix are runtime config, edited from the admin UI.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.postgres.backup.timeout.ms</code></td>
+<td><code>21600000</code></td>
+<td>6 h — a ceiling on a stuck process, not a budget</td>
+</tr>
+<tr>
+<td><code>chango.postgres.backup.job.history</code></td>
+<td><code>50</code></td>
+<td>Jobs kept for the UI</td>
+</tr>
+<tr>
+<td><code>chango.postgres.backup.object.prefix</code></td>
+<td><code>chango-postgres-backups/</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>chango.postgres.bin.dir</code></td>
+<td><code>/usr/pgsql-16/bin</code></td>
+<td>Host fact — where <code>pg_dumpall</code> / <code>psql</code> live</td>
+</tr>
+<tr>
+<td><code>chango.postgres.run.as.user</code></td>
+<td><code>postgres</code></td>
+<td>Host fact — the OS user, and the local superuser</td>
+</tr>
+<tr>
+<td><code>chango.postgres.backup.log.tail.lines</code></td>
+<td><code>500</code></td>
+<td>Output lines retained from a run</td>
+</tr>
+</tbody>
+</table>
 
 
 

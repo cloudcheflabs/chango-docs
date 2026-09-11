@@ -8,20 +8,20 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/cluster-readiness/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/gateway-routing/">
       
       
-        <link rel="prev" href="../leader-forward/">
+        <link rel="prev" href="../ui-proxy/">
       
       
-        <link rel="next" href="../iam/">
+        <link rel="next" href="../monitoring/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
     
     
       
-        <title>Cluster Readiness - Chango</title>
+        <title>Trino Gateway Routing - Chango</title>
       
     
     
@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cluster-readiness" class="md-skip">
+        <a href="#trino-gateway-routing" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cluster Readiness
+              Trino Gateway Routing
             
           </span>
         </div>
@@ -641,87 +641,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Cluster Readiness
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../cluster-readiness/" class="md-nav__link">
         Cluster Readiness
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#the-full-flow" class="md-nav__link">
-    The full flow
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-by-step" class="md-nav__link">
-    Step-by-step
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-clients-see-before-readiness" class="md-nav__link">
-    What clients see before readiness
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#patch-system-implication" class="md-nav__link">
-    Patch-system implication
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#config" class="md-nav__link">
-    Config
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-503-on-follower-before-any-forward" class="md-nav__link">
-    Why "503 on follower" before any forward?
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -857,11 +781,114 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../gateway-routing/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Trino Gateway Routing
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Trino Gateway Routing
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#who-owns-what" class="md-nav__link">
+    Who owns what
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minimum-viable-topology" class="md-nav__link">
+    Minimum viable topology
+  </a>
+  
+    <nav class="md-nav" aria-label="Minimum viable topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-register-the-trino-cluster" class="md-nav__link">
+    1. Register the Trino cluster
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-create-a-cluster-group" class="md-nav__link">
+    2. Create a cluster group
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-add-users-to-the-group-in-ontul" class="md-nav__link">
+    3. Add users to the group — in Ontul
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-a-missing-route-looks-like-an-auth-failure" class="md-nav__link">
+    Why a missing route looks like an auth failure
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-groups" class="md-nav__link">
+    Resource groups
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-the-topology-lives" class="md-nav__link">
+    Where the topology lives
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-summary" class="md-nav__link">
+    API summary
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1357,112 +1384,165 @@
                   
 
 
-<h1 id="cluster-readiness">Cluster Readiness</h1>
-<p>When a chango master starts (cold, restart, or after a self-patch), it does not serve admin REST traffic until it has proven that it holds a fresh, leader-validated copy of the cluster state. Until then every request to <code>/admin/api/&lt;anything except auth/*&gt;</code> returns <code>503 Service Unavailable</code>. This is the readiness gate.</p>
-<p>The gate exists for one reason: <strong>a follower master that has not yet synced from the leader could serve stale (or, on a freshly-wiped node, empty) IAM and silently accept the wrong credentials</strong>. The same applies to KMS keys (envelope-wrapped DEKs would fail to decrypt) and to component metadata (the inventory page would show an empty list).</p>
-<h2 id="the-full-flow">The full flow</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>            ┌──────── leader path ────────┐    ┌──────── non-leader path ─────────┐
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>            │                             │    │                                  │
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  start  ─→ │ election: takeLeadership    │    │ election: takeLeadership          │
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>            │ KMS / IAM / metadata init   │    │   (returns immediately as follower)│
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>            │ registry.setLeaderReady(true)│    │ wait for /chango/leader-ready    │
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>            │ writes /chango/leader-ready │    │ mandatory pull-from-leader        │
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            │                             │    │   (KMS + IAM + metadata + patches)│
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            │ registry.setMasterReady(self,true)│ enableWireEncryptionIfNeeded() │
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            │ waitForPeersReady()         │    │ registry.setMasterReady(self,true)│
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            │ registry.setClusterReady(true)│  │                                  │
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            │ writes /chango/cluster-ready│    │                                  │
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            └──────────────┬──────────────┘    └────────────────┬─────────────────┘
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>                           │                                    │
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                           └─────────────  both paths  ─────────┘
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                                          │
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>                                  wait for /chango/cluster-ready
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>                                          │
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>                                readinessGate.markReady()
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>                                          │
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                                admin HTTP starts serving 2xx
-</code></pre></div>
-<p>The ZK znodes that gate everything:</p>
+<h1 id="trino-gateway-routing">Trino Gateway Routing</h1>
+<p>A <a href="../../components/catalog/#trino-gateway">Trino Gateway</a> cluster installed by chango starts with <strong>no routes</strong>. Installing it puts the process on a host; it does not tell it which Trino clusters exist or who may reach them. Until the routing topology is registered, every query through the gateway fails — typically with a <code>401</code>, which reads like an authentication problem and is not one.</p>
+<p>This is the step most often missed after an install, so it is worth being explicit about what has to exist and where each piece lives.</p>
+<h2 id="who-owns-what">Who owns what</h2>
+<p>The topology is split across two products, and that split is the thing to understand first.</p>
 <table>
 <thead>
 <tr>
-<th>ZK path</th>
-<th>Written by</th>
-<th>Meaning</th>
+<th></th>
+<th>Owned by</th>
+<th>Managed through</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>/chango/leader-ready</code></td>
-<td>The current leader, after KMS / IAM / metadata init.</td>
-<td>"There is a leader; it has decrypted its stores and is willing to accept pull requests from followers."</td>
+<td>Clusters — where a Trino coordinator is</td>
+<td><strong>chango</strong></td>
+<td><code>/admin/api/gateway/clusters</code></td>
 </tr>
 <tr>
-<td><code>/chango/cluster-ready</code></td>
-<td>The current leader, after <code>waitForPeersReady()</code>.</td>
-<td>"All masters and at least the minimum required NMs report <code>ready = true</code>."</td>
+<td>Cluster groups — which clusters a group of users may route to</td>
+<td><strong>chango</strong></td>
+<td><code>/admin/api/gateway/cluster-groups</code></td>
 </tr>
 <tr>
-<td><code>/chango/nodes/masters/&lt;nodeId&gt;</code></td>
-<td>Each master writes its own <code>ready = true</code> after the pull (non-leader) or after <code>setLeaderReady</code> (leader).</td>
-<td>Per-master ready flag used by the leader's <code>waitForPeersReady()</code>.</td>
+<td>Resource groups — query concurrency and memory limits</td>
+<td><strong>chango</strong></td>
+<td><code>/admin/api/gateway/resource-groups</code></td>
+</tr>
+<tr>
+<td><strong>User → group membership</strong></td>
+<td><strong>Ontul</strong></td>
+<td>The Ontul admin UI</td>
 </tr>
 </tbody>
 </table>
-<p><code>readinessGate.markReady()</code> is a process-local flag — once flipped, the admin HTTP server (<code>AdminHttpServer</code>) starts responding with real status codes; before it is flipped, every request to a non-auth path is shortcircuited to <code>503</code>.</p>
-<h2 id="step-by-step">Step-by-step</h2>
-<ol>
-<li><strong>Master bootstrap</strong>. <code>MasterBootstrap.start()</code> opens RocksDB stores, starts ZooKeeper client, starts internal-protocol NIO server, starts election.</li>
-<li><strong>Election</strong>. <code>MasterLeaderElection</code> may sleep up to <code>deferenceWindowMs</code> (see <a href="../sticky-leader/">Sticky Leader Election</a>) before calling <code>takeLeadership</code>. Whichever master wins runs <code>onLeadershipChange(true)</code> and writes <code>/chango/leader-ready = true</code>.</li>
-<li><strong>Admin HTTP starts, but gated</strong>. The admin HTTP server is up; the <code>ClusterReadinessGate</code> is held <code>false</code>, so every non-auth request returns <code>503</code> with a body identifying which precondition is unmet ("waiting for /chango/leader-ready", "waiting for mandatory pull", "waiting for /chango/cluster-ready").</li>
-<li><strong>Wait for <code>/chango/leader-ready</code></strong>. Both paths block until this znode exists. Cap at <code>chango.cluster.readiness.timeout.ms</code> (default <code>120_000</code>); on timeout the master logs the failure and exits.</li>
-<li><strong>Non-leader: mandatory pull</strong>. The follower runs <code>PeriodicLeaderPull.pullOnce()</code> against the leader's NIO endpoint, fetching KMS state + IAM state + metadata state + the patch library (PR 5). It retries up to 60×1s. If the pull never succeeds, the master throws <code>IllegalStateException("Mandatory startup pull failed; aborting")</code>.</li>
-<li><strong>Wire encryption</strong>. After a successful pull, the follower flips its internal-NIO encryption flag on the same cluster-wide setting the leader uses — without this, the next message it sends would be plain-text against a leader expecting AES-GCM.</li>
-<li><strong>Mark self ready</strong>. <code>registry.setMasterReady(nodeId, true)</code> writes the per-master flag. The periodic pull loop also starts here so the follower keeps syncing changes after readiness flips.</li>
-<li><strong>Leader: wait for peers</strong>. The leader runs <code>waitForPeersReady()</code> — every master in <code>/chango/nodes/masters/*</code> must report <code>ready = true</code>, and at least the minimum NMs must be registered. There is a configurable timeout; on timeout the leader logs <code>"Timed out waiting for peers; writing cluster-ready anyway"</code> and proceeds (a fresh cluster with no NMs is still useful to serve admin UI for installing the first NM).</li>
-<li><strong>Leader writes <code>/chango/cluster-ready</code></strong>. Persistent znode <code>= "true"</code>. This is the cluster-wide all-ready signal.</li>
-<li><strong>All masters wait for <code>/chango/cluster-ready</code>, then flip readiness gate</strong>. <code>readinessGate.markReady()</code> unblocks the admin HTTP path; admin UI splash flips from "cluster starting" to the normal layout.</li>
-</ol>
-<h2 id="what-clients-see-before-readiness">What clients see before readiness</h2>
-<p><code>/admin/api/auth/*</code> is open at the HTTP layer the moment Netty is up — so the admin UI can attempt <code>login</code> and surface the readiness-pending state from the JSON error body rather than from a generic connection refused. Every other path returns:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">503</span> <span class="ne">Service Unavailable</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">{</span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="s2">&quot;cluster starting: waiting for /chango/leader-ready&quot;</span><span class="p">}</span>
+<p>chango master is the authoritative store for the first three. It persists them through the replicated metadata store (KMS-encrypted, leader-written, synced to followers) and the stateless gateway instances pull the assembled topology from <code>GET /api/v1/gateway/topology</code>.</p>
+<p>Membership is different. It used to live in chango and no longer does:</p>
+<div class="admonition warning">
+<p class="admonition-title">User-group membership moved to Ontul</p>
+<p><code>POST</code> and <code>DELETE</code> on <code>/admin/api/gateway/user-groups</code> answer <strong><code>410 Gone</code></strong>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>user-group assignment moved to ontul IAM — manage groups + membership
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>via the ontul admin UI; chango mirrors them automatically
 </code></pre></div>
-<p>The admin UI shows a centred "Cluster starting" splash with the current precondition. It polls a lightweight readiness endpoint (which returns the same JSON when not yet ready) until it gets a 2xx, then loads the normal UI.</p>
-<h2 id="patch-system-implication">Patch-system implication</h2>
-<p><code>PeriodicLeaderPull</code> is also where the patch library catches up — every periodic pull fetches the patch index from the leader and downloads any patches the follower does not have. This means a brand-new follower that just finished the readiness flow already has every patch the leader has. See <a href="../patch-system/#non-leader-catch-up-pr-5">Patch System</a>.</p>
-<h2 id="config">Config</h2>
+<p>Create the group in chango (<code>cluster-groups</code>), then add users to the matching Ontul group in the <strong>Ontul</strong> admin UI. chango mirrors the membership.</p>
+<p><code>GET /admin/api/gateway/user-groups</code> still works and is the quickest way to see the mirrored result.</p>
+</div>
+<p>Creating a cluster-group in chango creates the corresponding Ontul group as a side effect, so the name is shared. Adding <em>people</em> to it is Ontul's job.</p>
+<h2 id="minimum-viable-topology">Minimum viable topology</h2>
+<p>Three things, in this order.</p>
+<h3 id="1-register-the-trino-cluster">1. Register the Trino cluster</h3>
+<p>The gateway needs a name and a URL. The name must match the chango Trino <code>clusterId</code>, because a cluster-group refers to clusters by that name.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">BASE</span><span class="o">=</span>http://&lt;master&gt;:8080
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">      </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;…&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/clusters<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="s1">    &quot;clusterName&quot;: &quot;trino-main&quot;,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="s1">    &quot;url&quot;: &quot;http://&lt;coordinator-host&gt;:&lt;httpPort&gt;&quot;</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="s1">  }&#39;</span>
+</code></pre></div>
+<h3 id="2-create-a-cluster-group">2. Create a cluster group</h3>
+<p>Every route needs at least one. Routing is owned by groups, not by raw <code>host:port</code> backends — a gateway with a registered cluster but no group still has nowhere to send a query.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/cluster-groups<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="s1">    &quot;groupName&quot;: &quot;default&quot;,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="s1">    &quot;trinoClusterIds&quot;: [&quot;trino-main&quot;]</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="s1">  }&#39;</span>
+</code></pre></div>
+<p><code>trinoClusterIds</code> holds the names registered in step 1.</p>
+<h3 id="3-add-users-to-the-group-in-ontul">3. Add users to the group — in Ontul</h3>
+<p>Open the <strong>Ontul</strong> admin UI, find the group named <code>default</code>, and add the users who should route through it. A user in no group has no route.</p>
+<p>Confirm the mirror landed:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/user-groups<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+</code></pre></div>
+<h2 id="why-a-missing-route-looks-like-an-auth-failure">Why a missing route looks like an auth failure</h2>
+<p>The gateway authenticates the caller first, then asks which cluster-group that identity belongs to, then routes. A user with valid credentials and no group membership fails at the second step — and the response the client sees is a <code>401</code>.</p>
+<p>So when a freshly installed gateway rejects a correct username and password, check membership before checking the password. The <a href="../../tutorials/phase-7-kiok-dag-trino-ontul-via-gateway/">kiok tutorial</a> walks the same path with a DAG in front of it.</p>
+<h2 id="resource-groups">Resource groups</h2>
+<p>Optional. They cap concurrency and memory per group of queries:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/resource-groups<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;name&quot;: &quot;adhoc&quot;, &quot;…&quot;: &quot;…&quot;}&#39;</span>
+</code></pre></div>
+<p>Values are stored opaquely — chango persists whatever JSON is posted and hands it to the gateway, which owns the schema. Without a resource group the gateway applies its own defaults.</p>
+<h2 id="where-the-topology-lives">Where the topology lives</h2>
+<p>Under <code>gateway.*</code> keys in the replicated metadata store:</p>
 <table>
 <thead>
 <tr>
-<th>Property</th>
-<th>Default</th>
-<th>What it controls</th>
+<th>Key</th>
+<th>Holds</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>chango.cluster.readiness.timeout.ms</code></td>
-<td><code>120_000</code></td>
-<td>Overall cap on the readiness flow. On timeout the master exits non-zero.</td>
+<td><code>gateway.cluster.&lt;name&gt;</code></td>
+<td>Cluster JSON</td>
 </tr>
 <tr>
-<td><code>chango.cluster.readiness.poll.interval.ms</code></td>
-<td><code>1_000</code></td>
-<td>How often the leader-ready wait polls ZooKeeper.</td>
+<td><code>gateway.cgroup.&lt;name&gt;</code></td>
+<td>Cluster-group JSON</td>
 </tr>
 <tr>
-<td><code>chango.master.leader.deference.window.ms</code></td>
-<td><code>3_000</code></td>
-<td>Sticky-leader sleep before joining the election (also used by the hot-restart yield).</td>
+<td><code>gateway.rgroup.&lt;name&gt;</code></td>
+<td>Resource-group JSON</td>
+</tr>
+<tr>
+<td><code>gateway.usergroup.&lt;user&gt;</code></td>
+<td>The user's cluster-group name, mirrored from Ontul</td>
 </tr>
 </tbody>
 </table>
-<p>If the master exits with a readiness-timeout failure, <code>/var/log/chango/master.log</code> will end with the unmet precondition. The pid file goes stale; re-run <code>bin/start-master.sh</code> once the upstream problem is fixed (most commonly: ZK quorum down, or the leader's host unreachable from the follower).</p>
-<h2 id="why-503-on-follower-before-any-forward">Why "503 on follower" before any forward?</h2>
-<p>The follower's own readiness gate runs <strong>before</strong> the leader-forward path. A follower that has not pulled yet would forward a request to a leader the operator may also be trying to start — replaying client traffic in that situation makes the admin UI confusing (the operator sees a partial success against a half-started cluster). Holding the gate until <code>/chango/cluster-ready</code> arrives keeps the cluster's "ready" semantics binary.</p>
+<p>Two consequences worth knowing:</p>
+<ul>
+<li>It is <strong>covered by the chango master backup</strong>. A restored master brings its routing back with it — see <a href="../backup/">Backup &amp; Restore</a>.</li>
+<li>It is <strong>leader-written</strong>. Mutating calls against a follower answer <code>421</code> with the leader's address rather than writing to a store that trails.</li>
+</ul>
+<h2 id="api-summary">API summary</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code> / <code>POST</code> / <code>DELETE</code></td>
+<td><code>/admin/api/gateway/clusters[/&lt;name&gt;]</code></td>
+<td>Backend Trino clusters</td>
+</tr>
+<tr>
+<td><code>GET</code> / <code>POST</code> / <code>DELETE</code></td>
+<td><code>/admin/api/gateway/cluster-groups[/&lt;name&gt;]</code></td>
+<td>Routing groups; POST also creates the Ontul group</td>
+</tr>
+<tr>
+<td><code>GET</code> / <code>POST</code> / <code>DELETE</code></td>
+<td><code>/admin/api/gateway/resource-groups[/&lt;name&gt;]</code></td>
+<td>Concurrency / memory limits</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/admin/api/gateway/user-groups</code></td>
+<td>Membership, mirrored from Ontul</td>
+</tr>
+<tr>
+<td>~~<code>POST</code> / <code>DELETE</code>~~</td>
+<td>~~<code>/admin/api/gateway/user-groups</code>~~</td>
+<td><strong><code>410 Gone</code></strong> — manage membership in Ontul</td>
+</tr>
+</tbody>
+</table>
 
 
 
