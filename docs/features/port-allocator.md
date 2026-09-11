@@ -16,19 +16,37 @@ The allocator centralises this. Every component provisioner calls `PortAllocator
 
 A **band** is a named (base, range) tuple for a specific role of a specific component. For example:
 
-| Band | Default base | Range | Used for |
-|---|---|---|---|
-| `shannonstore-zk-client` | 2181 | 200 | ShannonStore bundled ZK |
-| `ontul-zk-client` | 2181 | 200 | Ontul bundled ZK |
-| `ontul-master` | 18080 | 200 | Ontul master (admin + internal + flightsql ports) |
-| `ontul-worker` | 18200 | 200 | Ontul worker (internal + flight) |
-| `mium-master` | 18600 | 200 | Mium master |
-| `mium-worker` | 18700 | 200 | Mium worker |
-| `shannonstore-nginx` | 19200 | 200 | Component nginx in front of ShannonStore |
-| `ontul-nginx` | 19220 | 200 | Component nginx in front of Ontul HTTP |
-| `ontul-flightsql-nginx` | 19240 | 200 | Component nginx in front of Ontul Flight SQL gRPC |
-| `neorunbase-nginx` | 19260 | 200 | Component nginx in front of NeoRunBase admin |
-| `neorunbase-pgwire-nginx` | 19280 | 200 | Component nginx stream block for NeoRunBase pgwire |
+| Band | Default base | Used for |
+|---|---|---|
+| `shannonstore-zk-client` / `-peer` / `-leader` | 2181 / 2888 / 3888 | ShannonStore bundled ZK |
+| `shannonstore-api-nio` | 9090 | ShannonStore API server — S3 |
+| `shannonstore-api-admin` | 8888 | ShannonStore API server — admin |
+| `shannonstore-data-nio` | 9500 | ShannonStore data node |
+| `polaris` | 8180 | Apache Polaris (Iceberg REST catalog) |
+| `postgresql` | 5432 | Managed PostgreSQL |
+| `trino-coordinator` / `trino-worker` | 8480 / 8580 | Trino |
+| `trino-gateway` | 8680 | Trino Gateway |
+| `spark-master` / `spark-worker` | 8780 / 8880 | Spark |
+| `flink-jobmanager` / `flink-taskmanager` | 8980 / 9080 | Flink |
+| `kafka-broker` | 9092 | Kafka |
+| `schema-registry` | 8081 | Confluent Schema Registry |
+| `itdastream-broker` | 9092 | ItdaStream |
+| `ontul-zk-client` / `-peer` / `-leader` | 2181 / 2888 / 3888 | Ontul bundled ZK |
+| `ontul-master` / `ontul-worker` | 18080 / 18200 | Ontul |
+| `neorunbase-coordinator` / `-datanode` | 18090 / 18260 | NeoRunBase |
+| `kiok-master` / `kiok-worker` | 18400 / 18500 | kiok |
+| `mium-master` / `mium-worker` | 18600 / 18700 | Mium |
+| `ui-proxy` | 9180 | UI Proxy |
+| `kafka-registry-nginx` | 19081 | nginx in front of Schema Registry |
+| `itdastream-registry-nginx` | 19181 | nginx in front of ItdaStream registry |
+| `shannonstore-nginx` | 19200 | nginx in front of ShannonStore |
+| `ontul-nginx` / `ontul-flightsql-nginx` | 19220 / 19240 | nginx in front of Ontul HTTP / Flight SQL |
+| `neorunbase-nginx` / `neorunbase-pgwire-nginx` | 19260 / 19280 | nginx in front of NeoRunBase admin / pgwire |
+| `trino-gateway-nginx` | 19300 | nginx in front of Trino Gateway |
+
+Every component that bundles its own ZooKeeper (Ontul, kiok, NeoRunBase, Kafka, ItdaStream, Mium, ShannonStore) has its own `-zk-client` / `-zk-peer` / `-zk-leader` bands at 2181 / 2888 / 3888. They share the same bases and are separated by host occupancy, not by band — see [host-awareness](#host-awareness) below.
+
+Chango's own ports are fixed rather than allocated: `8080` (master admin + UI), `19999` (master internal), `19998` (node-manager internal), and `2181 / 2888 / 3888` for the control-plane ZK quorum.
 
 Defaults live in `PortAllocator.DEFAULT_BASE`; every band's base and range is overridable in `chango.properties` (`chango.component.port.<band>.base` / `.range`).
 
@@ -66,4 +84,20 @@ This is a deliberately loud failure — collapsing into "let's overlap" silently
 
 ## Component nginx ports
 
-The `*-nginx` bands above are deliberately spaced to non-overlapping 20-port stretches starting at 19200. This is so the operator can list well-known nginx ports per component in their firewall / security-group rules without having to look up which port a particular install landed on. The allocator still picks the actual port within the band, but the band itself is stable.
+The `*-nginx` bands start at 19200 and their bases are spaced 20 apart, so each component's proxy has a predictable place to look for.
+
+Note what that does **not** mean: the bases are 20 apart but the default range is 200, so the nominal windows overlap. Collisions still cannot happen — occupancy is derived by scanning every live instance on the host, not by trusting band boundaries — but a component's nginx can legitimately land outside the 20-port stretch after its base if the host is busy.
+
+For a firewall rule, that leaves two honest options:
+
+- Open each band from its base for the full range (`19200–19399` for ShannonStore's). Wide, but no re-request when a component is added.
+- Pin the windows first, by narrowing the range so they really are disjoint:
+
+    ```properties
+    chango.component.port.shannonstore-nginx.range = 20
+    chango.component.port.ontul-nginx.range       = 20
+    ```
+
+    Then the band is exactly the stretch the rule names, and an exhausted band fails loudly at install time instead of quietly using a port nobody opened.
+
+Either way, the ports actually allocated are recorded in each instance's config and readable from the admin UI or `GET /admin/api/clusters/<id>` — which is the list to hand a security team as installed-state evidence, rather than the bands above.

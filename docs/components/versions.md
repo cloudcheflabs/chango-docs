@@ -16,8 +16,13 @@ Installed on every host by [`ansible install.yml`](../installation/automated.md)
 
 | Runtime | Version |
 |---|---|
+| Java 11 | OpenLogic OpenJDK 11.0.27+6 — used by Spark and Livy |
 | Java 17 | OpenLogic OpenJDK 17.0.7+7 — used by chango itself and most components |
 | Java 25 | OpenLogic OpenJDK 25.0.3+9 — used by Trino |
+
+Three, not two. Livy 0.8 was built against Java 8/11 and breaks on the Java 17
+module system, and Spark 3.5 standalone is most stable on the same runtime — so
+they keep their own JDK rather than being forced onto chango's.
 
 ## Cloud Chef Labs components
 
@@ -43,6 +48,23 @@ Installed on every host by [`ansible install.yml`](../installation/automated.md)
 | Schema Registry | 7.7.1 | Confluent Community |
 | PostgreSQL | 16 | Rocky 9 native packages |
 | Polaris (Apache) | 1.4.1 | Iceberg Catalog |
+| Livy (Apache) | 0.8.0-incubating | Spark REST job submission; Scala 2.12, Java 11 |
+
+## Libraries bundled alongside the engines
+
+Vanilla Spark and Flink ship without S3A and Iceberg support, and an air-gapped
+host cannot reach Maven Central to add them. These travel in the bundle and are
+dropped into each install's `jars/` (Spark) or `lib/` (Flink) directory.
+
+| Library | Version | Used by |
+|---|---|---|
+| iceberg-spark-runtime-3.5_2.12 | 1.6.1 | Spark |
+| iceberg-flink-runtime-1.19 | 1.6.1 | Flink |
+| iceberg-aws-bundle | 1.6.1 | Spark, Flink |
+| hadoop-aws | 3.3.4 | Spark — S3A filesystem |
+| hadoop-client-api / hadoop-client-runtime | 3.3.4 | Spark |
+| aws-java-sdk-bundle | 1.12.262 | Spark — S3A's AWS SDK |
+| flink-sql-connector-kafka | 3.2.0-1.19 | Flink |
 
 ## First-party plugins shipped with engines
 
@@ -74,3 +96,16 @@ curl -X POST -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json'
 ```
 
 Chango does not enforce compatibility across versions — older or newer engine versions may or may not work with the first-party authz plugins shipped at this release. The defaults above are the validated combination.
+
+## The authoritative list
+
+This page is written for reading. The machine-readable version is generated from
+the bundle itself and carries a digest and a licence for every artifact:
+
+```bash
+column -t -s$'\t' chango-bundle-3.0.0/component-inventory.tsv
+```
+
+If the two ever disagree, the inventory is right — it is produced from the files
+being shipped, while this page is maintained by hand. See
+[Checksums & Bill of Materials](../installation/bill-of-materials.md).

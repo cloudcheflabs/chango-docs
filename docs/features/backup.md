@@ -49,7 +49,9 @@ The RocksDB paths are recorded **absolute**, resolved the same way `tar` resolve
 ## What is NOT in a backup
 
 - **The master key.** Chango never persists it — it is an environment variable held in process memory. The operator stores it out-of-band and re-supplies it at restore time. Without it the archive is mathematically undecryptable. See [KMS](kms.md#root-of-trust--the-master-key).
-- **Per-component data** — Iceberg files on ShannonStore, NeoRunBase tables, ItdaStream topics, Kafka logs, PostgreSQL data dirs, kiok workflow state. Chango's backup is the *control-plane* backup; each component backs up its own data.
+- **Per-component data** — Iceberg files on ShannonStore, NeoRunBase tables, ItdaStream topics, Kafka logs, kiok workflow state. Chango's backup is the *control-plane* backup; each component backs up its own data.
+
+    The exception is **PostgreSQL**, which chango does back up — see [PostgreSQL Backup & Restore](postgres-backup.md). It is separate from this archive because the omission matters more there than elsewhere: Polaris keeps its metastore in a managed PostgreSQL, and that metastore is the only record of which Iceberg tables exist and where their metadata lives. It shares this page's `backup.s3.*` destination and differs only in object prefix.
 - **Logs** — `/var/log/chango` is operational and excluded.
 
 ## Configuration
