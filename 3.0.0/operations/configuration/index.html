@@ -669,6 +669,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/sso/" class="md-nav__link">
+        Single Sign-On (OIDC/SAML/LDAP)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/lineage-audit/" class="md-nav__link">
         Data Lineage & Audit
       </a>
@@ -1121,6 +1135,54 @@
   <a href="#iam" class="md-nav__link">
     IAM
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication-password-storage" class="md-nav__link">
+    Authentication — password storage
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#single-sign-on-oidc-saml-ldap" class="md-nav__link">
+    Single sign-on (OIDC / SAML / LDAP)
+  </a>
+  
+    <nav class="md-nav" aria-label="Single sign-on (OIDC / SAML / LDAP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#identity-mapping-all-three-providers" class="md-nav__link">
+    Identity mapping (all three providers)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#openid-connect" class="md-nav__link">
+    OpenID Connect
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#saml-20" class="md-nav__link">
+    SAML 2.0
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ldap-active-directory" class="md-nav__link">
+    LDAP / Active Directory
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1749,6 +1811,238 @@
 <td><code>chango.iam.audit.dir</code></td>
 <td><code>${chango.base.data.dir}/master/iam-audit</code></td>
 <td>Operator audit log — currently only <code>iam:reset-password</code> writes here</td>
+</tr>
+</tbody>
+</table>
+<h2 id="authentication-password-storage">Authentication — password storage</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.auth.password.hash.iterations</code></td>
+<td><code>600000</code></td>
+<td>PBKDF2-HMAC-SHA256 iterations used when a local password is written. The count travels with each stored hash, so raising it does <strong>not</strong> invalidate existing passwords. Values written by an earlier version as an unsalted SHA-256 still verify and are rewritten on their owner's next successful login.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="single-sign-on-oidc-saml-ldap">Single sign-on (OIDC / SAML / LDAP)</h2>
+<p>Every setting below can also be managed from the console under <strong>Settings → SSO</strong>,
+which stores it in the replicated metadata store and applies it on every master with
+no restart. <strong>Stored settings win over the properties file</strong>: the file brings a
+cluster up, and the console is how it is changed afterwards — if the file won, a
+console change would be reverted by the next restart, silently. See
+<a href="../../features/sso/">Single Sign-On</a>.</p>
+<h3 id="identity-mapping-all-three-providers">Identity mapping (all three providers)</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.sso.group.mappings</code></td>
+<td>(empty)</td>
+<td><code>idpGroup:changoGroup</code> pairs, comma-separated. Empty means provider group names are used as they are. <strong>Once set the mapping is exhaustive</strong> — a group not named here is dropped, so creating a group at the provider cannot grant access on this cluster by itself.</td>
+</tr>
+<tr>
+<td><code>chango.sso.allow.unmapped.groups</code></td>
+<td><code>false</code></td>
+<td>Whether an identity whose groups all map to nothing may still sign in. Off deliberately: such a session has no policies and is denied every action. The directory endpoint reports that case as <code>403</code>, separately from a wrong password's <code>401</code>.</td>
+</tr>
+<tr>
+<td><code>chango.sso.federated.session.seconds</code></td>
+<td><code>3600</code></td>
+<td>Lifetime of a federated session — the record that lets every master and node manager resolve a federated caller's groups by name. It bounds how long access outlives a revocation at the provider, which this cluster is not told about. No refresh token is issued, for the same reason.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="openid-connect">OpenID Connect</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.sso.oidc.enabled</code></td>
+<td><code>false</code></td>
+<td>Enable the OIDC provider.</td>
+</tr>
+<tr>
+<td><code>chango.sso.oidc.issuer</code></td>
+<td>(empty)</td>
+<td>Issuer URL. Endpoints and the signing key set are read from its discovery document.</td>
+</tr>
+<tr>
+<td><code>chango.sso.oidc.client.id</code></td>
+<td>(empty)</td>
+<td>Client id registered at the provider.</td>
+</tr>
+<tr>
+<td><code>chango.sso.oidc.client.secret</code></td>
+<td>(empty)</td>
+<td>Client secret. Credential — never read back by the console.</td>
+</tr>
+<tr>
+<td><code>chango.sso.oidc.redirect.uri</code></td>
+<td><code>http://localhost:8080/admin/api/auth/sso/oidc/callback</code></td>
+<td>Must match the redirect URI registered at the provider exactly, and must be the address browsers reach — the load balancer's, not one master's.</td>
+</tr>
+<tr>
+<td><code>chango.sso.oidc.scopes</code></td>
+<td><code>openid profile email</code></td>
+<td>Deliberately excludes <code>groups</code>: it is not a standard scope, and a provider that does not define it rejects the whole authorization request with <code>invalid_scope</code>.</td>
+</tr>
+<tr>
+<td><code>chango.sso.oidc.username.claim</code></td>
+<td><code>preferred_username</code></td>
+<td>Claim holding the login name.</td>
+</tr>
+<tr>
+<td><code>chango.sso.oidc.groups.claim</code></td>
+<td><code>groups</code></td>
+<td>Claim holding group membership. The provider must be configured to include it.</td>
+</tr>
+<tr>
+<td><code>chango.sso.oidc.audience</code></td>
+<td>(empty)</td>
+<td>Expected audience. Empty falls back to the client id. A token issued for another application is refused even though it is genuine.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="saml-20">SAML 2.0</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.sso.saml.enabled</code></td>
+<td><code>false</code></td>
+<td>Enable the SAML provider.</td>
+</tr>
+<tr>
+<td><code>chango.sso.saml.idp.entity.id</code></td>
+<td>(empty)</td>
+<td>Read automatically when the provider's metadata is imported from the console.</td>
+</tr>
+<tr>
+<td><code>chango.sso.saml.idp.sso.url</code></td>
+<td>(empty)</td>
+<td>IdP single sign-on URL.</td>
+</tr>
+<tr>
+<td><code>chango.sso.saml.idp.certificate</code></td>
+<td>(empty)</td>
+<td>Base64 IdP signing certificate. Every assertion's signature is verified against it.</td>
+</tr>
+<tr>
+<td><code>chango.sso.saml.sp.entity.id</code></td>
+<td><code>chango</code></td>
+<td>This cluster's entity ID, as it appears in the SP metadata the provider imports.</td>
+</tr>
+<tr>
+<td><code>chango.sso.saml.sp.acs.url</code></td>
+<td><code>http://localhost:8080/admin/api/auth/sso/saml/acs</code></td>
+<td>Assertion consumer URL. As with the OIDC redirect, this must be the address browsers reach.</td>
+</tr>
+<tr>
+<td><code>chango.sso.saml.nameid.format</code></td>
+<td>(empty)</td>
+<td>Empty omits the request entirely and lets the provider issue what it is configured for — naming one breaks more integrations than it fixes.</td>
+</tr>
+<tr>
+<td><code>chango.sso.saml.sign.requests</code></td>
+<td><code>false</code></td>
+<td>Needs an SP keypair, generated from the console; re-import the SP metadata at the provider afterwards.</td>
+</tr>
+<tr>
+<td><code>chango.sso.saml.username.attribute</code></td>
+<td><code>uid</code></td>
+<td>Assertion attribute holding the login name.</td>
+</tr>
+<tr>
+<td><code>chango.sso.saml.groups.attribute</code></td>
+<td><code>groups</code></td>
+<td>Assertion attribute holding group membership.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ldap-active-directory">LDAP / Active Directory</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango.sso.ldap.enabled</code></td>
+<td><code>false</code></td>
+<td>Enable the directory provider. With it on, a directory password works on the ordinary login form too.</td>
+</tr>
+<tr>
+<td><code>chango.sso.ldap.url</code></td>
+<td><code>ldap://ldap.example.com:389</code></td>
+<td>Use <code>ldaps://</code> or enable StartTLS — otherwise the bind password crosses the network in the clear.</td>
+</tr>
+<tr>
+<td><code>chango.sso.ldap.bind.dn</code></td>
+<td>(empty)</td>
+<td>Service account that searches for user entries. Authentication is search then bind: the user's DN cannot be constructed, since Active Directory puts people under <code>CN=John Doe,OU=Staff,…</code>.</td>
+</tr>
+<tr>
+<td><code>chango.sso.ldap.bind.password</code></td>
+<td>(empty)</td>
+<td>Service account password. Credential.</td>
+</tr>
+<tr>
+<td><code>chango.sso.ldap.user.base.dn</code></td>
+<td>(empty)</td>
+<td>Subtree searched for user entries.</td>
+</tr>
+<tr>
+<td><code>chango.sso.ldap.user.filter</code></td>
+<td><code>(uid={0})</code></td>
+<td><code>{0}</code> is the login name, escaped per RFC 4515 before substitution. Active Directory usually wants <code>(sAMAccountName={0})</code>.</td>
+</tr>
+<tr>
+<td><code>chango.sso.ldap.group.base.dn</code></td>
+<td>(empty)</td>
+<td>Subtree searched for groups.</td>
+</tr>
+<tr>
+<td><code>chango.sso.ldap.group.filter</code></td>
+<td><code>(member={0})</code></td>
+<td><code>{0}</code> is the user's DN. Membership is read both from this search <strong>and</strong> from the user's <code>memberOf</code>, because directories disagree about which side records it.</td>
+</tr>
+<tr>
+<td><code>chango.sso.ldap.group.name.attribute</code></td>
+<td><code>cn</code></td>
+<td>Attribute holding the group name.</td>
+</tr>
+<tr>
+<td><code>chango.sso.ldap.starttls</code></td>
+<td><code>false</code></td>
+<td>Upgrade a plain <code>ldap://</code> connection with StartTLS.</td>
 </tr>
 </tbody>
 </table>

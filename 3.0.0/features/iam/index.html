@@ -14,7 +14,7 @@
         <link rel="prev" href="../cluster-readiness/">
       
       
-        <link rel="next" href="../lineage-audit/">
+        <link rel="next" href="../sso/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
@@ -761,6 +761,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../sso/" class="md-nav__link">
+        Single Sign-On (OIDC/SAML/LDAP)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../lineage-audit/" class="md-nav__link">
         Data Lineage & Audit
       </a>
@@ -1372,7 +1386,8 @@
 
 
 <h1 id="identity-access-management">Identity &amp; Access Management</h1>
-<p>Chango ships with a built-in IAM layer that controls who can do what against the admin UI, the REST API, and any cluster-wide operation. It is implemented inside chango itself — no external identity provider is required to bring chango up. Components that need their own authorization (Trino, Spark, Flink, …) delegate to Ontul; chango's IAM governs the control plane.</p>
+<p>Chango ships with a built-in IAM layer that controls who can do what against the admin UI, the REST API, and any cluster-wide operation. It is implemented inside chango itself — no external identity provider is required to bring chango up, and one can be added afterwards without giving this up: see <a href="../sso/">Single Sign-On</a>, where a federated identity maps onto the same groups and policies described here. Components that need their own authorization (Trino, Spark, Flink, …) delegate to Ontul; chango's IAM governs the control plane.</p>
+<p>Local passwords are stored as PBKDF2-HMAC-SHA256 hashes. Values written by an earlier version as an unsalted SHA-256 still verify and are rewritten on their owner's next successful login, so no migration step is required.</p>
 <h2 id="concepts">Concepts</h2>
 <p>The model is intentionally close to AWS IAM, so policies port across cleanly.</p>
 <table>

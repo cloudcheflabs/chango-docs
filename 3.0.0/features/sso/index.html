@@ -8,20 +8,20 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/gateway-routing/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/sso/">
       
       
-        <link rel="prev" href="../ui-proxy/">
+        <link rel="prev" href="../iam/">
       
       
-        <link rel="next" href="../monitoring/">
+        <link rel="next" href="../lineage-audit/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
     
     
       
-        <title>Trino Gateway Routing - Chango</title>
+        <title>Single Sign-On (OIDC/SAML/LDAP) - Chango</title>
       
     
     
@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#trino-gateway-routing" class="md-skip">
+        <a href="#single-sign-on-oidc-saml-ldap" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Trino Gateway Routing
+              Single Sign-On (OIDC/SAML/LDAP)
             
           </span>
         </div>
@@ -669,11 +669,127 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../sso/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Single Sign-On (OIDC/SAML/LDAP)
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Single Sign-On (OIDC/SAML/LDAP)
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-two-ways-in" class="md-nav__link">
+    The two ways in
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-decides-permissions" class="md-nav__link">
+    What decides permissions
+  </a>
+  
+    <nav class="md-nav" aria-label="What decides permissions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#group-mapping" class="md-nav__link">
+    Group mapping
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuring-it" class="md-nav__link">
+    Configuring it
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuring it">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#openid-connect" class="md-nav__link">
+    OpenID Connect
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#saml-20" class="md-nav__link">
+    SAML 2.0
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ldap-active-directory" class="md-nav__link">
+    LDAP / Active Directory
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#behind-a-load-balancer" class="md-nav__link">
+    Behind a load balancer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revocation" class="md-nav__link">
+    Revocation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    See also
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -795,114 +911,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Trino Gateway Routing
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../gateway-routing/" class="md-nav__link">
         Trino Gateway Routing
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#who-owns-what" class="md-nav__link">
-    Who owns what
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#minimum-viable-topology" class="md-nav__link">
-    Minimum viable topology
-  </a>
-  
-    <nav class="md-nav" aria-label="Minimum viable topology">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-register-the-trino-cluster" class="md-nav__link">
-    1. Register the Trino cluster
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-create-a-cluster-group" class="md-nav__link">
-    2. Create a cluster group
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-add-users-to-the-group-in-ontul" class="md-nav__link">
-    3. Add users to the group — in Ontul
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-a-missing-route-looks-like-an-auth-failure" class="md-nav__link">
-    Why a missing route looks like an auth failure
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#resource-groups" class="md-nav__link">
-    Resource groups
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-the-topology-lives" class="md-nav__link">
-    Where the topology lives
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api-summary" class="md-nav__link">
-    API summary
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1398,165 +1411,197 @@
                   
 
 
-<h1 id="trino-gateway-routing">Trino Gateway Routing</h1>
-<p>A <a href="../../components/catalog/#trino-gateway">Trino Gateway</a> cluster installed by chango starts with <strong>no routes</strong>. Installing it puts the process on a host; it does not tell it which Trino clusters exist or who may reach them. Until the routing topology is registered, every query through the gateway fails — typically with a <code>401</code>, which reads like an authentication problem and is not one.</p>
-<p>This is the step most often missed after an install, so it is worth being explicit about what has to exist and where each piece lives.</p>
-<h2 id="who-owns-what">Who owns what</h2>
-<p>The topology is split across two products, and that split is the thing to understand first.</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>Owned by</th>
-<th>Managed through</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Clusters — where a Trino coordinator is</td>
-<td><strong>chango</strong></td>
-<td><code>/admin/api/gateway/clusters</code></td>
-</tr>
-<tr>
-<td>Cluster groups — which clusters a group of users may route to</td>
-<td><strong>chango</strong></td>
-<td><code>/admin/api/gateway/cluster-groups</code></td>
-</tr>
-<tr>
-<td>Resource groups — query concurrency and memory limits</td>
-<td><strong>chango</strong></td>
-<td><code>/admin/api/gateway/resource-groups</code></td>
-</tr>
-<tr>
-<td><strong>User → group membership</strong></td>
-<td><strong>Ontul</strong></td>
-<td>The Ontul admin UI</td>
-</tr>
-</tbody>
-</table>
-<p>chango master is the authoritative store for the first three. It persists them through the replicated metadata store (KMS-encrypted, leader-written, synced to followers) and the stateless gateway instances pull the assembled topology from <code>GET /api/v1/gateway/topology</code>.</p>
-<p>Membership is different. It used to live in chango and no longer does:</p>
-<div class="admonition warning">
-<p class="admonition-title">User-group membership moved to Ontul</p>
-<p><code>POST</code> and <code>DELETE</code> on <code>/admin/api/gateway/user-groups</code> answer <strong><code>410 Gone</code></strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>user-group assignment moved to ontul IAM — manage groups + membership
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>via the ontul admin UI; chango mirrors them automatically
+<h1 id="single-sign-on-oidc-saml-ldap">Single Sign-On (OIDC, SAML, LDAP)</h1>
+<p>Chango can hand authentication to an external identity provider, so the control
+plane stops being another place that holds passwords and becomes another thing your
+directory governs. Three providers are supported — OpenID Connect, SAML 2.0, and
+LDAP / Active Directory.</p>
+<p>This is about <strong>chango's own control plane</strong>: the admin UI and the admin REST API.
+Components that authorize their own data access (Trino, Spark, Flink, …) delegate to
+Ontul, which has its own single sign-on — see the Ontul documentation.</p>
+<h2 id="the-two-ways-in">The two ways in</h2>
+<p><strong>The admin console is a browser.</strong> It can be redirected, so it uses the flows built
+for that: OIDC Authorization Code with PKCE, or SAML 2.0 Web Browser SSO. The login
+page shows a button for each provider that is configured, and nothing for the ones
+that are not.</p>
+<p><strong>The admin REST API is not a browser.</strong> A script or an operator's tooling posts the
+credential it already holds and receives the token every other route accepts:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://chango:8080/admin/api/auth/sso/ldap/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;alice&quot;,&quot;password&quot;:&quot;&lt;directory password&gt;&quot;}&#39;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># → {&quot;accessToken&quot;:&quot;...&quot;,&quot;username&quot;:&quot;alice&quot;,&quot;federated&quot;:true,&quot;idp&quot;:&quot;LDAP&quot;,&quot;groups&quot;:[&quot;chango-admins&quot;]}</span>
 </code></pre></div>
-<p>Create the group in chango (<code>cluster-groups</code>), then add users to the matching Ontul group in the <strong>Ontul</strong> admin UI. chango mirrors the membership.</p>
-<p><code>GET /admin/api/gateway/user-groups</code> still works and is the quickest way to see the mirrored result.</p>
+<p>The ordinary login route accepts the same directory credentials, so an operator can
+simply type them into the form. The dedicated endpoint exists for a distinction the
+form cannot make: a caller the directory authenticated but whose groups map to
+nothing is a configuration problem, not a wrong password — it answers <strong>403</strong> with
+that explanation, while a wrong password is <strong>401</strong>. Reporting the first as the
+second sends someone to reset a password that was right.</p>
+<h2 id="what-decides-permissions">What decides permissions</h2>
+<p>Nothing about the provider does. A federated identity arrives carrying group names;
+those are mapped to groups <strong>on this cluster</strong>, and the policies attached to those
+groups authorize every request — the same evaluation an access key gets. See
+<a href="../iam/">Identity &amp; Access Management</a>.</p>
+<p><strong>No local user account is created.</strong> A federated caller has no password and nothing
+to persist; your directory is the record. Creating an account for everyone who ever
+signed in would put them all in the IAM list and in every replicated snapshot, and
+removing them from the directory would leave the copy behind still authorizing them.</p>
+<p>Instead a short-lived <strong>federated session</strong> is recorded, and it rides the IAM
+snapshot — the thing that already reaches the replica masters and the node managers.
+All of them resolve a caller by name, so a session held anywhere else would be known
+only on the master that signed it in. A session lasts
+<code>chango.sso.federated.session.seconds</code> (default 3600); after that the name resolves
+to nothing until the caller signs in again.</p>
+<div class="admonition note">
+<p class="admonition-title">A local account of the same name wins</p>
+<p>If a stored user and a federated identity share a name, the stored account's
+policies apply. Creating a local user is a deliberate act by an administrator, so
+it is the more specific statement of intent — and resolving the other way round
+would let whoever controls the directory decide what a local account can do.</p>
 </div>
-<p>Creating a cluster-group in chango creates the corresponding Ontul group as a side effect, so the name is shared. Adding <em>people</em> to it is Ontul's job.</p>
-<h2 id="minimum-viable-topology">Minimum viable topology</h2>
-<p>Three things, in this order.</p>
-<h3 id="1-register-the-trino-cluster">1. Register the Trino cluster</h3>
-<p>The gateway needs a name and a URL. The name must match the chango Trino <code>clusterId</code>, because a cluster-group refers to clusters by that name.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">BASE</span><span class="o">=</span>http://&lt;master&gt;:8080
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">      </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;…&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/clusters<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="s1">    &quot;clusterName&quot;: &quot;trino-main&quot;,</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="s1">    &quot;url&quot;: &quot;http://&lt;coordinator-host&gt;:&lt;httpPort&gt;&quot;</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="s1">  }&#39;</span>
+<h3 id="group-mapping">Group mapping</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="na">chango.sso.group.mappings</span><span class="o">=</span><span class="s">db-admins:chango-admins,operators:chango-operators</span>
 </code></pre></div>
-<h3 id="2-create-a-cluster-group">2. Create a cluster group</h3>
-<p>Every route needs at least one. Routing is owned by groups, not by raw <code>host:port</code> backends — a gateway with a registered cluster but no group still has nowhere to send a query.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/cluster-groups<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="s1">    &quot;groupName&quot;: &quot;default&quot;,</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="s1">    &quot;trinoClusterIds&quot;: [&quot;trino-main&quot;]</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="s1">  }&#39;</span>
+<p>Left empty, provider group names are used as they are — the common case where the
+directory already uses this product's group names. <strong>Once set, the mapping is
+exhaustive:</strong> a group not named in it is dropped, so creating a group at the provider
+cannot grant access here by itself.</p>
+<p>An identity whose groups all map to nothing is refused, not admitted with no groups.
+Such a session has no policies and is denied every action, so letting it in produces
+someone who is signed in and can do nothing, left to work out why from permission
+errors. Set <code>chango.sso.allow.unmapped.groups=true</code> to allow it anyway.</p>
+<h2 id="configuring-it">Configuring it</h2>
+<p>Everything below can be set in the console under <strong>Settings → SSO</strong>, which stores it
+in the replicated metadata store and applies it on every master with no restart. The
+properties file is still read for anything left unset, so a cluster configured by
+file keeps working untouched.</p>
+<p>Local passwords keep working while SSO is on. Enabling it cannot lock you out.</p>
+<h3 id="openid-connect">OpenID Connect</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="na">chango.sso.oidc.enabled</span><span class="o">=</span><span class="s">true</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="na">chango.sso.oidc.issuer</span><span class="o">=</span><span class="s">https://keycloak.example.com/realms/company</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="na">chango.sso.oidc.client.id</span><span class="o">=</span><span class="s">chango-console</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="na">chango.sso.oidc.client.secret</span><span class="o">=</span><span class="s">…</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="na">chango.sso.oidc.redirect.uri</span><span class="o">=</span><span class="s">https://chango.example.com/admin/api/auth/sso/oidc/callback</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="na">chango.sso.oidc.groups.claim</span><span class="o">=</span><span class="s">groups</span>
 </code></pre></div>
-<p><code>trinoClusterIds</code> holds the names registered in step 1.</p>
-<h3 id="3-add-users-to-the-group-in-ontul">3. Add users to the group — in Ontul</h3>
-<p>Open the <strong>Ontul</strong> admin UI, find the group named <code>default</code>, and add the users who should route through it. A user in no group has no route.</p>
-<p>Confirm the mirror landed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/user-groups<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<p>Endpoints are read from the issuer's discovery document, so they are not configured
+individually. The ID token's signature is verified against the provider's published
+key set, and its issuer, audience and expiry are all checked — a token issued for a
+different application is refused even though it is genuine and correctly signed.</p>
+<div class="admonition note">
+<p class="admonition-title">The <code>groups</code> scope</p>
+<p><code>chango.sso.oidc.scopes</code> deliberately does <strong>not</strong> include <code>groups</code>. It is not a
+standard scope, and a provider that does not define it rejects the whole
+authorization request with <code>invalid_scope</code> — so asking for it by default logs
+nobody in. Group membership comes from a claim the provider is configured to
+include.</p>
+</div>
+<h3 id="saml-20">SAML 2.0</h3>
+<p>A SAML integration is an exchange of metadata, not a form-filling exercise.</p>
+<ol>
+<li><strong>Download this cluster's metadata</strong> from the console (or
+   <code>GET /admin/api/sso/saml/metadata</code>) and give it to whoever administers your
+   identity provider.</li>
+<li><strong>Paste your provider's metadata</strong> into the console. The entity ID, sign-on URL
+   and signing certificate are read from it — which beats transcribing three fields
+   by hand, where the typos are.</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="na">chango.sso.saml.enabled</span><span class="o">=</span><span class="s">true</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="na">chango.sso.saml.idp.entity.id</span><span class="o">=</span><span class="s">https://idp.example.com/realms/company</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="na">chango.sso.saml.idp.sso.url</span><span class="o">=</span><span class="s">https://idp.example.com/protocol/saml</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="na">chango.sso.saml.idp.certificate</span><span class="o">=</span><span class="s">MIIC…</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="na">chango.sso.saml.sp.entity.id</span><span class="o">=</span><span class="s">chango</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="na">chango.sso.saml.sp.acs.url</span><span class="o">=</span><span class="s">https://chango.example.com/admin/api/auth/sso/saml/acs</span>
 </code></pre></div>
-<h2 id="why-a-missing-route-looks-like-an-auth-failure">Why a missing route looks like an auth failure</h2>
-<p>The gateway authenticates the caller first, then asks which cluster-group that identity belongs to, then routes. A user with valid credentials and no group membership fails at the second step — and the response the client sees is a <code>401</code>.</p>
-<p>So when a freshly installed gateway rejects a correct username and password, check membership before checking the password. The <a href="../../tutorials/phase-7-kiok-dag-trino-ontul-via-gateway/">kiok tutorial</a> walks the same path with a DAG in front of it.</p>
-<h2 id="resource-groups">Resource groups</h2>
-<p>Optional. They cap concurrency and memory per group of queries:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/resource-groups<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;name&quot;: &quot;adhoc&quot;, &quot;…&quot;: &quot;…&quot;}&#39;</span>
-</code></pre></div>
-<p>Values are stored opaquely — chango persists whatever JSON is posted and hands it to the gateway, which owns the schema. Without a resource group the gateway applies its own defaults.</p>
-<h2 id="where-the-topology-lives">Where the topology lives</h2>
-<p>Under <code>gateway.*</code> keys in the replicated metadata store:</p>
+<p>Every assertion is checked four ways, and each one is a real attack if skipped:</p>
 <table>
 <thead>
 <tr>
-<th>Key</th>
-<th>Holds</th>
+<th>Check</th>
+<th>What it prevents</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>gateway.cluster.&lt;name&gt;</code></td>
-<td>Cluster JSON</td>
+<td>Signature, against the provider's certificate</td>
+<td>An assertion the caller wrote</td>
 </tr>
 <tr>
-<td><code>gateway.cgroup.&lt;name&gt;</code></td>
-<td>Cluster-group JSON</td>
+<td>Audience</td>
+<td>A genuine assertion for another service logging in here</td>
 </tr>
 <tr>
-<td><code>gateway.rgroup.&lt;name&gt;</code></td>
-<td>Resource-group JSON</td>
+<td>Validity window</td>
+<td>A captured assertion replayed forever</td>
 </tr>
 <tr>
-<td><code>gateway.usergroup.&lt;user&gt;</code></td>
-<td>The user's cluster-group name, mirrored from Ontul</td>
+<td>Issuer</td>
+<td>Any provider the caller can reach being trusted</td>
 </tr>
 </tbody>
 </table>
-<p>Two consequences worth knowing:</p>
+<p>On top of those, an assertion already used is refused. That record is kept <strong>in
+ZooKeeper, not in one master's memory</strong>: an assertion is a bearer document, and a
+replay arrives at whichever master the load balancer picks — usually not the one that
+saw the original. The e2e suite asserts exactly that, replaying against the other
+master.</p>
+<p><strong>Encrypted assertions and signed requests.</strong> Several providers encrypt assertions or
+require the authentication request to be signed. Both need a service-provider keypair
+— generate one from the console, then re-import the SP metadata at your provider so
+it picks up the new certificate. An encrypted assertion must carry its own signature:
+encryption proves who the assertion was <em>for</em>, never who wrote it.</p>
+<p><strong>NameID format</strong> is left empty by default, which omits the request entirely and lets
+the provider issue whatever it is configured for. Naming one breaks more integrations
+than it fixes.</p>
+<h3 id="ldap-active-directory">LDAP / Active Directory</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="na">chango.sso.ldap.enabled</span><span class="o">=</span><span class="s">true</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="na">chango.sso.ldap.url</span><span class="o">=</span><span class="s">ldaps://ad.example.com:636</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="na">chango.sso.ldap.bind.dn</span><span class="o">=</span><span class="s">cn=svc-chango,ou=service,dc=example,dc=com</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="na">chango.sso.ldap.bind.password</span><span class="o">=</span><span class="s">…</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="na">chango.sso.ldap.user.base.dn</span><span class="o">=</span><span class="s">ou=people,dc=example,dc=com</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="na">chango.sso.ldap.user.filter</span><span class="o">=</span><span class="s">(sAMAccountName={0})</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="na">chango.sso.ldap.group.base.dn</span><span class="o">=</span><span class="s">ou=groups,dc=example,dc=com</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="na">chango.sso.ldap.group.filter</span><span class="o">=</span><span class="s">(member={0})</span>
+</code></pre></div>
+<p>Authentication is <strong>search then bind</strong>. A service account finds the user's entry —
+their DN is something the product cannot construct, since Active Directory puts
+people under <code>CN=John Doe,OU=Staff,…</code> where neither component is the login name — and
+the password is then checked by binding as that DN.</p>
+<p>That second bind <em>is</em> the authentication. Reading a password attribute and comparing
+it would be wrong even where the directory allows it: only the server knows how its
+own hashes are salted, and account lockout, expiry and disabled flags are enforced on
+bind and nowhere else.</p>
+<p>Group membership is read <strong>both ways</strong>: from the user's <code>memberOf</code> and from a search
+of the group tree. Directories disagree about which side records it — OpenLDAP
+usually keeps it on the group, Active Directory mirrors it onto the user — and
+reading only one way silently returns no groups against half the servers in the
+field.</p>
+<div class="admonition warning">
+<p class="admonition-title">Use TLS</p>
+<p>Without <code>ldaps://</code> or <code>chango.sso.ldap.starttls=true</code>, the bind password crosses
+the network in the clear.</p>
+</div>
+<h2 id="behind-a-load-balancer">Behind a load balancer</h2>
+<p>Both browser flows work on any master, regardless of which one started them. The
+login state — including the PKCE verifier — is sealed with a key every master derives
+from <code>CHANGO_MASTER_KEY</code> and carried in the <code>state</code> parameter itself rather than held
+in memory on one master. Unsealing it is also what proves this cluster issued it,
+which is the login-CSRF check.</p>
+<p>Without that, SSO works on a single master and fails on roughly half of all attempts
+behind a load balancer — and it fails looking like a problem at the identity
+provider.</p>
+<h2 id="revocation">Revocation</h2>
+<p>Disabling someone at the provider stops new logins immediately. Sessions already
+issued keep working until they expire — this cluster is not told about the change.
+<code>chango.sso.federated.session.seconds</code> bounds how long that gap lasts; shorter is
+safer. A federated session gets no refresh token, for the same reason.</p>
+<h2 id="see-also">See also</h2>
 <ul>
-<li>It is <strong>covered by the chango master backup</strong>. A restored master brings its routing back with it — see <a href="../backup/">Backup &amp; Restore</a>.</li>
-<li>It is <strong>leader-written</strong>. Mutating calls against a follower answer <code>421</code> with the leader's address rather than writing to a store that trails.</li>
+<li><a href="../iam/">Identity &amp; Access Management</a> — the groups and policies a federated identity maps onto.</li>
+<li><a href="../role-based-access/">Role-Based Access Control</a> — what a group is allowed to do.</li>
+<li><a href="../../operations/configuration/">Configuration Reference</a> — every setting, with its default.</li>
 </ul>
-<h2 id="api-summary">API summary</h2>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Path</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>GET</code> / <code>POST</code> / <code>DELETE</code></td>
-<td><code>/admin/api/gateway/clusters[/&lt;name&gt;]</code></td>
-<td>Backend Trino clusters</td>
-</tr>
-<tr>
-<td><code>GET</code> / <code>POST</code> / <code>DELETE</code></td>
-<td><code>/admin/api/gateway/cluster-groups[/&lt;name&gt;]</code></td>
-<td>Routing groups; POST also creates the Ontul group</td>
-</tr>
-<tr>
-<td><code>GET</code> / <code>POST</code> / <code>DELETE</code></td>
-<td><code>/admin/api/gateway/resource-groups[/&lt;name&gt;]</code></td>
-<td>Concurrency / memory limits</td>
-</tr>
-<tr>
-<td><code>GET</code></td>
-<td><code>/admin/api/gateway/user-groups</code></td>
-<td>Membership, mirrored from Ontul</td>
-</tr>
-<tr>
-<td>~~<code>POST</code> / <code>DELETE</code>~~</td>
-<td>~~<code>/admin/api/gateway/user-groups</code>~~</td>
-<td><strong><code>410 Gone</code></strong> — manage membership in Ontul</td>
-</tr>
-</tbody>
-</table>
 
 
 
