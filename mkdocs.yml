@@ -51,6 +51,7 @@ nav:
       - "Leader Forwarding": features/leader-forward.md
       - "Cluster Readiness": features/cluster-readiness.md
       - "Identity & Access Management": features/iam.md
+      - "Single Sign-On (OIDC/SAML/LDAP)": features/sso.md
       - "Data Lineage & Audit": features/lineage-audit.md
       - "Role-Based Access (Stage 1)": features/role-based-access.md
       - "Admin Password Recovery": features/admin-password-recovery.md

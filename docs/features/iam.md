@@ -1,6 +1,8 @@
 # Identity & Access Management
 
-Chango ships with a built-in IAM layer that controls who can do what against the admin UI, the REST API, and any cluster-wide operation. It is implemented inside chango itself — no external identity provider is required to bring chango up. Components that need their own authorization (Trino, Spark, Flink, …) delegate to Ontul; chango's IAM governs the control plane.
+Chango ships with a built-in IAM layer that controls who can do what against the admin UI, the REST API, and any cluster-wide operation. It is implemented inside chango itself — no external identity provider is required to bring chango up, and one can be added afterwards without giving this up: see [Single Sign-On](sso.md), where a federated identity maps onto the same groups and policies described here. Components that need their own authorization (Trino, Spark, Flink, …) delegate to Ontul; chango's IAM governs the control plane.
+
+Local passwords are stored as PBKDF2-HMAC-SHA256 hashes. Values written by an earlier version as an unsalted SHA-256 still verify and are rewritten on their owner's next successful login, so no migration step is required.
 
 ## Concepts
 

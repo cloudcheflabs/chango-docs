@@ -108,6 +108,73 @@ Master and a co-located node manager keep separate sub-trees so they do not cont
 | `chango.iam.admin.password` | `admin` | The bootstrap password only. Chango **blocks every non-auth route** until it is rotated, so this value stops working on first login |
 | `chango.iam.audit.dir` | `${chango.base.data.dir}/master/iam-audit` | Operator audit log — currently only `iam:reset-password` writes here |
 
+## Authentication — password storage
+
+| Key | Default | Notes |
+|---|---|---|
+| `chango.auth.password.hash.iterations` | `600000` | PBKDF2-HMAC-SHA256 iterations used when a local password is written. The count travels with each stored hash, so raising it does **not** invalidate existing passwords. Values written by an earlier version as an unsalted SHA-256 still verify and are rewritten on their owner's next successful login. |
+
+## Single sign-on (OIDC / SAML / LDAP)
+
+Every setting below can also be managed from the console under **Settings → SSO**,
+which stores it in the replicated metadata store and applies it on every master with
+no restart. **Stored settings win over the properties file**: the file brings a
+cluster up, and the console is how it is changed afterwards — if the file won, a
+console change would be reverted by the next restart, silently. See
+[Single Sign-On](../features/sso.md).
+
+### Identity mapping (all three providers)
+
+| Key | Default | Notes |
+|---|---|---|
+| `chango.sso.group.mappings` | (empty) | `idpGroup:changoGroup` pairs, comma-separated. Empty means provider group names are used as they are. **Once set the mapping is exhaustive** — a group not named here is dropped, so creating a group at the provider cannot grant access on this cluster by itself. |
+| `chango.sso.allow.unmapped.groups` | `false` | Whether an identity whose groups all map to nothing may still sign in. Off deliberately: such a session has no policies and is denied every action. The directory endpoint reports that case as `403`, separately from a wrong password's `401`. |
+| `chango.sso.federated.session.seconds` | `3600` | Lifetime of a federated session — the record that lets every master and node manager resolve a federated caller's groups by name. It bounds how long access outlives a revocation at the provider, which this cluster is not told about. No refresh token is issued, for the same reason. |
+
+### OpenID Connect
+
+| Key | Default | Notes |
+|---|---|---|
+| `chango.sso.oidc.enabled` | `false` | Enable the OIDC provider. |
+| `chango.sso.oidc.issuer` | (empty) | Issuer URL. Endpoints and the signing key set are read from its discovery document. |
+| `chango.sso.oidc.client.id` | (empty) | Client id registered at the provider. |
+| `chango.sso.oidc.client.secret` | (empty) | Client secret. Credential — never read back by the console. |
+| `chango.sso.oidc.redirect.uri` | `http://localhost:8080/admin/api/auth/sso/oidc/callback` | Must match the redirect URI registered at the provider exactly, and must be the address browsers reach — the load balancer's, not one master's. |
+| `chango.sso.oidc.scopes` | `openid profile email` | Deliberately excludes `groups`: it is not a standard scope, and a provider that does not define it rejects the whole authorization request with `invalid_scope`. |
+| `chango.sso.oidc.username.claim` | `preferred_username` | Claim holding the login name. |
+| `chango.sso.oidc.groups.claim` | `groups` | Claim holding group membership. The provider must be configured to include it. |
+| `chango.sso.oidc.audience` | (empty) | Expected audience. Empty falls back to the client id. A token issued for another application is refused even though it is genuine. |
+
+### SAML 2.0
+
+| Key | Default | Notes |
+|---|---|---|
+| `chango.sso.saml.enabled` | `false` | Enable the SAML provider. |
+| `chango.sso.saml.idp.entity.id` | (empty) | Read automatically when the provider's metadata is imported from the console. |
+| `chango.sso.saml.idp.sso.url` | (empty) | IdP single sign-on URL. |
+| `chango.sso.saml.idp.certificate` | (empty) | Base64 IdP signing certificate. Every assertion's signature is verified against it. |
+| `chango.sso.saml.sp.entity.id` | `chango` | This cluster's entity ID, as it appears in the SP metadata the provider imports. |
+| `chango.sso.saml.sp.acs.url` | `http://localhost:8080/admin/api/auth/sso/saml/acs` | Assertion consumer URL. As with the OIDC redirect, this must be the address browsers reach. |
+| `chango.sso.saml.nameid.format` | (empty) | Empty omits the request entirely and lets the provider issue what it is configured for — naming one breaks more integrations than it fixes. |
+| `chango.sso.saml.sign.requests` | `false` | Needs an SP keypair, generated from the console; re-import the SP metadata at the provider afterwards. |
+| `chango.sso.saml.username.attribute` | `uid` | Assertion attribute holding the login name. |
+| `chango.sso.saml.groups.attribute` | `groups` | Assertion attribute holding group membership. |
+
+### LDAP / Active Directory
+
+| Key | Default | Notes |
+|---|---|---|
+| `chango.sso.ldap.enabled` | `false` | Enable the directory provider. With it on, a directory password works on the ordinary login form too. |
+| `chango.sso.ldap.url` | `ldap://ldap.example.com:389` | Use `ldaps://` or enable StartTLS — otherwise the bind password crosses the network in the clear. |
+| `chango.sso.ldap.bind.dn` | (empty) | Service account that searches for user entries. Authentication is search then bind: the user's DN cannot be constructed, since Active Directory puts people under `CN=John Doe,OU=Staff,…`. |
+| `chango.sso.ldap.bind.password` | (empty) | Service account password. Credential. |
+| `chango.sso.ldap.user.base.dn` | (empty) | Subtree searched for user entries. |
+| `chango.sso.ldap.user.filter` | `(uid={0})` | `{0}` is the login name, escaped per RFC 4515 before substitution. Active Directory usually wants `(sAMAccountName={0})`. |
+| `chango.sso.ldap.group.base.dn` | (empty) | Subtree searched for groups. |
+| `chango.sso.ldap.group.filter` | `(member={0})` | `{0}` is the user's DN. Membership is read both from this search **and** from the user's `memberOf`, because directories disagree about which side records it. |
+| `chango.sso.ldap.group.name.attribute` | `cn` | Attribute holding the group name. |
+| `chango.sso.ldap.starttls` | `false` | Upgrade a plain `ldap://` connection with StartTLS. |
+
 ## Admin recovery socket
 
 A local Unix domain socket (mode `600`) for out-of-band operator commands. Authentication is OS-level: only a process sharing the master's filesystem identity can connect, and there is no network surface. See [Admin Password Recovery](../features/admin-password-recovery.md).
