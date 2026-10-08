@@ -29,27 +29,89 @@ A UI Proxy upstream is one `host=url` mapping: the hostname the end user types i
 
 | User-facing hostname | Internal upstream |
 |---|---|
-| `spark-prod-ui.chango.local` | `http://chango-m1:18180/` |
-| `trino-prod-ui.chango.local` | `http://chango-m2:8480/ui/` |
-| `flink-jobs-ui.chango.local` | `http://chango-n3:8081/` |
+| `spark-prod-master-1-ui.chango.local` | `http://chango-m1:8780` |
+| `spark-prod-livy-1-ui.chango.local` | `http://chango-m1:8998/ui` |
+| `trino-prod-coordinator-1-ui.chango.local` | `http://chango-m2:8480/ui` |
+| `flink-jobs-jobmanager-1-ui.chango.local` | `http://chango-n3:8980` |
 
 These mappings live in the chango metadata RocksDB and are pushed to every UI Proxy instance on update.
 
 ## Auto-discovery
 
-The Create UI Proxy panel in the admin UI does not ask you to type the URLs. Chango already knows every running Spark master web UI, Trino coordinator, Trino Gateway, Flink JobManager, and Polaris HTTP endpoint — it sees their cluster + role + port through the standard component registry. The Create panel lists them as checkable rows; you pick the ones you want to expose and chango fills the upstream string itself.
+The Create UI Proxy panel does not ask you to type URLs. Chango already knows every running component UI — cluster, role and port come from the component registry — and lists them as checkable rows. What it offers:
 
-A free-text "Add extra upstreams (advanced)" box is still available for endpoints chango does not manage (a customer-supplied legacy web UI, a Polaris CDN, …).
+| Component | Roles offered | Path |
+|---|---|---|
+| Spark | master, worker, history-server, **Livy** | `/`, Livy at `/ui/` |
+| Trino | coordinator | `/ui/` |
+| Trino Gateway | all | `/` |
+| Flink | jobmanager | `/` |
+| Polaris | all | `/` |
 
-## Ontul integration
+A free-text **Add extra upstreams (advanced)** box remains for endpoints chango does not manage.
+
+### Running clusters register themselves
+
+Picking from the list is only the convenient path. The leader also pushes every running Spark, Trino and Flink UI into each proxy cluster's *managed upstream* slot on its reconcile tick, so installing a component after the proxy makes its UI appear without anyone editing the proxy — and scaling or deleting that component updates or empties the slot the same way.
+
+The combined set (what you picked + what registered itself) is written to every instance's `ui-proxy.properties`, and the proxy instances are **restarted one at a time** when it changes. They read that file once, at startup; writing it and stopping there would leave the routing table correct on disk and the running proxy still answering 404 for the UI just installed.
+
+!!! note "The left-hand side is a hostname, not a label"
+    Auto-registered entries are named `<instanceId>-ui.chango.local`, matching what the Create panel suggests. The proxy routes by `Host` header, so this is a name the browser has to resolve to the proxy — point a wildcard record (`*.chango.local`) at it, or add the names to the clients' hosts file. Entries used to be the bare instance id, which resolves nowhere, so every auto-registered UI was unreachable while looking configured.
+
+### Paths matter as much as ports
+
+The proxy forwards to `upstream + request path`, so a UI that does not live at the root of its port needs that prefix in the upstream. Trino's UI is at `/ui`, and **Livy serves its REST API at `/` with the dashboard at `/ui`** — an upstream of just `host:port` for Livy lands the operator on JSON.
+
+## Signing in
 
 When a request arrives:
 
-1. The UI Proxy checks for an Ontul session cookie. No cookie → redirect to Ontul's login page; on success Ontul redirects back with a session.
-2. With a valid session, the proxy asks Ontul `POST /v1/api/authz/check-batch` whether the user is allowed to access the upstream — typically `(action: WEB_UI, resource: <component>.<clusterId>)`.
-3. On `ALLOW`, the request is forwarded upstream with the original method / headers / body. On `DENY` or `ABSTAIN`, the proxy returns `403`.
+1. The proxy looks for its **own** session cookie (`chango_ui_session`). Without one, it serves its login page.
+2. The credentials typed there are posted to Ontul's `POST /admin/auth/login`. Ontul answers yes or no; the proxy does not reuse Ontul's token.
+3. On success the proxy mints its own AES-256-GCM session cookie, signed with the cluster-wide `uiproxy.session.secret`, and forwards the original request upstream.
 
-The Ontul endpoint and the long-lived service token the proxy uses are wired at install time (the same `ontulAuthzEndpoint` + OTOK token that Trino / Spark / Flink use).
+The cookie is the whole session — there is no server-side store. Every instance of a proxy cluster holds the same secret, so any instance can validate a session any other instance issued, and scaling the proxy needs no sticky routing.
+
+!!! note "Authentication, not authorization"
+    A signed-in user reaches **every** upstream the proxy routes for. The proxy does not ask Ontul whether this person may see this particular dashboard. If a dashboard must be restricted to a subset of your operators, run a second proxy cluster with only those upstreams, or restrict by SSO group (below).
+
+### Directory passwords work with nothing configured
+
+Ontul's login route falls back to the directory when the password is not one it stores, so an operator whose account lives in **LDAP or Active Directory** simply types it into the proxy's form. There is nothing to configure on the proxy for that, and nothing to configure twice.
+
+### Single sign-on (OIDC, SAML)
+
+A password — local or directory — is a form post, so it can be forwarded to Ontul. **OIDC and SAML cannot be**: they send the browser to the identity provider and back, and Ontul's callback redirects only to a path on Ontul and delivers the session in a URL *fragment*, which a browser never sends to a server. So the proxy performs those two flows itself, using the same `ccl-sso` library chango's control plane uses — the same code validates the issuer, audience, expiry and signature on both sides of the product.
+
+Configure them under **Configure → Single Sign-On** on the UI Proxy page. The login page then shows a button per configured provider, and nothing for the ones that are not.
+
+```properties
+uiproxy.sso.oidc.enabled      = true
+uiproxy.sso.oidc.issuer       = https://keycloak.example.com/realms/company
+uiproxy.sso.oidc.client.id    = chango-uiproxy
+uiproxy.sso.oidc.client.secret= …
+uiproxy.sso.oidc.redirect.uri = https://spark-prod-ui.chango.local/chango-auth/sso/oidc/callback
+uiproxy.sso.oidc.groups.claim = groups
+
+uiproxy.sso.saml.enabled      = true
+uiproxy.sso.saml.idp.entity.id= https://idp.example.com/realms/company
+uiproxy.sso.saml.idp.sso.url  = https://idp.example.com/protocol/saml
+uiproxy.sso.saml.idp.certificate = MIIC…
+uiproxy.sso.saml.sp.entity.id = chango-uiproxy
+uiproxy.sso.saml.sp.acs.url   = https://spark-prod-ui.chango.local/chango-auth/sso/saml/acs
+
+uiproxy.sso.group.mappings    = platform-ops:viewers
+```
+
+**Register the proxy at your provider in its own right.** Its callback URL is its own, not the console's — this is a second relying party, which is inherent to a redirect flow rather than a chango decision. The proxy publishes its SAML SP metadata at `/chango-auth/sso/saml/metadata`, which beats transcribing the entity id and ACS URL by hand.
+
+**Group mapping is the only restriction available.** Left empty, any identity the provider authenticated is let through — the proxy fronts dashboards, and an operator who wrote no mapping asked for no restriction. Once set it is exhaustive: an identity whose groups all map to nothing is refused rather than admitted with none, because the latter produces someone who is signed in and sees everything.
+
+!!! warning "Replay protection is per-instance"
+    A SAML assertion is single-use, and the proxy records used ones **in memory**. With several proxy instances behind one address, an assertion replayed to a different instance inside its validity window would be accepted. The control plane keeps that record in ZooKeeper; the proxy has no coordination service to keep it in. Keep the assertion validity window short at the provider. `ccl-sso` logs a warning at startup when no shared guard is configured.
+
+Behind several proxy instances, the login state — including the PKCE verifier — is sealed with the same cluster-wide session secret and carried in the `state` parameter rather than held in one JVM. Unsealing it is also the login-CSRF check. Without that, SSO would work on a single instance and fail on roughly half of all attempts behind a load balancer, looking like a problem at the provider.
 
 ## What it is not
 
