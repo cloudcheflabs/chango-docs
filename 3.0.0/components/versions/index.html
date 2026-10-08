@@ -809,6 +809,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/kafka-connect/" class="md-nav__link">
+        Kafka Connect & Topics
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/monitoring/" class="md-nav__link">
         Monitoring & Metrics
       </a>
@@ -1022,6 +1036,13 @@
         <li class="md-nav__item">
   <a href="#libraries-bundled-alongside-the-engines" class="md-nav__link">
     Libraries bundled alongside the engines
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kafka-connect-plugins-shipped-in-the-bundle" class="md-nav__link">
+    Kafka Connect plugins shipped in the bundle
   </a>
   
 </li>
@@ -1524,12 +1545,12 @@ they keep their own JDK rather than being forced onto chango's.</p>
 <tr>
 <td>Kafka</td>
 <td>3.7.2</td>
-<td>Scala 2.12</td>
+<td>Scala 2.12 — brokers, Schema Registry and Kafka Connect all come from this distribution</td>
 </tr>
 <tr>
 <td>Schema Registry</td>
 <td>7.7.1</td>
-<td>Confluent Community</td>
+<td>Confluent Community — also supplies the Avro converters Connect uses</td>
 </tr>
 <tr>
 <td>PostgreSQL</td>
@@ -1598,6 +1619,48 @@ dropped into each install's <code>jars/</code> (Spark) or <code>lib/</code> (Fli
 </tr>
 </tbody>
 </table>
+<h2 id="kafka-connect-plugins-shipped-in-the-bundle">Kafka Connect plugins shipped in the bundle</h2>
+<p>Connect is useless without a plugin, and an air-gapped Connect worker cannot
+download one. These four travel in the bundle and are installed into a cluster's
+plugin store on demand from the console — see
+<a href="../../features/kafka-connect/">Kafka Connect &amp; Topics</a>.</p>
+<p>The version is pinned to the <code>debezium-embedded</code> that Ontul's CDC already runs, so
+a table captured by Ontul and the same table captured by a Connect connector are
+read by identical code.</p>
+<table>
+<thead>
+<tr>
+<th>Plugin</th>
+<th>Version</th>
+<th>Captures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>debezium-connector-postgres</td>
+<td>2.6.2.Final</td>
+<td>PostgreSQL logical replication</td>
+</tr>
+<tr>
+<td>debezium-connector-mysql</td>
+<td>2.6.2.Final</td>
+<td>MySQL / MariaDB binlog</td>
+</tr>
+<tr>
+<td>debezium-connector-sqlserver</td>
+<td>2.6.2.Final</td>
+<td>SQL Server CDC tables</td>
+</tr>
+<tr>
+<td>debezium-connector-mongodb</td>
+<td>2.6.2.Final</td>
+<td>MongoDB change streams</td>
+</tr>
+</tbody>
+</table>
+<p>Any other Connect plugin — a sink, a transform, a third-party connector — is
+uploaded from the console as a zip, a tar.gz or a bare jar. Nothing about the
+bundled four is privileged; they are simply the ones already on the host.</p>
 <h2 id="first-party-plugins-shipped-with-engines">First-party plugins shipped with engines</h2>
 <table>
 <thead>

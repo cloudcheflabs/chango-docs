@@ -809,6 +809,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/kafka-connect/" class="md-nav__link">
+        Kafka Connect & Topics
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/monitoring/" class="md-nav__link">
         Monitoring & Metrics
       </a>
@@ -1086,6 +1100,19 @@
   <a href="#configure" class="md-nav__link">
     Configure
   </a>
+  
+    <nav class="md-nav" aria-label="Configure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s3-credentials-are-their-own-tab" class="md-nav__link">
+    S3 credentials are their own tab
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1490,9 +1517,14 @@
 <ul>
 <li><strong>Properties</strong> — operator-tunable keys in the component's main config file (e.g. Trino's <code>config.properties</code>). Per-instance keys (<code>http-server.http.port</code>, <code>discovery.uri</code>) are filtered out — those are owned by the provisioner.</li>
 <li><strong>JVM</strong> — per-role JVM tuning (<code>heapMin</code>, <code>heapMax</code>, extra <code>-X</code> flags).</li>
-<li><strong>Component-specific tabs</strong> — Trino has <em>Exchange Manager</em>, <em>Resource Group DB</em>, <em>Ontul Authz</em>; Spark has <em>Ontul Authz</em>, <em>Job Log Storage</em>; NeoRunBase has <em>PG Connection</em>. Each tab updates a narrowly-scoped slice of the cluster's config without touching the others.</li>
+<li><strong>Component-specific tabs</strong> — Trino has <em>Exchange Manager</em>, <em>Resource Group DB</em>, <em>Ontul Authz</em>; Spark has <em>Ontul Authz</em>, <em>S3 Credentials</em>, <em>Job Log Storage</em>; Polaris has <em>S3 Credentials</em>; NeoRunBase has <em>PG Connection</em>. Each tab updates a narrowly-scoped slice of the cluster's config without touching the others.</li>
 </ul>
-<p>Apply triggers a config re-render on every instance and a full cluster restart. The exception is Configure → "Job Log Storage" on Spark, which re-renders <code>spark-defaults.conf</code> and restarts the cluster, and the exchange-manager tab on Trino, which rewrites <code>etc/exchange-manager.properties</code> on every instance.</p>
+<p>Apply triggers a config re-render on every instance and a full cluster restart. Trino's exchange-manager tab instead rewrites <code>etc/exchange-manager.properties</code> on every instance.</p>
+<h3 id="s3-credentials-are-their-own-tab">S3 credentials are their own tab</h3>
+<p>On <strong>Spark</strong> these are the cluster-wide default for every <code>s3a://</code> access the nodes make — rendered into <code>conf/core-site.xml</code> with <code>fs.s3a.aws.credentials.provider</code> pinned to <code>SimpleAWSCredentialsProvider</code>, so they cover the history server's event logs <em>and</em> a cluster-mode driver fetching its uberjar. A job that sets its own credentials still overrides them.</p>
+<p>They used to be reachable only through <em>Job Log Storage</em>, which meant a cluster running no history server had no way to rotate its S3 key at all. <em>Job Log Storage</em> now carries only the event-log directory and depends on the credentials above.</p>
+<p>On <strong>Polaris</strong> the tab sets the server-wide <code>-Daws.*</code> that every Polaris server runs with. That is the <strong>fallback</strong>, not the whole story: a catalog that carries its own credentials uses those instead, which is what lets catalogs on different object stores coexist on one Polaris cluster. Per-catalog credentials live on the Iceberg Catalogs screen.</p>
+<p>Changing either restarts the cluster. Polaris reads its system properties into the AWS SDK's provider chain at startup only, so rewriting them without a restart would leave the cluster running the old key while the console showed the new one.</p>
 <h2 id="scale">Scale</h2>
 <p>Add an instance by listing its target NM. The provisioner allocates fresh ports, installs the package, and starts the new instance, joining it to the existing cluster (worker → existing master URL, broker → existing kafka cluster, …). Removing an instance walks the inverse path.</p>
 <p>Components that require an odd quorum (ZooKeeper, NeoRunBase ZK) refuse a scale request that would leave the cluster with an even count.</p>

@@ -809,6 +809,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/kafka-connect/" class="md-nav__link">
+        Kafka Connect & Topics
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/monitoring/" class="md-nav__link">
         Monitoring & Metrics
       </a>
@@ -1604,7 +1618,8 @@
 <li>Wire-compatible with existing Kafka clients.</li>
 </ul>
 <h3 id="kafka-bundled-open-source">Kafka (bundled open source)</h3>
-<p>Vanilla Apache Kafka for teams that want the upstream broker rather than ItdaStream. Same provisioner shape (ZK + broker + Schema Registry).</p>
+<p>Vanilla Apache Kafka for teams that want the upstream broker rather than ItdaStream. Provisioner shape: ZK + broker + Schema Registry + <strong>Kafka Connect</strong>.</p>
+<p>Connect is a role of the Kafka cluster rather than a component of its own — one Connect cluster per Kafka cluster, with its plugins managed from the console and Debezium 2.6.2.Final bundled for air-gapped installs. Topics are listed, created and deleted from the same page. See <a href="../../features/kafka-connect/">Kafka Connect &amp; Topics</a>.</p>
 <h3 id="schema-registry-bundled-open-source">Schema Registry (bundled open source)</h3>
 <p>Confluent Schema Registry, used by both ItdaStream and Kafka clusters.</p>
 <h2 id="lakebase">Lakebase</h2>
@@ -1619,6 +1634,7 @@
 <p>First-class PostgreSQL provisioner. Chango can install vanilla PostgreSQL as a managed component, stash the superuser password, and reuse the same instance for any component that needs a PG (Polaris metastore, Trino resource groups, NeoRunBase coordinator catalog).</p>
 <ul>
 <li>Installed from a Rocky 9 RPM bundle rather than a tarball, offline via <code>dnf</code>, then <code>initdb</code>'d per instance. One instance per node-manager host.</li>
+<li><strong>RPMs the host already has at an equal-or-newer version are dropped from the install set.</strong> The bundle's dependency closure is resolved on whatever Rocky 9 minor the bundle was built on, so it carries base-OS packages (<code>libacl</code>, <code>libattr</code>, …) at that minor's versions. Install those on a newer host and <code>dnf</code> refuses the whole transaction with a file conflict — and chango's own ansible run is itself enough to cause it, because installing <code>rsync</code> pulls a newer <code>libacl</code>. Each bundled RPM is tested with <code>rpm -U --test</code> and skipped when the host is already at or above it, which is what makes one bundle work across Rocky 9.7 and 9.8 without a per-minor build.</li>
 <li><code>--auth-local=peer</code>, so the <code>postgres</code> OS user is the local superuser; remote clients use scram-sha-256.</li>
 <li>The only managed component whose <strong>data</strong> chango backs up — see <a href="../../features/postgres-backup/">PostgreSQL Backup &amp; Restore</a>. Polaris keeps its metastore here, and that metastore is the only record of where Iceberg table metadata lives.</li>
 </ul>
@@ -1633,16 +1649,40 @@
 <p>Apache Polaris — the Iceberg REST catalog used by Spark, Trino, and Flink to discover and write Iceberg tables.</p>
 <ul>
 <li>Backed by a PostgreSQL metastore. Chango can resolve this from a chango-installed PG instance (recommended) or point at an external PG.</li>
-<li>Configurable per cluster: PG instance pick · catalog body schema · default S3 storage credentials.</li>
+<li>Configurable per cluster: PG instance pick · catalog body schema · fallback S3 credentials (Configure → <strong>S3 Credentials</strong>).</li>
 <li>Single server role; scale by running multiple Polaris instances against the same metastore.</li>
 </ul>
+<p><strong>Credential vending is deliberately off.</strong> Every catalog is created with
+<code>stsUnavailable: true</code>, so Polaris never calls <code>AssumeRole</code> to mint short-lived
+credentials for an engine. It cannot: the object stores chango installs against —
+ShannonStore, MinIO — have no STS endpoint, and a Polaris that tries to vend
+against them fails the request rather than falling back. With vending off, Polaris
+uses the static key directly and engines authenticate with their own configured
+credentials.</p>
+<p><strong>Each catalog carries its own S3 credentials</strong>, written as <code>table-default.s3.*</code>
+properties on the catalog. That is what lets one Polaris cluster serve catalogs on
+different object stores — a ShannonStore catalog and a MinIO catalog side by side.
+The cluster-level key in the <em>S3 Credentials</em> tab is only the fallback for a catalog
+that does not set its own.</p>
+<div class="admonition note">
+<p class="admonition-title">Why only the <code>table-default.</code> prefix works</p>
+<p>A bare <code>s3.access-key-id</code> on a catalog is accepted by Polaris and then ignored:
+it never reaches the FileIO that actually talks to the object store. Only
+properties under <code>table-default.</code> are handed down. Chango writes the prefixed
+form and translates bare keys on the way in, so a catalog edited through the
+console cannot end up with credentials that look set and do nothing.</p>
+</div>
 <h2 id="query-compute-open-source">Query / Compute (open source)</h2>
 <h3 id="spark">Spark</h3>
 <p>Apache Spark, standalone mode. Chango ships a small first-party plugin (<code>chango-spark-authz</code>) that authorizes Spark SQL queries against Ontul IAM at table level.</p>
 <ul>
 <li>Topology: Master + Worker.</li>
-<li>Optional: ontul authz wiring, S3-backed event log (history server).</li>
+<li>Optional: ontul authz wiring, cluster-wide S3 credentials (Configure → <strong>S3 Credentials</strong>), S3-backed event log (history server).</li>
 </ul>
+<p>The S3 credentials are the cluster's default for every <code>s3a://</code> path its nodes
+touch — not only the history server's event logs. They are configured, and
+rotated, independently of whether an event log is enabled at all: a cluster with
+no history server still needs a key to fetch a cluster-mode driver's uberjar.</p>
 <h3 id="livy-bundled-open-source">Livy (bundled open source)</h3>
 <p>Apache Livy, the REST front end for Spark job submission — used by the kiok tutorials to launch Spark work without an SSH hop to the Spark master.</p>
 <ul>
@@ -1691,9 +1731,9 @@
 <td>3-phase fan-out via detached helper, sticky-leader reclaims after restart.</td>
 </tr>
 <tr>
-<td>Trino, Spark, Flink, Kafka, Postgres, Polaris, Trino Gateway, Schema Registry, UI Proxy</td>
+<td>Trino, Spark, Flink, Kafka (broker / registry / Connect), Postgres, Polaris, Trino Gateway, UI Proxy</td>
 <td>no</td>
-<td>Upgrade via blue / green — see <a href="../../operations/upgrade/">Upgrade</a>.</td>
+<td>Upgrade via blue / green — see <a href="../../operations/upgrade/">Upgrade</a>. Connect <em>plugins</em> are a separate matter: they are replaced from the console at any time, see <a href="../../features/kafka-connect/">Kafka Connect &amp; Topics</a>.</td>
 </tr>
 </tbody>
 </table>

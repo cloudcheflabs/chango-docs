@@ -887,6 +887,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../kafka-connect/" class="md-nav__link">
+        Kafka Connect & Topics
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../monitoring/" class="md-nav__link">
         Monitoring & Metrics
       </a>
@@ -1445,7 +1459,7 @@
 <tr>
 <td><code>kafka-broker</code></td>
 <td>9092</td>
-<td>Kafka</td>
+<td>Kafka brokers <strong>and that cluster's Kafka Connect workers</strong></td>
 </tr>
 <tr>
 <td><code>schema-registry</code></td>
@@ -1519,6 +1533,11 @@
 </tr>
 </tbody>
 </table>
+<p>A role does not have to own a band. Kafka Connect takes its REST port from
+<code>kafka-broker</code>, the band of the cluster it belongs to, because a 200-wide window
+holds far more than the brokers on one host and a band per role would mean another
+firewall rule for every role added. Widening <code>chango.component.port.kafka-broker.range</code>
+widens it for Connect too.</p>
 <p>Every component that bundles its own ZooKeeper (Ontul, kiok, NeoRunBase, Kafka, ItdaStream, Mium, ShannonStore) has its own <code>-zk-client</code> / <code>-zk-peer</code> / <code>-zk-leader</code> bands at 2181 / 2888 / 3888. They share the same bases and are separated by host occupancy, not by band — see <a href="#host-awareness">host-awareness</a> below.</p>
 <p>Chango's own ports are fixed rather than allocated: <code>8080</code> (master admin + UI), <code>19999</code> (master internal), <code>19998</code> (node-manager internal), and <code>2181 / 2888 / 3888</code> for the control-plane ZK quorum.</p>
 <p>Defaults live in <code>PortAllocator.DEFAULT_BASE</code>; every band's base and range is overridable in <code>chango.properties</code> (<code>chango.component.port.&lt;band&gt;.base</code> / <code>.range</code>).</p>

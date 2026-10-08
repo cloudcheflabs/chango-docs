@@ -8,20 +8,20 @@
       
       
       
-        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/sticky-leader/">
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/kafka-connect/">
       
       
-        <link rel="prev" href="../topology/">
+        <link rel="prev" href="../gateway-routing/">
       
       
-        <link rel="next" href="../leader-forward/">
+        <link rel="next" href="../monitoring/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
     
     
       
-        <title>Sticky Leader Election - Chango</title>
+        <title>Kafka Connect & Topics - Chango</title>
       
     
     
@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sticky-leader-election" class="md-skip">
+        <a href="#kafka-connect-topics" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Sticky Leader Election
+              Kafka Connect & Topics
             
           </span>
         </div>
@@ -613,94 +613,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Sticky Leader Election
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../sticky-leader/" class="md-nav__link">
         Sticky Leader Election
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#the-two-mechanisms" class="md-nav__link">
-    The two mechanisms
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cold-start-deference" class="md-nav__link">
-    Cold-start deference
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#hot-restart-sticky-back" class="md-nav__link">
-    Hot-restart sticky-back
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-two-mechanisms" class="md-nav__link">
-    Why two mechanisms?
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#config" class="md-nav__link">
-    Config
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#observability" class="md-nav__link">
-    Observability
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#interactions" class="md-nav__link">
-    Interactions
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -892,11 +809,134 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../kafka-connect/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Kafka Connect & Topics
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Kafka Connect & Topics
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#one-connect-cluster-per-kafka-cluster" class="md-nav__link">
+    One Connect cluster per Kafka cluster
+  </a>
+  
+    <nav class="md-nav" aria-label="One Connect cluster per Kafka cluster">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ports" class="md-nav__link">
+    Ports
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#converters" class="md-nav__link">
+    Converters
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugins" class="md-nav__link">
+    Plugins
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installing-or-removing-restarts-the-workers" class="md-nav__link">
+    Installing or removing restarts the workers
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bundled-debezium" class="md-nav__link">
+    Bundled Debezium
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uploading-your-own" class="md-nav__link">
+    Uploading your own
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connectors" class="md-nav__link">
+    Connectors
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#topics" class="md-nav__link">
+    Topics
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#walkthrough" class="md-nav__link">
+    Walkthrough
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    See also
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1392,123 +1432,159 @@
                   
 
 
-<h1 id="sticky-leader-election">Sticky Leader Election</h1>
-<p>Chango masters elect a leader via Curator's <code>LeaderSelector</code> against ZooKeeper, but the bare election would re-elect a different master on every restart — even a graceful one. That triggers a leadership toggle, double KMS / IAM init on the new leader, and an avoidable window of follower-forward HTTP traffic during routine ops (rolling restart, self-patch, kernel patch reboot).</p>
-<p>The chango master stacks <strong>two</strong> sticky mechanisms on top of <code>LeaderSelector</code> so that the master that was leader yesterday is the leader again today, even after a graceful restart.</p>
-<h2 id="the-two-mechanisms">The two mechanisms</h2>
-<table>
-<thead>
-<tr>
-<th>Mechanism</th>
-<th>When it fires</th>
-<th>What it does</th>
-<th>ZK node</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Cold-start deference</td>
-<td>Whole cluster cold-starts together (every master process was down).</td>
-<td>Each master reads <code>master-leader-id</code>; if it does <strong>not</strong> match its own <code>nodeId</code>, it sleeps <code>chango.master.leader.deference.window.ms</code> (default <code>3000</code>) before joining the election. The "last leader" therefore wins the election race.</td>
-<td><code>/chango/master-leader-id</code> (persistent — written every time leadership lands)</td>
-</tr>
-<tr>
-<td>Hot-restart sticky-back</td>
-<td>One master is being restarted while the others stay up.</td>
-<td>The restarting leader writes <code>master-leader-preferred = "&lt;nodeId&gt;:&lt;expiresAtEpochMs&gt;"</code> to ZK during graceful stop. When another master receives <code>takeLeadership()</code> and sees a <strong>fresh</strong> hint pointing at a different node, it sleeps <code>deferenceWindowMs</code> and returns from <code>takeLeadership</code> — yielding the election back. The preferred node reclaims it.</td>
-<td><code>/chango/master-leader-preferred</code> (persistent, timestamped)</td>
-</tr>
-</tbody>
-</table>
-<p>Both are in <code>MasterLeaderElection</code>. They are <strong>independent</strong>: cold-start deference handles cluster bring-up; hot-restart sticky handles a single-node restart during normal operation. Together they prevent leadership flap during a rolling restart, an ansible-driven upgrade, or a chango self-patch.</p>
-<h2 id="cold-start-deference">Cold-start deference</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Cluster cold-start:
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    masterA stops → masterB stops → masterC stops    (yesterday)
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    masterA starts:
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        reads /chango/master-leader-id  → &quot;masterA&quot;   ← matches self
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        joins election immediately      → elected leader
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        writes /chango/master-leader-id → &quot;masterA&quot;   (no-op)
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        clears /chango/master-leader-preferred
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    masterB starts:
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        reads /chango/master-leader-id  → &quot;masterA&quot;   ← differs from self
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        sleeps deferenceWindowMs        (3 s default)
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        joins election as follower
+<h1 id="kafka-connect-topics">Kafka Connect &amp; Topics</h1>
+<p>A Kafka cluster installed by chango can also run <strong>Kafka Connect</strong>, with its
+plugins managed from the console — including Debezium, which ships in the chango
+bundle. The same screen lists, creates and deletes <strong>topics</strong>.</p>
+<h2 id="one-connect-cluster-per-kafka-cluster">One Connect cluster per Kafka cluster</h2>
+<p>Connect is a fourth role on an existing Kafka cluster, alongside <code>zookeeper</code>,
+<code>broker</code> and <code>registry</code>. It is not a separate component, and there is no second
+Connect cluster to create.</p>
+<p>That is a design decision rather than a simplification. A Connect cluster is
+identified by its <code>group.id</code> and by three internal topics — <code>config.storage.topic</code>,
+<code>offset.storage.topic</code>, <code>status.storage.topic</code>. Two Connect clusters on one Kafka
+that share any of them overwrite each other's connector configurations, with no
+error at either end. Deriving all four from the Kafka cluster id removes the
+question instead of asking an operator to get it right:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>group.id              = connect-&lt;kafkaClusterId&gt;
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>config.storage.topic  = connect-configs-&lt;kafkaClusterId&gt;
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>offset.storage.topic  = connect-offsets-&lt;kafkaClusterId&gt;
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>status.storage.topic  = connect-status-&lt;kafkaClusterId&gt;
 </code></pre></div>
-<p>The persistent <code>master-leader-id</code> node is updated every time leadership lands somewhere; it is therefore always pointing at the most recent leader.</p>
-<p>If <code>master-leader-id</code> is missing (truly fresh install — first start, never has had a leader), every master joins the election immediately and the natural Curator order decides. From the next leadership change onward, the sticky-back lock-in starts.</p>
-<h2 id="hot-restart-sticky-back">Hot-restart sticky-back</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Hot restart of the current leader, masterA, while masterB stays up:
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    masterA  (leader)         masterB  (follower)
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    ----------------          --------------------
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    stop-master.sh
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        |
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        |  Just before close():
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        |  /chango/master-leader-preferred = &quot;masterA:&lt;now + 60s&gt;&quot;
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        |  /chango/master-leader-id        = &quot;masterA&quot;        (already)
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        |  release leadership latch
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        |                                          takeLeadership():
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        |                                            reads preferred → &quot;masterA:&lt;exp&gt;&quot;
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        |                                            now &lt; exp        →  yield window
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        |                                            now != masterA   →  not us
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        |                                            sleep deferenceWindowMs (3s)
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        |                                            return (give up election turn)
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        |
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    start-master.sh
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>        |
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        |  takeLeadership():
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>        |    reads preferred → &quot;masterA:&lt;exp&gt;&quot;
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>        |    now &lt; exp        → yield window
-<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>        |    now == masterA   → it IS us, claim
-<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>        |    promote, clear preferred hint, set master-leader-id=masterA
+<p>These are provisioner-owned and cannot be edited.</p>
+<p>Install several Kafka clusters and each gets its own Connect, bound to its own
+brokers. Adding nodes adds <strong>workers</strong> to that one Connect cluster; connector
+tasks spread across them.</p>
+<div class="admonition note">
+<p class="admonition-title">No separate download</p>
+<p><code>connect-distributed</code> ships inside the Apache Kafka distribution, so a Connect
+worker installs from the same tarball as a broker. Nothing extra is fetched.</p>
+</div>
+<h3 id="ports">Ports</h3>
+<p>Connect's REST port comes from the existing <strong><code>kafka-broker</code> band</strong>, not a band of
+its own. Connect belongs to one Kafka cluster, so keeping its port in the same
+200-wide window as that cluster's brokers means one firewall rule per Kafka
+cluster rather than one per role. Widening
+<code>chango.component.port.kafka-broker.range</code> widens it for Connect too — that
+coupling is intended. See <a href="../port-allocator/">Port Allocator</a>.</p>
+<h3 id="converters">Converters</h3>
+<p>When the Kafka cluster has a Schema Registry, Connect defaults to Avro against it.
+Without one it defaults to JSON with schemas off. Either can be overridden per
+connector.</p>
+<h2 id="plugins">Plugins</h2>
+<p><strong>The master holds the authoritative copy; the workers get pushed copies.</strong></p>
+<p>Pushing an upload straight at the workers and keeping nothing is the obvious
+design, and it breaks on the first scale-out: a worker added later installs from
+the Kafka package with none of the plugins the others picked up since, so
+connectors run until a task happens to land on it and then fail with a missing
+connector class. Keeping the set on the master makes a scale-out a replay of it.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>master:  &lt;base.data.dir&gt;/master/connect-plugins/&lt;kafkaClusterId&gt;/&lt;pluginId&gt;/
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>worker:  &lt;installPath&gt;/plugins/&lt;pluginId&gt;/        ← plugin.path points at the parent
 </code></pre></div>
-<p><code>PREFERRED_HINT_TTL_MS</code> is hard-coded to <code>60_000</code> ms today — long enough to cover a normal stop / start cycle (~10 s), short enough that a never-returning leader does not pin leadership forever. The hint is timestamped (<code>"&lt;nodeId&gt;:&lt;expiresAt&gt;"</code>) rather than tied to an ephemeral ZK node lifetime — the old leader's session may already be gone by the time the next master tries to take leadership, so a pure-ephemeral hint would falsely look stale.</p>
-<p>If the preferred node never comes back (host died, not "graceful stop"), the hint expires after <code>PREFERRED_HINT_TTL_MS</code> and the next election attempt sees the expired hint, clears it, and proceeds normally — leadership lands on whoever wins the bare Curator race.</p>
-<h2 id="why-two-mechanisms">Why two mechanisms?</h2>
-<p>A single deference window cannot do both jobs:</p>
+<p>Each plugin gets <strong>its own directory</strong>, which is not cosmetic: Connect gives every
+directory under <code>plugin.path</code> its own classloader. Flattening two connectors into
+one directory is how a dependency clash becomes a <code>NoSuchMethodError</code> that neither
+connector produces on its own.</p>
+<h3 id="installing-or-removing-restarts-the-workers">Installing or removing restarts the workers</h3>
+<p>Connect scans <code>plugin.path</code> <strong>once, at startup</strong>. A plugin copied to a running
+worker is on disk and invisible — which looks exactly like the upload having
+failed. chango therefore restarts every Connect worker after a plugin changes,
+and the console says so before you click.</p>
+<p>The brokers are not involved; only the Connect workers restart.</p>
+<h3 id="bundled-debezium">Bundled Debezium</h3>
+<p>Debezium <strong>2.6.2.Final</strong> ships in the chango bundle, for MySQL, PostgreSQL,
+SQL Server and MongoDB. One click installs it with no internet access — the
+deployments that most need change data capture are the air-gapped ones, and
+Confluent Hub is not reachable from them.</p>
+<p>The version is pinned to the one Ontul's flow embeds (<code>debezium-embedded
+2.6.2.Final</code>), so a CDC pipeline assembled through chango's Connect and one
+assembled inside Ontul produce the same records. A different connector version
+would not fail; it would quietly change the envelope, which is worse.</p>
+<p>It installs with the Connect role when <em>Install the bundled Debezium connectors</em>
+is left ticked, and afterwards from the Plugins tab:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># all four</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://master:8080/admin/api/kafka/&lt;id&gt;/connect/plugins/default&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{}&#39;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># or name the ones you want</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>…<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;connectors&quot;:[&quot;postgres&quot;,&quot;mysql&quot;]}&#39;</span>
+</code></pre></div>
+<h3 id="uploading-your-own">Uploading your own</h3>
+<p>The console accepts a <code>.zip</code>, a <code>.tar.gz</code> or a bare <code>.jar</code>. The archive is
+unpacked on the master, checked to contain at least one jar, and pushed to every
+worker.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://master:8080/admin/api/kafka/&lt;id&gt;/connect/plugins?pluginId=my-connector&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/octet-stream&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--data-binary<span class="w"> </span>@my-connector-1.0.0.zip
+</code></pre></div>
+<p><code>name</code> and <code>version</code> may be passed as query parameters too; they are recorded
+with the plugin and shown in the console. <code>pluginId</code> is required, because it is
+the directory name on every worker and therefore the identity chango replays on a
+scale-out.</p>
+<p>A wrapper directory inside the archive is collapsed: Connect looks exactly one
+level under <code>plugin.path</code>, and a plugin nested one deeper is simply not found —
+reported as a connector class that does not exist.</p>
+<p>A bare jar is accepted as a jar and not unpacked. A jar <em>is</em> a zip, so an unpacker
+that trusts the magic bytes turns one into a directory of class files that Connect
+cannot load; the archive is checked for a jar entry inside before it is treated as
+a bundle.</p>
+<div class="admonition warning">
+<p class="admonition-title">Installed is not the same as loaded</p>
+<p>The Plugins tab also shows <strong>what the workers actually loaded</strong>, read back from
+Connect. The two lists differ exactly when something went wrong, which is when
+you are looking at them.</p>
+</div>
+<h2 id="connectors">Connectors</h2>
+<p>Connector configuration is <strong>proxied to Connect and stored nowhere by chango</strong>.
+Connect keeps it in <code>config.storage.topic</code>; a second copy here would drift the
+moment anything touched Connect directly — a <code>kafka-connect</code> CLI, another
+console, a connector that reconfigured itself.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>GET/POST/PUT/DELETE  /admin/api/kafka/&lt;id&gt;/connect/connectors[/&lt;name&gt;[/...]]
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>GET                  /admin/api/kafka/&lt;id&gt;/connect/connector-plugins
+</code></pre></div>
+<p>Connect's own errors pass through unchanged. They name the failing field
+("Connector configuration is invalid and contains the following 1 error(s)"),
+and rewrapping them in a chango error loses the part that matters.</p>
+<h2 id="topics">Topics</h2>
+<p>List, create and delete from the Kafka page.</p>
 <ul>
-<li><strong>Cold-start</strong> needs to consult the <strong>persistent</strong> "who was the last leader" record, since every master is starting cold and there is no live leader to compare against.</li>
-<li><strong>Hot-restart</strong> needs a <strong>timestamped</strong> hint that the still-alive masters can check and yield to, because the cold-start record was already pointing at the leader who is about to come back — it would not look any different from a real swap.</li>
+<li><strong>Internal topics are shown and marked</strong>, not hidden. Connect's own
+  configuration lives in one, and a console that hides it cannot answer "where
+  did my connector go". Deleting one is refused.</li>
+<li><strong>A replication factor above the broker count is refused</strong>, with that fact in
+  the message. Kafka's own error names the topic and not the cause, and on a
+  single-broker development cluster this is the mistake people actually make.</li>
 </ul>
-<p>The cold-start hint (<code>master-leader-id</code>) is updated whenever leadership lands; the hot-restart hint (<code>master-leader-preferred</code>) is <strong>only</strong> written by the leader during its own graceful close. Together they make the common case ("the master that was leader yesterday is still leader today") a strict invariant during planned restarts.</p>
-<h2 id="config">Config</h2>
-<table>
-<thead>
-<tr>
-<th>Property</th>
-<th>Default</th>
-<th>What it controls</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>chango.master.leader.deference.window.ms</code></td>
-<td><code>3000</code></td>
-<td>How long a non-preferred master sleeps before joining the election (cold-start) or yields after seeing a fresh hint (hot-restart).</td>
-</tr>
-<tr>
-<td><code>PREFERRED_HINT_TTL_MS</code> (compile-time constant)</td>
-<td><code>60_000</code></td>
-<td>TTL on the <code>master-leader-preferred</code> hint.</td>
-</tr>
-</tbody>
-</table>
-<p><code>deferenceWindowMs</code> is intentionally short — long enough to let the preferred node finish its restart on a normal host, short enough that a true outage does not pin leadership for too long.</p>
-<h2 id="observability">Observability</h2>
-<p><code>master.log</code> shows the path taken every time:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>... Startup deference: stored leader=masterA, sleeping 3000 ms before joining election
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>... Preferred hint points at us (masterA) — claiming leadership
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>... Yielding leadership to preferred incumbent masterA (hint valid for 47213 more ms)
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>... Preferred-leader hint for masterA expired 12 ms ago — clearing
+<p>Topic operations go through the Kafka admin client from the master, not a
+subprocess on a node manager. One client library is a far smaller surface than a
+generic "run this command on a node" capability.</p>
+<h2 id="walkthrough">Walkthrough</h2>
+<ol>
+<li>Install a Kafka cluster (ZK + brokers, Schema Registry optional).</li>
+<li>Open the cluster → <strong>Kafka Connect</strong> → <em>Workers</em> → pick nodes → <strong>Install
+   Kafka Connect</strong>. Leave <em>Install the bundled Debezium connectors</em> ticked for CDC.</li>
+<li><em>Plugins</em> — confirm the workers loaded what you installed.</li>
+<li><em>Connectors</em> — create one. For Debezium against PostgreSQL:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;connector.class&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;io.debezium.connector.postgresql.PostgresConnector&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;tasks.max&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">&quot;database.hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pg.internal&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">&quot;database.port&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;5432&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">&quot;database.user&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;debezium&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">&quot;database.password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;…&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="nt">&quot;database.dbname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;inventory&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="nt">&quot;topic.prefix&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;inventory&quot;</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span>
 </code></pre></div>
-<p>In the admin UI's <strong>Cluster → Nodes</strong> view, the leader's <code>nodeId</code> should remain stable across a single-master restart of the leader. If it does not — for instance, the restart took longer than <code>PREFERRED_HINT_TTL_MS</code> and the hint expired before the old leader came back — the next leader is whoever Curator picked, and the sticky-back skips one cycle.</p>
-<h2 id="interactions">Interactions</h2>
+<ol>
+<li><strong>Topics</strong> — the connector's topics appear as it starts emitting.</li>
+</ol>
+<h2 id="see-also">See also</h2>
 <ul>
-<li><strong>Self-patch (v2)</strong> depends on this. The 3-phase fan-out restarts the leader <strong>last</strong>; the helper script preserves <code>CHANGO_MASTER_KEY</code> and the original <code>-Dchango.*</code> system props and lets sticky-back re-elect the same node. See <a href="../patch-system/#chango-self-patch-v2">Patch System</a>.</li>
-<li><strong>Rolling restart</strong> of the masters relies on cold-start deference + hot-restart sticky to keep leadership on the original host across the whole roll — restart followers first, then the leader.</li>
-<li><strong>Reset</strong> (<code>&lt;install_dir&gt;/data/{master/kms,master/iam,metadata}/*</code> and <code>/var/lib/chango/zookeeper/*</code> wiped) clears the persistent <code>master-leader-id</code> node along with everything else. Sticky-back resumes on the next leadership lands.</li>
+<li><a href="../port-allocator/">Port Allocator</a> — why Connect has no band of its own.</li>
+<li><a href="../../architecture/component-lifecycle/">Component Lifecycle</a> — how a role is installed, scaled and removed.</li>
 </ul>
 
 
