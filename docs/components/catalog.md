@@ -36,7 +36,9 @@ Kafka-compatible streaming broker with S3 tiered storage — hot data on local d
 - Wire-compatible with existing Kafka clients.
 
 ### Kafka (bundled open source)
-Vanilla Apache Kafka for teams that want the upstream broker rather than ItdaStream. Same provisioner shape (ZK + broker + Schema Registry).
+Vanilla Apache Kafka for teams that want the upstream broker rather than ItdaStream. Provisioner shape: ZK + broker + Schema Registry + **Kafka Connect**.
+
+Connect is a role of the Kafka cluster rather than a component of its own — one Connect cluster per Kafka cluster, with its plugins managed from the console and Debezium 2.6.2.Final bundled for air-gapped installs. Topics are listed, created and deleted from the same page. See [Kafka Connect & Topics](../features/kafka-connect.md).
 
 ### Schema Registry (bundled open source)
 Confluent Schema Registry, used by both ItdaStream and Kafka clusters.
@@ -54,6 +56,7 @@ PostgreSQL-wire-compatible distributed database that combines OLTP + vector + fu
 First-class PostgreSQL provisioner. Chango can install vanilla PostgreSQL as a managed component, stash the superuser password, and reuse the same instance for any component that needs a PG (Polaris metastore, Trino resource groups, NeoRunBase coordinator catalog).
 
 - Installed from a Rocky 9 RPM bundle rather than a tarball, offline via `dnf`, then `initdb`'d per instance. One instance per node-manager host.
+- **RPMs the host already has at an equal-or-newer version are dropped from the install set.** The bundle's dependency closure is resolved on whatever Rocky 9 minor the bundle was built on, so it carries base-OS packages (`libacl`, `libattr`, …) at that minor's versions. Install those on a newer host and `dnf` refuses the whole transaction with a file conflict — and chango's own ansible run is itself enough to cause it, because installing `rsync` pulls a newer `libacl`. Each bundled RPM is tested with `rpm -U --test` and skipped when the host is already at or above it, which is what makes one bundle work across Rocky 9.7 and 9.8 without a per-minor build.
 - `--auth-local=peer`, so the `postgres` OS user is the local superuser; remote clients use scram-sha-256.
 - The only managed component whose **data** chango backs up — see [PostgreSQL Backup & Restore](../features/postgres-backup.md). Polaris keeps its metastore here, and that metastore is the only record of where Iceberg table metadata lives.
 
@@ -70,8 +73,29 @@ Cloud Chef Labs' sovereign multi-agent platform. Mium is the Agent layer of the 
 Apache Polaris — the Iceberg REST catalog used by Spark, Trino, and Flink to discover and write Iceberg tables.
 
 - Backed by a PostgreSQL metastore. Chango can resolve this from a chango-installed PG instance (recommended) or point at an external PG.
-- Configurable per cluster: PG instance pick · catalog body schema · default S3 storage credentials.
+- Configurable per cluster: PG instance pick · catalog body schema · fallback S3 credentials (Configure → **S3 Credentials**).
 - Single server role; scale by running multiple Polaris instances against the same metastore.
+
+**Credential vending is deliberately off.** Every catalog is created with
+`stsUnavailable: true`, so Polaris never calls `AssumeRole` to mint short-lived
+credentials for an engine. It cannot: the object stores chango installs against —
+ShannonStore, MinIO — have no STS endpoint, and a Polaris that tries to vend
+against them fails the request rather than falling back. With vending off, Polaris
+uses the static key directly and engines authenticate with their own configured
+credentials.
+
+**Each catalog carries its own S3 credentials**, written as `table-default.s3.*`
+properties on the catalog. That is what lets one Polaris cluster serve catalogs on
+different object stores — a ShannonStore catalog and a MinIO catalog side by side.
+The cluster-level key in the *S3 Credentials* tab is only the fallback for a catalog
+that does not set its own.
+
+!!! note "Why only the `table-default.` prefix works"
+    A bare `s3.access-key-id` on a catalog is accepted by Polaris and then ignored:
+    it never reaches the FileIO that actually talks to the object store. Only
+    properties under `table-default.` are handed down. Chango writes the prefixed
+    form and translates bare keys on the way in, so a catalog edited through the
+    console cannot end up with credentials that look set and do nothing.
 
 ## Query / Compute (open source)
 
@@ -79,7 +103,12 @@ Apache Polaris — the Iceberg REST catalog used by Spark, Trino, and Flink to d
 Apache Spark, standalone mode. Chango ships a small first-party plugin (`chango-spark-authz`) that authorizes Spark SQL queries against Ontul IAM at table level.
 
 - Topology: Master + Worker.
-- Optional: ontul authz wiring, S3-backed event log (history server).
+- Optional: ontul authz wiring, cluster-wide S3 credentials (Configure → **S3 Credentials**), S3-backed event log (history server).
+
+The S3 credentials are the cluster's default for every `s3a://` path its nodes
+touch — not only the history server's event logs. They are configured, and
+rotated, independently of whether an event log is enabled at all: a cluster with
+no history server still needs a key to fetch a cluster-mode driver's uberjar.
 
 ### Livy (bundled open source)
 Apache Livy, the REST front end for Spark job submission — used by the kiok tutorials to launch Spark work without an SSH hop to the Spark master.
@@ -117,7 +146,7 @@ The first-party components are eligible for the [Patch System](../features/patch
 |---|---|---|
 | Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium | yes | `jar`, `ui`, `both` types supported. |
 | Chango itself | v2 (on `branch-3.0.0` only) | 3-phase fan-out via detached helper, sticky-leader reclaims after restart. |
-| Trino, Spark, Flink, Kafka, Postgres, Polaris, Trino Gateway, Schema Registry, UI Proxy | no | Upgrade via blue / green — see [Upgrade](../operations/upgrade.md). |
+| Trino, Spark, Flink, Kafka (broker / registry / Connect), Postgres, Polaris, Trino Gateway, UI Proxy | no | Upgrade via blue / green — see [Upgrade](../operations/upgrade.md). Connect *plugins* are a separate matter: they are replaced from the console at any time, see [Kafka Connect & Topics](../features/kafka-connect.md). |
 
 ## What chango does NOT do
 

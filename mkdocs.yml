@@ -61,6 +61,7 @@ nav:
       - "Hosts Sync": features/hosts-sync.md
       - "UI Proxy": features/ui-proxy.md
       - "Trino Gateway Routing": features/gateway-routing.md
+      - "Kafka Connect & Topics": features/kafka-connect.md
       - "Monitoring & Metrics": features/monitoring.md
       - "Logging": features/logging.md
       - "Backup & Restore": features/backup.md

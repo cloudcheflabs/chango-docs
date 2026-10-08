@@ -44,8 +44,8 @@ they keep their own JDK rather than being forced onto chango's.
 | Trino | 479 | Java 25 |
 | Spark | 3.5.8 | Scala 2.12, with Hadoop 3 |
 | Flink | 1.19.3 | Scala 2.12 |
-| Kafka | 3.7.2 | Scala 2.12 |
-| Schema Registry | 7.7.1 | Confluent Community |
+| Kafka | 3.7.2 | Scala 2.12 — brokers, Schema Registry and Kafka Connect all come from this distribution |
+| Schema Registry | 7.7.1 | Confluent Community — also supplies the Avro converters Connect uses |
 | PostgreSQL | 16 | Rocky 9 native packages |
 | Polaris (Apache) | 1.4.1 | Iceberg Catalog |
 | Livy (Apache) | 0.8.0-incubating | Spark REST job submission; Scala 2.12, Java 11 |
@@ -65,6 +65,28 @@ dropped into each install's `jars/` (Spark) or `lib/` (Flink) directory.
 | hadoop-client-api / hadoop-client-runtime | 3.3.4 | Spark |
 | aws-java-sdk-bundle | 1.12.262 | Spark — S3A's AWS SDK |
 | flink-sql-connector-kafka | 3.2.0-1.19 | Flink |
+
+## Kafka Connect plugins shipped in the bundle
+
+Connect is useless without a plugin, and an air-gapped Connect worker cannot
+download one. These four travel in the bundle and are installed into a cluster's
+plugin store on demand from the console — see
+[Kafka Connect & Topics](../features/kafka-connect.md).
+
+The version is pinned to the `debezium-embedded` that Ontul's CDC already runs, so
+a table captured by Ontul and the same table captured by a Connect connector are
+read by identical code.
+
+| Plugin | Version | Captures |
+|---|---|---|
+| debezium-connector-postgres | 2.6.2.Final | PostgreSQL logical replication |
+| debezium-connector-mysql | 2.6.2.Final | MySQL / MariaDB binlog |
+| debezium-connector-sqlserver | 2.6.2.Final | SQL Server CDC tables |
+| debezium-connector-mongodb | 2.6.2.Final | MongoDB change streams |
+
+Any other Connect plugin — a sink, a transform, a third-party connector — is
+uploaded from the console as a zip, a tar.gz or a bare jar. Nothing about the
+bundled four is privileged; they are simply the ones already on the host.
 
 ## First-party plugins shipped with engines
 
