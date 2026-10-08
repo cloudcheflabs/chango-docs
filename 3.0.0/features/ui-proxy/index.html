@@ -842,12 +842,52 @@
     Auto-discovery
   </a>
   
+    <nav class="md-nav" aria-label="Auto-discovery">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-clusters-register-themselves" class="md-nav__link">
+    Running clusters register themselves
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#paths-matter-as-much-as-ports" class="md-nav__link">
+    Paths matter as much as ports
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
-  <a href="#ontul-integration" class="md-nav__link">
-    Ontul integration
+  <a href="#signing-in" class="md-nav__link">
+    Signing in
   </a>
+  
+    <nav class="md-nav" aria-label="Signing in">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#directory-passwords-work-with-nothing-configured" class="md-nav__link">
+    Directory passwords work with nothing configured
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#single-sign-on-oidc-saml" class="md-nav__link">
+    Single sign-on (OIDC, SAML)
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1422,31 +1462,112 @@
 </thead>
 <tbody>
 <tr>
-<td><code>spark-prod-ui.chango.local</code></td>
-<td><code>http://chango-m1:18180/</code></td>
+<td><code>spark-prod-master-1-ui.chango.local</code></td>
+<td><code>http://chango-m1:8780</code></td>
 </tr>
 <tr>
-<td><code>trino-prod-ui.chango.local</code></td>
-<td><code>http://chango-m2:8480/ui/</code></td>
+<td><code>spark-prod-livy-1-ui.chango.local</code></td>
+<td><code>http://chango-m1:8998/ui</code></td>
 </tr>
 <tr>
-<td><code>flink-jobs-ui.chango.local</code></td>
-<td><code>http://chango-n3:8081/</code></td>
+<td><code>trino-prod-coordinator-1-ui.chango.local</code></td>
+<td><code>http://chango-m2:8480/ui</code></td>
+</tr>
+<tr>
+<td><code>flink-jobs-jobmanager-1-ui.chango.local</code></td>
+<td><code>http://chango-n3:8980</code></td>
 </tr>
 </tbody>
 </table>
 <p>These mappings live in the chango metadata RocksDB and are pushed to every UI Proxy instance on update.</p>
 <h2 id="auto-discovery">Auto-discovery</h2>
-<p>The Create UI Proxy panel in the admin UI does not ask you to type the URLs. Chango already knows every running Spark master web UI, Trino coordinator, Trino Gateway, Flink JobManager, and Polaris HTTP endpoint — it sees their cluster + role + port through the standard component registry. The Create panel lists them as checkable rows; you pick the ones you want to expose and chango fills the upstream string itself.</p>
-<p>A free-text "Add extra upstreams (advanced)" box is still available for endpoints chango does not manage (a customer-supplied legacy web UI, a Polaris CDN, …).</p>
-<h2 id="ontul-integration">Ontul integration</h2>
+<p>The Create UI Proxy panel does not ask you to type URLs. Chango already knows every running component UI — cluster, role and port come from the component registry — and lists them as checkable rows. What it offers:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Roles offered</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Spark</td>
+<td>master, worker, history-server, <strong>Livy</strong></td>
+<td><code>/</code>, Livy at <code>/ui/</code></td>
+</tr>
+<tr>
+<td>Trino</td>
+<td>coordinator</td>
+<td><code>/ui/</code></td>
+</tr>
+<tr>
+<td>Trino Gateway</td>
+<td>all</td>
+<td><code>/</code></td>
+</tr>
+<tr>
+<td>Flink</td>
+<td>jobmanager</td>
+<td><code>/</code></td>
+</tr>
+<tr>
+<td>Polaris</td>
+<td>all</td>
+<td><code>/</code></td>
+</tr>
+</tbody>
+</table>
+<p>A free-text <strong>Add extra upstreams (advanced)</strong> box remains for endpoints chango does not manage.</p>
+<h3 id="running-clusters-register-themselves">Running clusters register themselves</h3>
+<p>Picking from the list is only the convenient path. The leader also pushes every running Spark, Trino and Flink UI into each proxy cluster's <em>managed upstream</em> slot on its reconcile tick, so installing a component after the proxy makes its UI appear without anyone editing the proxy — and scaling or deleting that component updates or empties the slot the same way.</p>
+<p>The combined set (what you picked + what registered itself) is written to every instance's <code>ui-proxy.properties</code>, and the proxy instances are <strong>restarted one at a time</strong> when it changes. They read that file once, at startup; writing it and stopping there would leave the routing table correct on disk and the running proxy still answering 404 for the UI just installed.</p>
+<div class="admonition note">
+<p class="admonition-title">The left-hand side is a hostname, not a label</p>
+<p>Auto-registered entries are named <code>&lt;instanceId&gt;-ui.chango.local</code>, matching what the Create panel suggests. The proxy routes by <code>Host</code> header, so this is a name the browser has to resolve to the proxy — point a wildcard record (<code>*.chango.local</code>) at it, or add the names to the clients' hosts file. Entries used to be the bare instance id, which resolves nowhere, so every auto-registered UI was unreachable while looking configured.</p>
+</div>
+<h3 id="paths-matter-as-much-as-ports">Paths matter as much as ports</h3>
+<p>The proxy forwards to <code>upstream + request path</code>, so a UI that does not live at the root of its port needs that prefix in the upstream. Trino's UI is at <code>/ui</code>, and <strong>Livy serves its REST API at <code>/</code> with the dashboard at <code>/ui</code></strong> — an upstream of just <code>host:port</code> for Livy lands the operator on JSON.</p>
+<h2 id="signing-in">Signing in</h2>
 <p>When a request arrives:</p>
 <ol>
-<li>The UI Proxy checks for an Ontul session cookie. No cookie → redirect to Ontul's login page; on success Ontul redirects back with a session.</li>
-<li>With a valid session, the proxy asks Ontul <code>POST /v1/api/authz/check-batch</code> whether the user is allowed to access the upstream — typically <code>(action: WEB_UI, resource: &lt;component&gt;.&lt;clusterId&gt;)</code>.</li>
-<li>On <code>ALLOW</code>, the request is forwarded upstream with the original method / headers / body. On <code>DENY</code> or <code>ABSTAIN</code>, the proxy returns <code>403</code>.</li>
+<li>The proxy looks for its <strong>own</strong> session cookie (<code>chango_ui_session</code>). Without one, it serves its login page.</li>
+<li>The credentials typed there are posted to Ontul's <code>POST /admin/auth/login</code>. Ontul answers yes or no; the proxy does not reuse Ontul's token.</li>
+<li>On success the proxy mints its own AES-256-GCM session cookie, signed with the cluster-wide <code>uiproxy.session.secret</code>, and forwards the original request upstream.</li>
 </ol>
-<p>The Ontul endpoint and the long-lived service token the proxy uses are wired at install time (the same <code>ontulAuthzEndpoint</code> + OTOK token that Trino / Spark / Flink use).</p>
+<p>The cookie is the whole session — there is no server-side store. Every instance of a proxy cluster holds the same secret, so any instance can validate a session any other instance issued, and scaling the proxy needs no sticky routing.</p>
+<div class="admonition note">
+<p class="admonition-title">Authentication, not authorization</p>
+<p>A signed-in user reaches <strong>every</strong> upstream the proxy routes for. The proxy does not ask Ontul whether this person may see this particular dashboard. If a dashboard must be restricted to a subset of your operators, run a second proxy cluster with only those upstreams, or restrict by SSO group (below).</p>
+</div>
+<h3 id="directory-passwords-work-with-nothing-configured">Directory passwords work with nothing configured</h3>
+<p>Ontul's login route falls back to the directory when the password is not one it stores, so an operator whose account lives in <strong>LDAP or Active Directory</strong> simply types it into the proxy's form. There is nothing to configure on the proxy for that, and nothing to configure twice.</p>
+<h3 id="single-sign-on-oidc-saml">Single sign-on (OIDC, SAML)</h3>
+<p>A password — local or directory — is a form post, so it can be forwarded to Ontul. <strong>OIDC and SAML cannot be</strong>: they send the browser to the identity provider and back, and Ontul's callback redirects only to a path on Ontul and delivers the session in a URL <em>fragment</em>, which a browser never sends to a server. So the proxy performs those two flows itself, using the same <code>ccl-sso</code> library chango's control plane uses — the same code validates the issuer, audience, expiry and signature on both sides of the product.</p>
+<p>Configure them under <strong>Configure → Single Sign-On</strong> on the UI Proxy page. The login page then shows a button per configured provider, and nothing for the ones that are not.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="na">uiproxy.sso.oidc.enabled</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="na">uiproxy.sso.oidc.issuer</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">https://keycloak.example.com/realms/company</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="na">uiproxy.sso.oidc.client.id</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">chango-uiproxy</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="na">uiproxy.sso.oidc.client.secret</span><span class="o">=</span><span class="w"> </span><span class="s">…</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="na">uiproxy.sso.oidc.redirect.uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://spark-prod-ui.chango.local/chango-auth/sso/oidc/callback</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="na">uiproxy.sso.oidc.groups.claim</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">groups</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="na">uiproxy.sso.saml.enabled</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="na">uiproxy.sso.saml.idp.entity.id</span><span class="o">=</span><span class="w"> </span><span class="s">https://idp.example.com/realms/company</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="na">uiproxy.sso.saml.idp.sso.url</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">https://idp.example.com/protocol/saml</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="na">uiproxy.sso.saml.idp.certificate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">MIIC…</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="na">uiproxy.sso.saml.sp.entity.id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">chango-uiproxy</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="na">uiproxy.sso.saml.sp.acs.url</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s">https://spark-prod-ui.chango.local/chango-auth/sso/saml/acs</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="na">uiproxy.sso.group.mappings</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">platform-ops:viewers</span>
+</code></pre></div>
+<p><strong>Register the proxy at your provider in its own right.</strong> Its callback URL is its own, not the console's — this is a second relying party, which is inherent to a redirect flow rather than a chango decision. The proxy publishes its SAML SP metadata at <code>/chango-auth/sso/saml/metadata</code>, which beats transcribing the entity id and ACS URL by hand.</p>
+<p><strong>Group mapping is the only restriction available.</strong> Left empty, any identity the provider authenticated is let through — the proxy fronts dashboards, and an operator who wrote no mapping asked for no restriction. Once set it is exhaustive: an identity whose groups all map to nothing is refused rather than admitted with none, because the latter produces someone who is signed in and sees everything.</p>
+<div class="admonition warning">
+<p class="admonition-title">Replay protection is per-instance</p>
+<p>A SAML assertion is single-use, and the proxy records used ones <strong>in memory</strong>. With several proxy instances behind one address, an assertion replayed to a different instance inside its validity window would be accepted. The control plane keeps that record in ZooKeeper; the proxy has no coordination service to keep it in. Keep the assertion validity window short at the provider. <code>ccl-sso</code> logs a warning at startup when no shared guard is configured.</p>
+</div>
+<p>Behind several proxy instances, the login state — including the PKCE verifier — is sealed with the same cluster-wide session secret and carried in the <code>state</code> parameter rather than held in one JVM. Unsealing it is also the login-CSRF check. Without that, SSO would work on a single instance and fail on roughly half of all attempts behind a load balancer, looking like a problem at the provider.</p>
 <h2 id="what-it-is-not">What it is not</h2>
 <ul>
 <li><strong>Not a load balancer</strong>. UI Proxy maps a hostname to a single upstream URL. For load balancing across multiple Trino coordinators, run Trino Gateway in front and point the UI Proxy at the gateway.</li>
