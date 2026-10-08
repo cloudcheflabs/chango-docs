@@ -1032,6 +1032,33 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#patch-level-and-what-a-scale-out-does-with-it" class="md-nav__link">
+    Patch level, and what a scale-out does with it
+  </a>
+  
+    <nav class="md-nav" aria-label="Patch level, and what a scale-out does with it">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-scale-out-replays-the-clusters-patches" class="md-nav__link">
+    A scale-out replays the cluster's patches
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#versions-are-reported-not-enforced" class="md-nav__link">
+    Versions are reported, not enforced
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#invariants" class="md-nav__link">
     Invariants
   </a>
@@ -1690,12 +1717,67 @@
 <ul>
 <li><strong>Upload</strong> — drag-and-drop dropzone. POSTs the raw <code>.tgz</code> body to <code>/admin/api/patch/upload</code> with the operator's bearer token. On success the new patch shows up at the top of the Library.</li>
 <li><strong>Library</strong> — every uploaded patch, newest first, grouped by component. Each row shows <code>version</code>, <code>type</code>, <code>size</code>, <code>sha256</code> (truncated, click to copy), <code>uploadedAt</code>, <code>notes</code>, and an <strong>Apply</strong> button that opens the Apply modal.</li>
-<li><strong>Apply modal</strong> — pick a cluster (autopopulated from the existing instances of the patch's component), pick <code>rolling</code> or <code>parallel</code>, confirm. The modal streams the leader's response and surfaces per-host status as it lands.</li>
+<li><strong>Apply modal</strong> — pick a cluster (autopopulated from the existing instances of the patch's component), pick <code>rolling</code> or <code>parallel</code>, confirm. The modal streams the leader's response and surfaces per-host status as it lands. Above the restart choice it shows the selected cluster's <strong>installed version</strong> and <strong>patch level</strong>, with every recorded patch id, and warns when this patch would be a downgrade or crosses a major version.</li>
 </ul>
 <h3 id="patch-history-card-on-each-component-page">Patch History card on each component page</h3>
 <p>Every component's detail page (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium) shows a <code>PatchHistoryCard</code> in the right-hand panel listing the patches applied to the current cluster — one row per patch with <strong>Rollback</strong> buttons (<code>lastBackup</code> or "rollback to this specific patch").</p>
 <h3 id="non-admin-readonly">Non-admin readonly</h3>
 <p>Non-admin users (members of any group that does <strong>not</strong> hold the <code>AdministratorAccess</code> policy) see the Patches page in read-only mode — the Library is visible, but <strong>Upload</strong>, <strong>Apply</strong>, <strong>Rollback</strong> buttons are hidden, and the dropzone is disabled. The backend enforces the same gate.</p>
+<h2 id="patch-level-and-what-a-scale-out-does-with-it">Patch level, and what a scale-out does with it</h2>
+<p>A patch does not change the cluster's <strong>version</strong>. That field names the component
+package the cluster was installed from — <code>ontul/ontul-1.0.0.tar.gz</code> — and a patch
+replaces jars inside an install without touching the package on the master. The
+two facts are reported separately:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>GET /admin/api/patch/level?clusterId=&lt;id&gt;
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>→ { &quot;clusterId&quot;: &quot;...&quot;, &quot;patchLevel&quot;: &quot;1.0.1&quot;,
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    &quot;appliedPatches&quot;: [ { &quot;patchId&quot;: &quot;ontul-1.0.1-ab12cd34ef56&quot;, &quot;version&quot;: &quot;1.0.1&quot;, &quot;type&quot;: &quot;jar&quot; } ] }
+</code></pre></div>
+<p>The Apply drawer shows both, because the difference is the thing an operator has
+to understand before clicking: <em>installed version</em> is what a scale-out or a
+reinstall installs from, <em>patch level</em> is what is running now.</p>
+<h3 id="a-scale-out-replays-the-clusters-patches">A scale-out replays the cluster's patches</h3>
+<p>Applying a patch records its id on the cluster. When a scale-out adds instances,
+the patches recorded for that cluster are replayed onto the new instances before
+the call returns — in the order they were applied, since a later patch may
+overwrite a file an earlier one also carried.</p>
+<p>Without that, a scale-out installed the new instance from the cluster's stored
+<code>packageFile</code> and nothing else: it came up running pre-patch code while every one
+of its peers ran the patch. Nothing reported an error, the Patches page showed the
+patch as applied, and the divergence surfaced only once work happened to land on
+the new instance.</p>
+<div class="admonition note">
+<p class="admonition-title">The replay does not start anything</p>
+<p>A jar patch normally restarts the instance it lands on, because the JVM has
+the old jars open. A scale-out instance has not been started yet, so a
+restart there would be a <em>start</em> — and chango keeps install and start
+separate everywhere else. The node manager therefore restarts only instances
+that are actually up and simply swaps the jars of the rest; a stopped
+instance picks them up whenever it is started. The ack reports both what the
+manifest demanded (<code>restarted</code>) and what happened (<code>restartedInstances</code>).</p>
+</div>
+<p><strong>Rollback un-records it.</strong> Otherwise the next scale-out would replay the patch
+the operator just removed, and the new instance would be the only one carrying it
+— the original bug, reversed.</p>
+<p><strong>A reinstall does not replay.</strong> The record lives in the cluster's own settings,
+so deleting the cluster drops it. That is deliberate: a reinstall is a fresh
+install from the component package, and silently re-applying patches to what the
+operator asked to be new would be a different product than the one they asked
+for. Re-apply from the Library afterwards — the tarball never GCs, so it is still
+there.</p>
+<div class="admonition warning">
+<p class="admonition-title">A patch deleted from the library cannot be replayed</p>
+<p>If a recorded patch is no longer in the library, the scale-out logs it and
+the new instances stay at the package level. <code>appliedPatches</code> marks that
+entry <code>"missing": true</code> rather than hiding it: the cluster claims a level it
+can no longer reproduce, and only the operator can resolve that.</p>
+</div>
+<h3 id="versions-are-reported-not-enforced">Versions are reported, not enforced</h3>
+<p>Nothing refuses a patch whose version does not match the cluster's. Applying an
+ontul 1.0.1 patch to a 1.0.0 cluster is the ordinary case; applying 0.9.5 to it
+is a downgrade, and applying a 2.x patch to a 1.x cluster will not migrate state
+or config for you. The Apply drawer says so for the last two and then lets you
+proceed — an operator rolling back to a known-good build at 3am is doing
+something legitimate, and a hard refusal there is worse than a warning.</p>
 <h2 id="invariants">Invariants</h2>
 <p>The patch system is deliberately narrower than "in-place upgrade":</p>
 <ul>
@@ -1703,17 +1785,19 @@
 <li><strong>State is never touched.</strong> <code>data/</code>, <code>logs/</code>, RocksDB stores under the component's install dir are untouched. Iceberg files, Kafka logs, NeoRunBase tables are unaffected.</li>
 <li><strong>Backups are unconditional.</strong> Every apply writes a fresh <code>.bak/&lt;patchId&gt;/</code> before overlaying anything. The operator does not have to opt in.</li>
 <li><strong>Patches are immutable.</strong> <code>patchId</code> is a content-derived id; the same tarball uploaded twice deduplicates.</li>
+<li><strong>A scale-out stays level with the cluster.</strong> Patches recorded on a cluster are replayed onto instances a scale-out adds. A reinstall is not — see <a href="#patch-level-and-what-a-scale-out-does-with-it">Patch level</a>.</li>
+<li><strong>The version field keeps meaning "which package".</strong> A patch never rewrites it, because a scale-out and a reinstall both resolve their package from it.</li>
 <li><strong>First-party only (v1).</strong> Open-source engines (Trino, Spark, Flink, …) are not patchable through this system; chango itself is patchable only via <a href="#chango-self-patch-v2">v2</a> on <code>branch-3.0.0</code>.</li>
 </ul>
 <h2 id="chango-self-patch-v2">Chango self-patch (v2)</h2>
 <p>The patch system is also able to patch <strong>chango itself</strong> — the chango master JARs and the chango admin UI — but only on <code>branch-3.0.0</code> of chango (the v2 codepath ships there, not yet on <code>master</code>). Conceptually the contract is identical:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span>--component<span class="w"> </span>chango<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span>--type<span class="w">      </span>both<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/chango/lib<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/chango/admin-ui/dist<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span>--out<span class="w">       </span>dist/chango-patch-3.0.0.tgz
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span>--component<span class="w"> </span>chango<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span>--type<span class="w">      </span>both<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/chango/lib<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/chango/admin-ui/dist<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span>--out<span class="w">       </span>dist/chango-patch-3.0.0.tgz
 </code></pre></div>
 <p>What differs is the execution model — chango is patching itself, so it can not be the process that overlays its own running JARs. Apply runs a <strong>3-phase fan-out</strong> through a detached helper:</p>
 <ol>
