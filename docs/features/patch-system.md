@@ -218,7 +218,7 @@ Sidebar → **Settings → Patches** opens the cluster-wide patch console:
 
 - **Upload** — drag-and-drop dropzone. POSTs the raw `.tgz` body to `/admin/api/patch/upload` with the operator's bearer token. On success the new patch shows up at the top of the Library.
 - **Library** — every uploaded patch, newest first, grouped by component. Each row shows `version`, `type`, `size`, `sha256` (truncated, click to copy), `uploadedAt`, `notes`, and an **Apply** button that opens the Apply modal.
-- **Apply modal** — pick a cluster (autopopulated from the existing instances of the patch's component), pick `rolling` or `parallel`, confirm. The modal streams the leader's response and surfaces per-host status as it lands.
+- **Apply modal** — pick a cluster (autopopulated from the existing instances of the patch's component), pick `rolling` or `parallel`, confirm. The modal streams the leader's response and surfaces per-host status as it lands. Above the restart choice it shows the selected cluster's **installed version** and **patch level**, with every recorded patch id, and warns when this patch would be a downgrade or crosses a major version.
 
 ### Patch History card on each component page
 
@@ -228,6 +228,71 @@ Every component's detail page (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream
 
 Non-admin users (members of any group that does **not** hold the `AdministratorAccess` policy) see the Patches page in read-only mode — the Library is visible, but **Upload**, **Apply**, **Rollback** buttons are hidden, and the dropzone is disabled. The backend enforces the same gate.
 
+## Patch level, and what a scale-out does with it
+
+A patch does not change the cluster's **version**. That field names the component
+package the cluster was installed from — `ontul/ontul-1.0.0.tar.gz` — and a patch
+replaces jars inside an install without touching the package on the master. The
+two facts are reported separately:
+
+```
+GET /admin/api/patch/level?clusterId=<id>
+→ { "clusterId": "...", "patchLevel": "1.0.1",
+    "appliedPatches": [ { "patchId": "ontul-1.0.1-ab12cd34ef56", "version": "1.0.1", "type": "jar" } ] }
+```
+
+The Apply drawer shows both, because the difference is the thing an operator has
+to understand before clicking: *installed version* is what a scale-out or a
+reinstall installs from, *patch level* is what is running now.
+
+### A scale-out replays the cluster's patches
+
+Applying a patch records its id on the cluster. When a scale-out adds instances,
+the patches recorded for that cluster are replayed onto the new instances before
+the call returns — in the order they were applied, since a later patch may
+overwrite a file an earlier one also carried.
+
+Without that, a scale-out installed the new instance from the cluster's stored
+`packageFile` and nothing else: it came up running pre-patch code while every one
+of its peers ran the patch. Nothing reported an error, the Patches page showed the
+patch as applied, and the divergence surfaced only once work happened to land on
+the new instance.
+
+!!! note "The replay does not start anything"
+    A jar patch normally restarts the instance it lands on, because the JVM has
+    the old jars open. A scale-out instance has not been started yet, so a
+    restart there would be a *start* — and chango keeps install and start
+    separate everywhere else. The node manager therefore restarts only instances
+    that are actually up and simply swaps the jars of the rest; a stopped
+    instance picks them up whenever it is started. The ack reports both what the
+    manifest demanded (`restarted`) and what happened (`restartedInstances`).
+
+**Rollback un-records it.** Otherwise the next scale-out would replay the patch
+the operator just removed, and the new instance would be the only one carrying it
+— the original bug, reversed.
+
+**A reinstall does not replay.** The record lives in the cluster's own settings,
+so deleting the cluster drops it. That is deliberate: a reinstall is a fresh
+install from the component package, and silently re-applying patches to what the
+operator asked to be new would be a different product than the one they asked
+for. Re-apply from the Library afterwards — the tarball never GCs, so it is still
+there.
+
+!!! warning "A patch deleted from the library cannot be replayed"
+    If a recorded patch is no longer in the library, the scale-out logs it and
+    the new instances stay at the package level. `appliedPatches` marks that
+    entry `"missing": true` rather than hiding it: the cluster claims a level it
+    can no longer reproduce, and only the operator can resolve that.
+
+### Versions are reported, not enforced
+
+Nothing refuses a patch whose version does not match the cluster's. Applying an
+ontul 1.0.1 patch to a 1.0.0 cluster is the ordinary case; applying 0.9.5 to it
+is a downgrade, and applying a 2.x patch to a 1.x cluster will not migrate state
+or config for you. The Apply drawer says so for the last two and then lets you
+proceed — an operator rolling back to a known-good build at 3am is doing
+something legitimate, and a hard refusal there is worse than a warning.
+
 ## Invariants
 
 The patch system is deliberately narrower than "in-place upgrade":
@@ -236,6 +301,8 @@ The patch system is deliberately narrower than "in-place upgrade":
 - **State is never touched.** `data/`, `logs/`, RocksDB stores under the component's install dir are untouched. Iceberg files, Kafka logs, NeoRunBase tables are unaffected.
 - **Backups are unconditional.** Every apply writes a fresh `.bak/<patchId>/` before overlaying anything. The operator does not have to opt in.
 - **Patches are immutable.** `patchId` is a content-derived id; the same tarball uploaded twice deduplicates.
+- **A scale-out stays level with the cluster.** Patches recorded on a cluster are replayed onto instances a scale-out adds. A reinstall is not — see [Patch level](#patch-level-and-what-a-scale-out-does-with-it).
+- **The version field keeps meaning "which package".** A patch never rewrites it, because a scale-out and a reinstall both resolve their package from it.
 - **First-party only (v1).** Open-source engines (Trino, Spark, Flink, …) are not patchable through this system; chango itself is patchable only via [v2](#chango-self-patch-v2) on `branch-3.0.0`.
 
 ## Chango self-patch (v2)
