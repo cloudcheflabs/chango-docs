@@ -28,7 +28,7 @@ A **band** is a named (base, range) tuple for a specific role of a specific comp
 | `trino-gateway` | 8680 | Trino Gateway |
 | `spark-master` / `spark-worker` | 8780 / 8880 | Spark |
 | `flink-jobmanager` / `flink-taskmanager` | 8980 / 9080 | Flink |
-| `kafka-broker` | 9092 | Kafka |
+| `kafka-broker` | 9092 | Kafka brokers **and that cluster's Kafka Connect workers** |
 | `schema-registry` | 8081 | Confluent Schema Registry |
 | `itdastream-broker` | 9092 | ItdaStream |
 | `ontul-zk-client` / `-peer` / `-leader` | 2181 / 2888 / 3888 | Ontul bundled ZK |
@@ -43,6 +43,12 @@ A **band** is a named (base, range) tuple for a specific role of a specific comp
 | `ontul-nginx` / `ontul-flightsql-nginx` | 19220 / 19240 | nginx in front of Ontul HTTP / Flight SQL |
 | `neorunbase-nginx` / `neorunbase-pgwire-nginx` | 19260 / 19280 | nginx in front of NeoRunBase admin / pgwire |
 | `trino-gateway-nginx` | 19300 | nginx in front of Trino Gateway |
+
+A role does not have to own a band. Kafka Connect takes its REST port from
+`kafka-broker`, the band of the cluster it belongs to, because a 200-wide window
+holds far more than the brokers on one host and a band per role would mean another
+firewall rule for every role added. Widening `chango.component.port.kafka-broker.range`
+widens it for Connect too.
 
 Every component that bundles its own ZooKeeper (Ontul, kiok, NeoRunBase, Kafka, ItdaStream, Mium, ShannonStore) has its own `-zk-client` / `-zk-peer` / `-zk-leader` bands at 2181 / 2888 / 3888. They share the same bases and are separated by host occupancy, not by band — see [host-awareness](#host-awareness) below.
 

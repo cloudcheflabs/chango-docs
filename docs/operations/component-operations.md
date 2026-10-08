@@ -58,9 +58,19 @@ Most components have a Configure panel in the admin UI with multiple tabs:
 
 - **Properties** — operator-tunable keys in the component's main config file (e.g. Trino's `config.properties`). Per-instance keys (`http-server.http.port`, `discovery.uri`) are filtered out — those are owned by the provisioner.
 - **JVM** — per-role JVM tuning (`heapMin`, `heapMax`, extra `-X` flags).
-- **Component-specific tabs** — Trino has *Exchange Manager*, *Resource Group DB*, *Ontul Authz*; Spark has *Ontul Authz*, *Job Log Storage*; NeoRunBase has *PG Connection*. Each tab updates a narrowly-scoped slice of the cluster's config without touching the others.
+- **Component-specific tabs** — Trino has *Exchange Manager*, *Resource Group DB*, *Ontul Authz*; Spark has *Ontul Authz*, *S3 Credentials*, *Job Log Storage*; Polaris has *S3 Credentials*; NeoRunBase has *PG Connection*. Each tab updates a narrowly-scoped slice of the cluster's config without touching the others.
 
-Apply triggers a config re-render on every instance and a full cluster restart. The exception is Configure → "Job Log Storage" on Spark, which re-renders `spark-defaults.conf` and restarts the cluster, and the exchange-manager tab on Trino, which rewrites `etc/exchange-manager.properties` on every instance.
+Apply triggers a config re-render on every instance and a full cluster restart. Trino's exchange-manager tab instead rewrites `etc/exchange-manager.properties` on every instance.
+
+### S3 credentials are their own tab
+
+On **Spark** these are the cluster-wide default for every `s3a://` access the nodes make — rendered into `conf/core-site.xml` with `fs.s3a.aws.credentials.provider` pinned to `SimpleAWSCredentialsProvider`, so they cover the history server's event logs *and* a cluster-mode driver fetching its uberjar. A job that sets its own credentials still overrides them.
+
+They used to be reachable only through *Job Log Storage*, which meant a cluster running no history server had no way to rotate its S3 key at all. *Job Log Storage* now carries only the event-log directory and depends on the credentials above.
+
+On **Polaris** the tab sets the server-wide `-Daws.*` that every Polaris server runs with. That is the **fallback**, not the whole story: a catalog that carries its own credentials uses those instead, which is what lets catalogs on different object stores coexist on one Polaris cluster. Per-catalog credentials live on the Iceberg Catalogs screen.
+
+Changing either restarts the cluster. Polaris reads its system properties into the AWS SDK's provider chain at startup only, so rewriting them without a restart would leave the cluster running the old key while the console showed the new one.
 
 ## Scale
 
