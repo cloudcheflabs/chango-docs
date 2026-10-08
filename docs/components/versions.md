@@ -88,6 +88,22 @@ Any other Connect plugin — a sink, a transform, a third-party connector — is
 uploaded from the console as a zip, a tar.gz or a bare jar. Nothing about the
 bundled four is privileged; they are simply the ones already on the host.
 
+A fifth plugin, `confluent-avro-converter` 7.7.1, is installed automatically on a
+Kafka cluster that has a Schema Registry. It is extracted from the Confluent
+Community package the registry already needs rather than downloaded separately —
+see [Kafka Connect & Topics](../features/kafka-connect.md#converters).
+
+!!! note "Every external binary comes from one place"
+    `build-with-comps/download.sh` fetches every third-party artifact from
+    `cloudcheflabs/chango-libs`, including the Debezium connectors and the
+    Confluent package — not from Maven Central or packages.confluent.io. A bundle
+    build that reaches an upstream we do not control can stop reproducing at any
+    time: an artifact gets re-tagged, a path moves, a build host gets
+    rate-limited. Confluent also keeps one directory per minor and prunes patch
+    releases from it, so a build pinned to 7.7.1 would stop resolving the day
+    7.7.2 lands. The one place this would be noticed is a customer preparing an
+    air-gap transfer.
+
 ## First-party plugins shipped with engines
 
 | Plugin | Version | Wired into |

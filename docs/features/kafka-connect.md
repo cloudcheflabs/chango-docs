@@ -49,6 +49,22 @@ When the Kafka cluster has a Schema Registry, Connect defaults to Avro against i
 Without one it defaults to JSON with schemas off. Either can be overridden per
 connector.
 
+**The Avro converter is installed for you**, as a plugin named
+`confluent-avro-converter`. It has to be: `io.confluent.connect.avro.AvroConverter`
+is not in the Apache Kafka distribution a Connect worker installs from — it ships
+only inside the Confluent Community package, under `share/java/kafka-serde-tools`.
+A worker instantiates its key and value converters while starting up, so
+configuring Avro without those jars produces a worker that does not come up at
+all, and the reason is a `ClassNotFoundException` several screens into a log.
+
+The whole `kafka-serde-tools` directory goes in rather than a hand-picked subset.
+The converter's transitive dependencies are not declared anywhere readable, and
+three jars that happen to work today are how a converter starts failing on a
+schema shape nobody tested.
+
+It is a plugin like any other, which is the point: it goes through the same store,
+so a worker added later gets it the same way it gets Debezium.
+
 ## Plugins
 
 **The master holds the authoritative copy; the workers get pushed copies.**
