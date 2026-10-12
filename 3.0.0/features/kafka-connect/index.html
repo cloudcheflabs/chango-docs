@@ -14,7 +14,7 @@
         <link rel="prev" href="../gateway-routing/">
       
       
-        <link rel="next" href="../monitoring/">
+        <link rel="next" href="../schema-registry/">
       
       <link rel="icon" href="../../images/logo/chango-logo.png">
       <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
@@ -910,6 +910,19 @@
     Connectors
   </a>
   
+    <nav class="md-nav" aria-label="Connectors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#logs" class="md-nav__link">
+    Logs
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -937,6 +950,20 @@
   
 </nav>
       
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schema-registry/" class="md-nav__link">
+        Schema Registry
+      </a>
     </li>
   
 
@@ -1559,6 +1586,39 @@ console, a connector that reconfigured itself.</p>
 <p>Connect's own errors pass through unchanged. They name the failing field
 ("Connector configuration is invalid and contains the following 1 error(s)"),
 and rewrapping them in a chango error loses the part that matters.</p>
+<p>From the console each connector row offers <strong>pause</strong>, <strong>resume</strong>, <strong>restart</strong>
+and <strong>delete</strong>, plus <strong>config</strong> — which loads the connector's live
+configuration into the editor below, so an edit starts from what is actually
+running rather than from what someone pasted last.</p>
+<p>Expanding a row shows its <strong>tasks</strong>: state, the worker each is assigned to, and
+the failure trace when there is one. A failed task can be restarted on its own,
+without disturbing the ones that are fine.</p>
+<h3 id="logs">Logs</h3>
+<p>Kafka Connect has <strong>no per-connector log API</strong>. Two things exist, and the
+console shows both, labelled by where they came from:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The task <code>trace</code> on the status endpoint</td>
+<td>This connector, by name — the actual failure</td>
+</tr>
+<tr>
+<td>The Connect worker's log file</td>
+<td>Every connector on that worker, interleaved</td>
+</tr>
+</tbody>
+</table>
+<p>Presenting only the worker log under a heading like "connector logs" would
+leave an operator wondering why other connectors' lines are in it. Presenting
+only the traces would hide everything that is not a task failure. The worker
+picker defaults to a worker actually running one of this connector's tasks —
+a worker running none of them has nothing to say about it.</p>
 <h2 id="topics">Topics</h2>
 <p>List, create and delete from the Kafka page.</p>
 <ul>
