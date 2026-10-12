@@ -166,6 +166,31 @@ Connect's own errors pass through unchanged. They name the failing field
 ("Connector configuration is invalid and contains the following 1 error(s)"),
 and rewrapping them in a chango error loses the part that matters.
 
+From the console each connector row offers **pause**, **resume**, **restart**
+and **delete**, plus **config** — which loads the connector's live
+configuration into the editor below, so an edit starts from what is actually
+running rather than from what someone pasted last.
+
+Expanding a row shows its **tasks**: state, the worker each is assigned to, and
+the failure trace when there is one. A failed task can be restarted on its own,
+without disturbing the ones that are fine.
+
+### Logs
+
+Kafka Connect has **no per-connector log API**. Two things exist, and the
+console shows both, labelled by where they came from:
+
+| Source | Scope |
+|---|---|
+| The task `trace` on the status endpoint | This connector, by name — the actual failure |
+| The Connect worker's log file | Every connector on that worker, interleaved |
+
+Presenting only the worker log under a heading like "connector logs" would
+leave an operator wondering why other connectors' lines are in it. Presenting
+only the traces would hide everything that is not a task failure. The worker
+picker defaults to a worker actually running one of this connector's tasks —
+a worker running none of them has nothing to say about it.
+
 ## Topics
 
 List, create and delete from the Kafka page.
