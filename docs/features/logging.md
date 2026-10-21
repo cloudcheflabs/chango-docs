@@ -25,6 +25,57 @@ Each component writes under its own install dir:
 
 The path inside `logs/` is component-specific (`server.log` for Trino, `master.log` for Spark, …). The admin UI's "Logs" panel knows the right path per component type and shows a tail in the browser.
 
+### Move it off the platform disk — every component, right after install
+
+That default puts logs on whatever filesystem the install directory lives on.
+A streaming job or a busy broker fills it, and when it fills, the component and
+everything sharing that disk stop. Set a log directory on a volume sized for it.
+
+Every component page in the admin UI has a **Log Directory** tab (chango's own
+logs are the exception — those are set in the ansible variables before install).
+
+```bash
+curl -sS -X POST $BASE/admin/api/<component>/<clusterId>/config \
+  -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+  -d '{"logDir":"/data1/log"}'
+```
+
+chango creates `<logDir>/<instanceId>` as the component's own account and
+replaces the install dir's `logs` with a symlink to it, so the paths above keep
+working and the admin UI tail is unaffected:
+
+```bash
+ls -ld /opt/components/trino-1-coordinator-1/logs
+#   … -> /data1/log/trino-1-coordinator-1
+```
+
+The mechanism differs per component — launcher flags, `SPARK_LOG_DIR`,
+`env.log.dir`, `LOG_DIR`, a `-D` property, a redirect — and chango applies the
+right one. Scale-out reuses the setting, so new instances land in the same
+place.
+
+!!! warning "Messaging has **two** directories, and the big one is not the logs"
+    Application logs (`server.log`, `controller.log`) and **topic data** are
+    different things that both say "log". Topic data is the messages
+    themselves, sized by retention × ingest, and it defaults to the install
+    directory.
+
+    ```bash
+    curl -sS -X POST $BASE/admin/api/kafka/<clusterId>/config \
+      -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+      -d '{"logDir":"/data1/log","dataDir":"/data2/kafka-data"}'
+    ```
+
+    `dataDir` is a **root**; each broker gets `<root>/<instanceId>`, because two
+    brokers can share a host and two brokers writing one `log.dirs` corrupt
+    each other's partitions. Setting `log.dirs` directly through `properties`
+    is dropped on purpose — it has to differ per broker.
+
+    Moving it does **not** move the data: the broker starts empty at the new
+    path. Replicated topics re-replicate from their leaders, but moving all
+    brokers at once leaves nowhere to replicate from. Set it at install time, or
+    move one broker at a time and confirm replication in between.
+
 ## Tailing from the admin UI
 
 Every component page in the admin UI has a "Logs" button per instance. Click it and the master opens a streaming tail over the internal NIO protocol against the NM that hosts the instance. The tail is read-only — you can scroll, search, and copy, but not write.
