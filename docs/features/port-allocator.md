@@ -88,6 +88,31 @@ This is a deliberately loud failure — collapsing into "let's overlap" silently
 - Widen the band in `chango.properties` (`chango.component.port.ontul-master.range = 500`), or
 - Delete an unused component instance that has been sitting on the host.
 
+## A component that moves its own port
+
+The allocator decides where an instance listens. A component that *re-decides
+on its own* breaks that, and the result lands on its neighbour rather than on
+itself.
+
+Spark is the case in point: a daemon that cannot bind its assigned port moves to
+the next one (`spark.port.maxRetries`, default 16) and comes up looking healthy.
+After a whole-cluster restart a history server did exactly that — it took the
+port assigned to Livy, so Livy could not start, while the history server
+reported success.
+
+chango now passes `-Dspark.port.maxRetries=0` to every Spark role. Failing in
+place is reported in the instance's status and log; taking a neighbour's port
+surfaces as a different component's outage, which is much harder to trace.
+
+When a port looks wrong, compare the assignment with the actual bind rather than
+trusting either alone:
+
+```bash
+curl -sS $BASE/admin/api/components -H "Authorization: Bearer $TOK" \
+  | jq -r '.[] | select(.clusterId|startswith("spark")) | "\(.instanceId) \(.config)"'
+sudo ss -ltnp | grep -E ':3000[01]'
+```
+
 ## Component nginx ports
 
 The `*-nginx` bands start at 19200 and their bases are spaced 20 apart, so each component's proxy has a predictable place to look for.
