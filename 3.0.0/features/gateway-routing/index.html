@@ -846,8 +846,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-register-the-trino-cluster" class="md-nav__link">
-    1. Register the Trino cluster
+  <a href="#1-confirm-the-routing-target" class="md-nav__link">
+    1. Confirm the routing target
   </a>
   
 </li>
@@ -862,6 +862,26 @@
           <li class="md-nav__item">
   <a href="#3-add-users-to-the-group-in-ontul" class="md-nav__link">
     3. Add users to the group — in Ontul
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-client-surface-nginx-and-it-is-always-tls" class="md-nav__link">
+    The client surface — nginx, and it is always TLS
+  </a>
+  
+    <nav class="md-nav" aria-label="The client surface — nginx, and it is always TLS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trusting-the-certificate" class="md-nav__link">
+    Trusting the certificate
   </a>
   
 </li>
@@ -1476,43 +1496,164 @@
 <p>Creating a cluster-group in chango creates the corresponding Ontul group as a side effect, so the name is shared. Adding <em>people</em> to it is Ontul's job.</p>
 <h2 id="minimum-viable-topology">Minimum viable topology</h2>
 <p>Three things, in this order.</p>
-<h3 id="1-register-the-trino-cluster">1. Register the Trino cluster</h3>
-<p>The gateway needs a name and a URL. The name must match the chango Trino <code>clusterId</code>, because a cluster-group refers to clusters by that name.</p>
+<h3 id="1-confirm-the-routing-target">1. Confirm the routing target</h3>
+<p>A Trino cluster installed by chango <strong>registers itself</strong> — the coordinator URL
+is something chango already knows, so it is not worth retyping. Check it:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">BASE</span><span class="o">=</span>http://&lt;master&gt;:8080
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">      </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;…&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/clusters<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="s1">    &quot;clusterName&quot;: &quot;trino-main&quot;,</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="s1">    &quot;url&quot;: &quot;http://&lt;coordinator-host&gt;:&lt;httpPort&gt;&quot;</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="s1">  }&#39;</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/clusters<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1">#   [{&quot;clusterName&quot;:&quot;trino-main&quot;,&quot;clusterType&quot;:&quot;trino&quot;,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1">#     &quot;url&quot;:&quot;http://&lt;coordinator-host&gt;:&lt;httpPort&gt;&quot;,&quot;activated&quot;:true}]</span>
 </code></pre></div>
-<h3 id="2-create-a-cluster-group">2. Create a cluster group</h3>
-<p>Every route needs at least one. Routing is owned by groups, not by raw <code>host:port</code> backends — a gateway with a registered cluster but no group still has nowhere to send a query.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/cluster-groups<span class="w"> </span><span class="se">\</span>
+<p>Register by hand only when the entry is absent — an <strong>external</strong> Trino cluster
+chango did not install, or a cluster installed before the gateway existed. The
+admin UI has the same thing under the gateway page's <strong>Routing Targets</strong>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/clusters<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="s1">    &quot;groupName&quot;: &quot;default&quot;,</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="s1">    &quot;trinoClusterIds&quot;: [&quot;trino-main&quot;]</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="s1">  }&#39;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="s1">    &quot;clusterName&quot;: &quot;trino-main&quot;,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="s1">    &quot;url&quot;: &quot;http://&lt;coordinator-host&gt;:&lt;httpPort&gt;&quot;,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="s1">    &quot;activated&quot;: true</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="s1">  }&#39;</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Registration is not membership</p>
+<p>A registered cluster routes nothing until a cluster-group lists it (step 2).
+chango never creates or widens a group — not even <code>default</code>. Several Trino
+clusters can sit behind one gateway, so a new cluster quietly joining the
+group <code>admin</code> routes to would scatter operator queries across clusters sized
+for different work.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title"><code>activated</code> is the operator's drain switch</p>
+<p>Turn it off and new queries go to the group's other clusters while running
+ones finish — that is how a backend is replaced without a maintenance
+window. <strong>chango writes this field once, at registration, and never
+again</strong>, so a cluster you drained stays drained. The one thing it keeps
+following is <code>url</code>, for when a coordinator moves; deleting the Trino
+cluster removes the entry.</p>
+</div>
+<h3 id="2-create-a-cluster-group">2. Create a cluster group</h3>
+<p>Every route needs at least one. Routing is owned by groups, not by raw <code>host:port</code> backends — a gateway with a registered cluster but no group still has nowhere to send a query.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/cluster-groups<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="s1">    &quot;groupName&quot;: &quot;default&quot;,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="s1">    &quot;trinoClusterIds&quot;: [&quot;trino-main&quot;]</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="s1">  }&#39;</span>
 </code></pre></div>
 <p><code>trinoClusterIds</code> holds the names registered in step 1.</p>
 <h3 id="3-add-users-to-the-group-in-ontul">3. Add users to the group — in Ontul</h3>
-<p>Open the <strong>Ontul</strong> admin UI, find the group named <code>default</code>, and add the users who should route through it. A user in no group has no route.</p>
+<p>Creating a cluster-group also creates an Ontul group of the same name (chango
+writes to Ontul first and aborts if that fails, so the two cannot drift). Open
+the <strong>Ontul</strong> admin UI, find that group, and add the users who should route
+through it. A user in no group has no route.</p>
 <p>Confirm the mirror landed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/user-groups<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/user-groups<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1">#   {&quot;admin&quot;:[&quot;admin-group&quot;],&quot;analyst&quot;:[&quot;analyst-group&quot;]}</span>
 </code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">The group is created empty — membership is not permission</p>
+<p>A group with no policy attached routes fine and then denies every table.
+<code>SELECT 1</code> succeeds, <code>SELECT … FROM &lt;table&gt;</code> is a <code>403</code>. Routing and
+authorization are separate axes: the cluster-group decides <em>which engine</em>,
+the policy decides <em>what is visible</em>.</p>
+<p><code>default</code> is the group <code>admin</code> routes to and is deliberately left empty —
+the operator's own access comes from <code>admin-group</code>'s <code>AdministratorAccess</code>.
+Put users in purpose-built groups instead, so that separating a user-facing
+engine later does not move the operator path with it.</p>
+</div>
+<h2 id="the-client-surface-nginx-and-it-is-always-tls">The client surface — nginx, and it is always TLS</h2>
+<p>Clients do not talk to a gateway instance. They talk to an nginx surface in
+front of the gateways, and <strong>chango does not create it at install</strong> — apply it
+after the cluster is up.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino-gateway/&lt;clusterId&gt;/nginx<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1">#   gateways[] / nodeManagers[](nginxInstalled) / recommendedNode</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino-gateway/&lt;clusterId&gt;/nginx<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;nodeId&quot;:&quot;&lt;nm nodeId&gt;&quot;,&quot;listenPort&quot;:0,</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="s1">       &quot;gatewayInstanceIds&quot;:[&quot;tg-1-gateway-1&quot;,&quot;tg-1-gateway-2&quot;]}&#39;</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="c1">#   nginxPort     19300</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="c1">#   nginxApplied  host-a:8680,host-b:8680     ← should list every gateway</span>
+</code></pre></div>
+<p><code>listenPort: 0</code> auto-allocates from a dedicated band. A port given explicitly is
+honoured only after it is confirmed free — nginx binding silently fails
+otherwise, which leaves a surface that reports success and refuses connections.</p>
+<p>TLS is not a choice here: <strong>Trino's JDBC driver refuses to send Basic
+credentials over plain HTTP</strong>, so a plaintext surface cannot be used by the
+clients that matter, and any tool that does connect sends access keys in the
+clear. chango generates a self-signed certificate for the surface.</p>
+<h3 id="trusting-the-certificate">Trusting the certificate</h3>
+<p><code>curl -k</code> skips verification. Clients that cannot — the JDBC driver, the
+workflow's SQL task — fail like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>PKIX path building failed: unable to find valid certification path to requested target
+</code></pre></div>
+<p>That message reads like a wrong address or wrong credentials. It means the
+client has nothing to verify against. Fetch the certificate and build a trust
+store:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino-gateway/&lt;clusterId&gt;/nginx/certificate<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1">#   {&quot;endpoint&quot;:&quot;https://&lt;nginx host&gt;:19300&quot;,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1">#    &quot;certificate&quot;:&quot;-----BEGIN CERTIFICATE-----…&quot;}</span>
+</code></pre></div>
+<p>The endpoint comes back with it because there are two distinct failures — "cannot
+verify" and "verified, but reached by a name the certificate does not cover" —
+and the certificate covers the host's FQDN, its address and <code>localhost</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">JDK</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-d<span class="w"> </span>/opt/*jdk-17*<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/etc/chango<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">755</span><span class="w"> </span>/etc/chango
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>sudo<span class="w"> </span>cp<span class="w"> </span>-n<span class="w"> </span><span class="nv">$JDK</span>/lib/security/cacerts<span class="w"> </span>/etc/chango/truststore.jks<span class="w">   </span><span class="c1"># copy, don&#39;t create</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">644</span><span class="w"> </span>/etc/chango/truststore.jks
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>sudo<span class="w"> </span><span class="nv">$JDK</span>/bin/keytool<span class="w"> </span>-importcert<span class="w"> </span>-noprompt<span class="w"> </span>-trustcacerts<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">     </span>-alias<span class="w"> </span>chango-trino-gateway<span class="w"> </span>-file<span class="w"> </span>/tmp/gw.crt<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">     </span>-keystore<span class="w"> </span>/etc/chango/truststore.jks<span class="w"> </span>-storepass<span class="w"> </span>changeit
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Copy <code>cacerts</code> — never hand a JVM an empty trust store</p>
+<p>A fresh keystore holding only this certificate makes that JVM lose every
+public CA, and its other outbound HTTPS calls start failing quietly.</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Not under <code>/opt/chango/conf</code></p>
+<p>On master nodes that directory is <code>750</code> — it holds the master key — so
+component accounts cannot read it. The JVM then falls back to an <strong>empty</strong>
+trust store and fails PKIX while the file plainly exists with a matching
+fingerprint. Only master nodes are affected, so it presents as an
+intermittent network problem:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>DAG run 1) SUCCESS  driver=worker-on-nm-only-node     ← conf is 755 there
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>DAG run 2) FAILED   driver=worker-on-master-node
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>DAG run 3) FAILED   driver=worker-on-master-node
+</code></pre></div>
+<p>Keep it somewhere component accounts can read, and check as that account:
+<code>sudo -n -u kiok test -r /etc/chango/truststore.jks</code>.</p>
+</div>
+<p>Point the consuming component's JVM at it. For the workflow engine set <strong>both</strong>
+roles — tasks execute on workers, and the master is on the path too:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/kiok/&lt;clusterId&gt;/config<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="s1">  &quot;masterJvm&quot;:{&quot;extra&quot;:{</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="s1">    &quot;-Djavax.net.ssl.trustStore&quot;:&quot;/etc/chango/truststore.jks&quot;,</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="s1">    &quot;-Djavax.net.ssl.trustStorePassword&quot;:&quot;changeit&quot;}},</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="s1">  &quot;workerJvm&quot;:{&quot;extra&quot;:{</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="s1">    &quot;-Djavax.net.ssl.trustStore&quot;:&quot;/etc/chango/truststore.jks&quot;,</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="s1">    &quot;-Djavax.net.ssl.trustStorePassword&quot;:&quot;changeit&quot;}}}&#39;</span>
+</code></pre></div>
+<p>Verify by running the same job <strong>several times</strong>: one success only proves the
+node it happened to land on. Every worker should appear as the driver.</p>
+<p>Re-applying nginx reuses the existing certificate, so the fingerprint is stable
+and trust stores stay valid. Deleting <code>/etc/nginx/ssl/&lt;conf&gt;.crt</code> and
+re-applying generates a new one — rebuild the trust stores then.</p>
 <h2 id="why-a-missing-route-looks-like-an-auth-failure">Why a missing route looks like an auth failure</h2>
 <p>The gateway authenticates the caller first, then asks which cluster-group that identity belongs to, then routes. A user with valid credentials and no group membership fails at the second step — and the response the client sees is a <code>401</code>.</p>
 <p>So when a freshly installed gateway rejects a correct username and password, check membership before checking the password. The <a href="../../tutorials/phase-7-kiok-dag-trino-ontul-via-gateway/">kiok tutorial</a> walks the same path with a DAG in front of it.</p>
 <h2 id="resource-groups">Resource groups</h2>
 <p>Optional. They cap concurrency and memory per group of queries:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/resource-groups<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;name&quot;: &quot;adhoc&quot;, &quot;…&quot;: &quot;…&quot;}&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/gateway/resource-groups<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;name&quot;: &quot;adhoc&quot;, &quot;…&quot;: &quot;…&quot;}&#39;</span>
 </code></pre></div>
 <p>Values are stored opaquely — chango persists whatever JSON is posted and hands it to the gateway, which owns the schema. Without a resource group the gateway applies its own defaults.</p>
 <h2 id="where-the-topology-lives">Where the topology lives</h2>
@@ -1583,8 +1724,28 @@
 <td>~~<code>/admin/api/gateway/user-groups</code>~~</td>
 <td><strong><code>410 Gone</code></strong> — manage membership in Ontul</td>
 </tr>
+<tr>
+<td><code>GET</code> / <code>POST</code></td>
+<td><code>/admin/api/trino-gateway/&lt;id&gt;/nginx</code></td>
+<td>The client surface — candidates, then apply</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/admin/api/trino-gateway/&lt;id&gt;/nginx/certificate</code></td>
+<td>Its certificate + the endpoint it is valid for</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/admin/api/trino-gateway/&lt;id&gt;/attached-groups</code></td>
+<td>Which groups this gateway serves — <strong>replaces the whole list</strong></td>
+</tr>
 </tbody>
 </table>
+<div class="admonition warning">
+<p class="admonition-title"><code>attached-groups</code> replaces, it does not add</p>
+<p>Sending only the new group drops the others — including <code>default</code>, which
+stops operator queries. Send the full list every time.</p>
+</div>
 
 
 
