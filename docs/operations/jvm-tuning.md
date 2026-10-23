@@ -24,6 +24,57 @@ Because it is available on the **Create** panel, a fully tuned cluster can be in
 
 Values are passed through verbatim after trimming — chango does not validate that `-Xmx3g` is achievable on the node. A heap larger than physical RAM produces a JVM that fails to start, and the component lands in `FAILED` with the JVM's own error in the component log.
 
+## Several launchers never read `jvm.conf`
+
+This is the part that costs time. For a number of components the rendered file is
+**a record for the operator, not the mechanism** — the launcher reads an
+environment variable and nothing else. Writing only the file produces a setting
+that is stored, replayed on scale-out and shown in the UI while the process runs
+on the launcher's default.
+
+| Component / role | What actually applies |
+|---|---|
+| Trino (all roles) | `etc/jvm.config` — the file *is* the mechanism |
+| Spark master / worker / history server | `SPARK_DAEMON_MEMORY` + `SPARK_DAEMON_JAVA_OPTS` in `conf/spark-env.sh` |
+| Livy | `LIVY_SERVER_JAVA_OPTS` |
+| Kafka broker | `KAFKA_HEAP_OPTS` in a `kafka-env.sh` the start command sources |
+| Schema Registry (standalone **and** the one co-located with Kafka) | `SCHEMA_REGISTRY_HEAP_OPTS` |
+| UI Proxy | `CHANGO_UI_PROXY_OPTS` |
+| Flink | `<role>.memory.process.size` in `config.yaml` — Flink *derives* `-Xmx` from it |
+| First-party products (Ontul, kiok, …) | `conf/jvm.conf` |
+
+Two consequences worth knowing:
+
+- **Flink's `-Xmx` will not equal what you set.** You set a process size; Flink
+  subtracts metaspace, network and managed memory and derives the heap. Setting
+  `1536m` on a TaskManager produced `-Xmx436207608` (≈416 MB). That is correct,
+  not a bug.
+- **The env path is a chango record, so it can be written while the instance is
+  stopped.** That is deliberate: the case that matters is a heap too large for
+  the host, where the process is already dead — and writing a config *file*
+  requires a RUNNING instance. chango writes the variable first for exactly this
+  reason.
+
+### Roles that can be tuned
+
+Every role chango runs as a long-lived JVM accepts a `JvmConfig`. Two were
+missing until recently and are called out because an older install will not
+offer them:
+
+- **Spark History Server.** Its heap follows the size of the event logs it
+  renders, not the size of the cluster, and the launcher default is a flat 1 GB.
+  It is usually the first daemon to die of OOM on a busy lakehouse, and what the
+  operator sees is "the history UI is down".
+- **Schema Registry.** Its heap follows the number of subjects and versions it
+  holds. The co-located one had no setting at all.
+
+!!! warning "A post-install change must be persisted, or a scale-out undoes it"
+    chango stores the changed `JvmConfig` in cluster settings so a later
+    scale-out installs the new instance with it. Without that the new instance
+    comes up on the **install-time** heap and the cluster quietly runs two
+    different sizes. If you are auditing an older install, compare a scaled-out
+    instance's actual `-Xmx` against the others rather than against the UI.
+
 ## Trino: the RAM-percentage default
 
 Trino is the one component whose heap default has a real history, because Trino's own packaged `jvm.config` assumes a dedicated node.
@@ -81,8 +132,16 @@ sudo cat /opt/components/<instanceId>/conf/jvm.conf
 Then confirm the running process actually picked it up — the file on disk is what chango *intends*, the command line is what the JVM *got*:
 
 ```bash
-ps -ef | grep <instanceId> | tr ' ' '\n' | grep -E '^-X'
+ps -eo comm,args --no-headers | awk '$1=="java"' | grep -F "<instanceId>" \
+  | tr ' ' '\n' | grep -E '^-X'
 ```
+
+!!! tip "Filter to `java` first"
+    A bare `ps -ef | grep <instanceId>` also matches **the grep itself and the
+    shell command you are running** — including an ssh command line that happens
+    to contain the instance id. That has produced "the process is not running"
+    and "the restart did not happen" conclusions that were simply wrong.
+    Filtering on the command name removes the whole class.
 
 And check the heap the JVM resolved, which is the only number that settles a `RAMPercentage` question:
 

@@ -60,6 +60,61 @@ sudo -u chango /opt/chango/bin/stop-node-manager.sh
 
 A node manager restart costs no component downtime — managed component processes (Trino, Spark, …) keep running, and the NM re-attaches to them by reading their pid files when it starts again.
 
+## After a host reboot
+
+chango does not install systemd units. That is a deliberate consequence of the
+operator holding the master key: a unit that starts the master at boot would
+need the key on disk. So after a reboot **nothing chango-managed is running**,
+and recovery is two steps in this order.
+
+What *does* come back by itself: the mounts (every data mount carries `nofail`),
+`firewalld`, the air-gap egress rules (their own unit, not `nftables.service`),
+`nginx`, and MinIO when it is installed as a service.
+
+```bash
+# 1. control plane — from the control node, with the key in the environment
+cd <bundle>/ansible
+export CHANGO_MASTER_KEY=$(cat ~/.chango-master-key)
+ansible-playbook -i inventory.yml start.yml
+
+# 2. components — in dependency order
+for c in "components/pg-1" "polaris/polaris-1" "ontul/ontul-1"          "trino/trino-1" "trino/trino-2" "trino-gateway/tg-1"          "kafka/kafka-1" "spark/spark-1" "flink/flink-1"          "kiok/kiok-1" "ui-proxy/uiproxy-1"; do
+  curl -s -X POST "$BASE/admin/api/$c/start" -H "Authorization: Bearer $TOK"
+done
+```
+
+Order matters. Something started before what it depends on comes up and dies
+seconds later, and its status reads RUNNING for a while first.
+
+!!! warning "`RUNNING` right after a reboot can be a stale record"
+    The node managers re-report instance state after they start, and for a short
+    window the API still answers with what it knew before the reboot. Two or
+    three minutes in, that converges to `STOPPED` on its own. If you need the
+    answer immediately, count processes instead:
+
+    ```bash
+    ps -eo comm,args --no-headers | awk '$1=="java"' | grep -c /opt/components/
+    ```
+
+!!! note "Kafka brokers may need one retry — chango does it for you"
+    The brokers come back before ZooKeeper has expired their previous sessions,
+    and because ZooKeeper restarted too, the ephemeral `/brokers/ids/<id>` comes
+    back from its snapshot with no client left to disconnect it. Registration
+    fails with `NodeExistsException`, the broker logs a fatal and exits. The
+    condition clears itself once the old session times out, so chango waits and
+    starts the broker again — up to three attempts, deciding on whether the
+    listener *accepts* rather than on the recorded status. If it still fails
+    after that, the log names the instance and the broker's own `.out` file has
+    the reason.
+
+Check the inventory before you use it. A bundle ships several, and one that was
+copied from another environment will have the wrong addresses:
+
+```bash
+hostname -I                                    # what this host actually is
+grep ansible_host <bundle>/ansible/inventory*.yml
+```
+
 ## Rolling restart
 
 For an HA cluster (more than one master), restart followers first, then the leader.

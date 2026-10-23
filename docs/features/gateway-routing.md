@@ -122,6 +122,79 @@ curl -sS $BASE/admin/api/gateway/user-groups -H "Authorization: Bearer $TOK"
     Put users in purpose-built groups instead, so that separating a user-facing
     engine later does not move the operator path with it.
 
+## How a backend is chosen
+
+A cluster group can hold more than one engine. The gateway picks one per
+**user**, by Highest Random Weight over the group's *activated* members — not
+per request.
+
+The reason is narrow and worth stating, because it decides what a deployment can
+do with a load balancer. Session properties, `USE`, and prepared statements all
+live **client-side**: the client resends them on every request, so any engine can
+serve any of them. An **explicit transaction** does not — it lives in the
+coordinator's memory, and the client only echoes its id back in
+`X-Trino-Transaction-Id`. Choosing per request meant the statement after
+`START TRANSACTION` could land on an engine that has never heard of that id.
+With two engines in a group the next statement stayed put half the time, so the
+failure was **intermittent** — the kind that gets written off as a network
+problem.
+
+HRW rather than `hash(user) % n` because the candidate set changes: draining or
+adding an engine reshuffles nearly everyone under modulo, while HRW moves only
+the users whose top choice left. It cannot be zero — a user whose own engine is
+drained mid-transaction loses it, and no routing scheme prevents that.
+
+It is deterministic, so every gateway instance reaches the same answer from the
+same topology snapshot, with no shared state.
+
+!!! note "Two users are not a distribution test"
+    HRW allows two users to land on the same engine, and eight users all landing
+    on one of two engines happens about once in 128. To see the spread, use many
+    users and check that **both** engines are reached; to see stability, query
+    repeatedly as one user and check the coordinator never changes.
+
+### The gateway holds no query state
+
+The chosen backend travels **inside the response URLs**, encrypted (AES-GCM)
+under a secret that is identical on every gateway of the cluster. So any
+instance can serve any poll of any query.
+
+That has a practical consequence: nothing about the gateway requires sticky
+sessions. chango's generated nginx uses `ip_hash`, but only because one rule
+covers every component surface and some components genuinely need it (the
+catalog server's OAuth, the IAM engine's JWT). A deployment is free to front the
+gateway with round-robin or a cloud load balancer.
+
+Verified by starting a query on one gateway and polling it to completion on the
+other.
+
+### Client tags
+
+The gateway adds `cg=<cluster group>` so the backend's resource-group selector
+can route the query to that group's queue. **Tags the client sent are kept** —
+a cost centre, a dashboard id, an application name all arrive intact, so
+resource-group rules and audit queries that select on them keep working. Only
+the `cg=` namespace is the gateway's, and a client value there is replaced:
+otherwise a client could put itself in another group's queue.
+
+```
+client sends: team-x,cost=1234      coordinator sees: team-x, cost=1234, cg=analyst-group
+client sends: cg=default,mine       coordinator sees: mine, cg=analyst-group
+```
+
+### Draining
+
+Setting `activated: false` on a routing target takes it out of the candidate set.
+The users whose top choice it was move to another engine in their group; everyone
+else stays where they were. Re-activating restores the original placement.
+
+!!! warning "A write to the routing registry replaces the whole entry"
+    There is no partial update. Sending just
+    `{"clusterName":"trino-2","activated":false}` to drain would drop the `url`,
+    and a routing target without one fails every query routed to it. That is now
+    refused with `url is required`, but the correct move is to read the entry,
+    change the one field, and send the whole document back.
+
 ## The client surface — nginx, and it is always TLS
 
 Clients do not talk to a gateway instance. They talk to an nginx surface in
@@ -159,7 +232,46 @@ PKIX path building failed: unable to find valid certification path to requested 
 ```
 
 That message reads like a wrong address or wrong credentials. It means the
-client has nothing to verify against. Fetch the certificate and build a trust
+client has nothing to verify against.
+
+### The short path — let chango distribute it
+
+The file has to be on **every node the client can run on**, at the same path.
+Copying it by hand is where it goes wrong: miss one node and only the executions
+that land there fail, which reads as an intermittent network problem. So ask
+chango to place it, from the workflow page's **Trust Store** tab or:
+
+```bash
+curl -X POST $BASE/admin/api/kiok/<clusterId>/truststore \
+     -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+     -d '{"gatewayClusterId":"tg-1"}'
+# {"path":"/etc/chango/certs/tg-1.pem",
+#  "nodes":["nm-cp-1…","nm-cp-2…","nm-cp-3…"],
+#  "gatewayEndpoint":"https://cp-2.chango.private:19300",
+#  "taskConfigKeys":{"trino":"trino.ssl.trustStore: /etc/chango/certs/tg-1.pem", …}}
+```
+
+The certificate is read off that gateway's own TLS surface, so there is nothing
+to copy or paste. Pass a `certificate` (PEM) instead to install a **corporate
+CA** — a JVM does not know that CA either, so it fails exactly like a
+self-signed one, except one CA certificate covers every server certificate it
+issues and survives their reissue.
+
+`taskConfigKeys` is the line to paste, per task type. The prefix differs
+(`trino.` / `ontul.` / `livy.` / none for `http`) and a wrong prefix is
+**silently ignored** — the result is a PKIX failure that says nothing about the
+setting.
+
+!!! note "`python` and `shell` tasks are not covered"
+    Those keys configure the worker's JVM clients. A script that calls HTTPS
+    itself uses its own runtime's trust store, so in one DAG the `http` task
+    passes and the `python` task fails with `CERTIFICATE_VERIFY_FAILED`. Build
+    the context in the script:
+    `ssl.create_default_context(cafile="/etc/chango/certs/tg-1.pem")`.
+
+### The long path — a JVM-wide trust store
+
+For a client with no per-task setting, fetch the certificate and build a trust
 store:
 
 ```bash
