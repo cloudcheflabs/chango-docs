@@ -940,6 +940,19 @@
     Component coverage
   </a>
   
+    <nav class="md-nav" aria-label="Component coverage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-plugin-patch-only-touches-hosts-that-have-that-plugin" class="md-nav__link">
+    A plugin patch only touches hosts that have that plugin
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1080,9 +1093,29 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#chango-self-patch-v2" class="md-nav__link">
-    Chango self-patch (v2)
+  <a href="#chango-self-patch" class="md-nav__link">
+    Chango self-patch
   </a>
+  
+    <nav class="md-nav" aria-label="Chango self-patch">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rolling-a-self-patch-back" class="md-nav__link">
+    Rolling a self-patch back
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verifying-a-self-patch" class="md-nav__link">
+    Verifying a self-patch
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1524,75 +1557,93 @@
 <li>With the patch system, the operator builds a tarball once with <code>chango-pack patch</code>, uploads it once to the admin UI, and clicks <strong>Apply</strong> — the leader fans out per-host swap + restart with automatic backup and one-click rollback.</li>
 </ul>
 <h2 id="component-coverage">Component coverage</h2>
-<p>Patch v1 supports the first-party components:</p>
+<p>What is patchable is exactly what chango wrote. Everything else is an
+open-source artifact whose version chango picked after testing the stack
+against it, and swapping one of those is not a patch — it is an upgrade.</p>
 <table>
 <thead>
 <tr>
 <th>Component</th>
-<th>Type</th>
+<th>What a patch may carry</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Ontul</td>
-<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+<td>Ontul · kiok · ItdaStream · ShannonStore · NeoRunBase · Mium</td>
+<td><code>lib/*.jar</code>, <code>admin-ui/**</code></td>
 </tr>
 <tr>
-<td>kiok</td>
-<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+<td>chango itself</td>
+<td><code>lib/*.jar</code>, <code>admin-ui/**</code> — see <a href="#chango-self-patch">self-patch</a></td>
 </tr>
 <tr>
-<td>ItdaStream</td>
-<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+<td>Trino Gateway · UI Proxy</td>
+<td><code>lib/*.jar</code> — chango wrote these; they ship as components</td>
 </tr>
 <tr>
-<td>ShannonStore</td>
-<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
-</tr>
-<tr>
-<td>NeoRunBase</td>
-<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
-</tr>
-<tr>
-<td>Mium</td>
-<td><code>jar</code>, <code>ui</code>, <code>both</code></td>
+<td>Trino · Spark · Flink</td>
+<td><strong><code>plugin/&lt;name&gt;/*.jar</code> only</strong> — the authorization plugin, never <code>lib/</code></td>
 </tr>
 </tbody>
 </table>
-<p>Patch v2 (only on <code>branch-3.0.0</code> of chango itself) additionally supports patching chango itself — the chango master JARs and the chango admin UI bundle. See the <a href="#chango-self-patch-v2">Chango self-patch (v2)</a> section below.</p>
-<p>A patch built for any other component (open-source engines — Trino, Spark, Flink, Kafka, Postgres, Polaris, Trino Gateway, UI Proxy, Schema Registry) is rejected at upload time. Upgrade those via <a href="../../operations/upgrade/">Blue / Green Upgrade</a> — chango does not own their lifecycle the way it does the first-party stack.</p>
+<p>The engines are the interesting row. chango's authorization plugin runs
+<em>inside</em> Trino, Spark and Flink, so it has to be patchable — but their <code>lib/</code>
+holds the engine itself. So for those three the tool refuses <code>--jars</code>
+outright:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$ chango-pack patch --component trino --type jar --jars ./build/libs --out p.tgz
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>chango-pack patch: &#39;trino&#39; 은 --jars 를 쓸 수 없습니다 (lib/ 은
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  chango 가 버전을 고정한 오픈소스 jar 입니다). chango 의 플러그인만
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  --plugin &lt;이름&gt;=&lt;디렉터리&gt; 로 담으세요.
+</code></pre></div>
+<p>and the upload re-checks every path in the extracted tree against the
+component, so a hand-assembled tarball does not get through either.</p>
+<p>To move an engine to a different version, use
+<a href="../../operations/upgrade/">Blue / Green Upgrade</a>.</p>
+<h3 id="a-plugin-patch-only-touches-hosts-that-have-that-plugin">A plugin patch only touches hosts that have that plugin</h3>
+<p>Where a plugin belongs is the installer's decision — the engines' authorization
+plugin is installed on <strong>coordinators only</strong>. A patch that created
+<code>plugin/&lt;name&gt;/</code> on a worker would leave the first-party jar there without the
+dependencies the installer would have put beside it. Trino loads it anyway,
+because the plugin class itself needs nothing, so the drift stays invisible
+until a release touches a dependency at class-init and that worker stops
+starting. So an instance without the directory is skipped, and the node manager
+logs that it skipped it.</p>
+<p>The matching rule on the way back: if a rollback empties a plugin directory, the
+directory goes with its last jar. An <strong>empty</strong> plugin directory is worse than
+none — Trino refuses to start with
+<code>No service providers of type io.trino.spi.Plugin in the classpath: []</code>.</p>
 <h2 id="building-a-patch-chango-pack-patch">Building a patch — <code>chango-pack patch</code></h2>
 <p><code>chango-pack</code> is the air-gapped tooling shipped inside the chango release tarball. The <code>patch</code> sub-command builds the upload-ready tarball from a directory of jars and / or a directory of admin-UI dist files:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Java-only patch</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--component<span class="w"> </span>ontul<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0-SNAPSHOT<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span>--type<span class="w">      </span>jar<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/ontul/lib<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span>--out<span class="w">       </span>dist/ontul-patch-3.0.0-SNAPSHOT.tgz
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># admin-UI-only hot patch (no restart needed)</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span>--component<span class="w"> </span>kiok<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span>--type<span class="w">      </span>ui<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/kiok/admin-ui/dist<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span>--notes<span class="w">     </span><span class="s2">&quot;fix DAG status colors&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span>--out<span class="w">       </span>dist/kiok-patch-3.0.0-ui.tgz
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="c1"># combined jar + UI</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span>--component<span class="w"> </span>shannonstore<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">    </span>--type<span class="w">      </span>both<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/shannonstore/lib<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/shannonstore/admin-ui/dist<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span>--out<span class="w">       </span>dist/shannonstore-patch-3.0.0.tgz
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Java-only patch</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span>--component<span class="w"> </span>ontul<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0-SNAPSHOT<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span>--type<span class="w">      </span>jar<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/ontul/lib<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span>--out<span class="w">       </span>dist/ontul-patch-3.0.0-SNAPSHOT.tgz
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># admin-UI-only hot patch (no restart needed)</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span>--component<span class="w"> </span>kiok<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span>--type<span class="w">      </span>ui<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/kiok/admin-ui/dist<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span>--notes<span class="w">     </span><span class="s2">&quot;fix DAG status colors&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span>--out<span class="w">       </span>dist/kiok-patch-3.0.0-ui.tgz
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="c1"># combined jar + UI</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">    </span>--component<span class="w"> </span>shannonstore<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span>--type<span class="w">      </span>both<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/shannonstore/lib<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/shannonstore/admin-ui/dist<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">    </span>--out<span class="w">       </span>dist/shannonstore-patch-3.0.0.tgz
 </code></pre></div>
 <p>The output is a <code>tgz</code> whose layout is <strong>strictly</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>manifest.json              ← {component, version, type, files[].sha256, builtAt, builtBy, ...}
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>lib/*.jar                  ← required when --type is jar or both
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>admin-ui/dist/**           ← required when --type is ui  or both
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>manifest.json              ← {component, version, type, files[].sha256, builtAt, builtBy, ...}
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>lib/*.jar                  ← required when --type is jar or both
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>admin-ui/dist/**           ← required when --type is ui  or both
 </code></pre></div>
 <p>Any other top-level entry, or any path outside this whitelist, is rejected at upload time. No <code>conf/</code>, no scripts, no full install tree.</p>
 <p>The tooling only needs <code>tar</code>, <code>sha256sum</code>, <code>find</code>, and a POSIX shell — it ships inside <code>/opt/chango/bin/</code> so the same chango release can rebuild patches in-place on the build host.</p>
@@ -1633,31 +1684,31 @@
 </table>
 <p>All mutating routes are admin-only (Stage-1 RBAC) and leader-only. Followers transparently forward to the leader.</p>
 <h3 id="upload">Upload</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;pw&gt;&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/gzip&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">     </span>--data-binary<span class="w"> </span>@dist/ontul-patch-3.0.0-SNAPSHOT.tgz<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/upload
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;pw&gt;&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/gzip&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">     </span>--data-binary<span class="w"> </span>@dist/ontul-patch-3.0.0-SNAPSHOT.tgz<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/upload
 </code></pre></div>
 <p>Response:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;patchId&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;ontul-3.0.0-SNAPSHOT-20260530-1f3a&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;component&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ontul&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;3.0.0-SNAPSHOT&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">      </span><span class="s2">&quot;jar&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w">      </span><span class="mi">18234567</span><span class="p">,</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="nt">&quot;sha256&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;…&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nt">&quot;uploadedAt&quot;</span><span class="p">:</span><span class="s2">&quot;2026-05-30T12:34:56Z&quot;</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;patchId&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;ontul-3.0.0-SNAPSHOT-20260530-1f3a&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;component&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ontul&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;3.0.0-SNAPSHOT&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">      </span><span class="s2">&quot;jar&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w">      </span><span class="mi">18234567</span><span class="p">,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">&quot;sha256&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;…&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="nt">&quot;uploadedAt&quot;</span><span class="p">:</span><span class="s2">&quot;2026-05-30T12:34:56Z&quot;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="apply">Apply</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;clusterId&quot;:&quot;ontul-main&quot;,&quot;restartMode&quot;:&quot;rolling&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/ontul-3.0.0-SNAPSHOT-20260530-1f3a/apply
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;clusterId&quot;:&quot;ontul-main&quot;,&quot;restartMode&quot;:&quot;rolling&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/ontul-3.0.0-SNAPSHOT-20260530-1f3a/apply
 </code></pre></div>
 <p>The leader resolves <code>(component, clusterId)</code> to the set of NMs that host an instance, then sends each NM a <code>PATCH_APPLY</code> (<code>OpCode 235</code>) carrying the manifest + a master-side <code>/raw</code> download URL + the explicit <code>instanceIds</code> to swap on that host (the NM has no <code>clusterId</code>/role context of its own). The NM:</p>
 <ol>
@@ -1668,43 +1719,43 @@
 </ol>
 <p><code>restartMode: "rolling"</code> does this one host at a time and waits for the instance to report RUNNING again before moving on; <code>parallel</code> fires every host together — faster, but expects all instances to tolerate a simultaneous restart.</p>
 <p>The response aggregates per-host results:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;patchId&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;ontul-3.0.0-SNAPSHOT-20260530-1f3a&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;clusterId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ontul-main&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;applied&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">&quot;hosts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;nm-host1-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;instanceIds&quot;</span><span class="p">:[</span><span class="s2">&quot;ontul-main-master&quot;</span><span class="p">],</span><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="s2">&quot;applied&quot;</span><span class="p">},</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;nm-host2-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;instanceIds&quot;</span><span class="p">:[</span><span class="s2">&quot;ontul-main-worker-1&quot;</span><span class="p">],</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="s2">&quot;applied&quot;</span><span class="p">},</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;nm-host3-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;instanceIds&quot;</span><span class="p">:[</span><span class="s2">&quot;ontul-main-worker-2&quot;</span><span class="p">],</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="s2">&quot;applied&quot;</span><span class="p">}</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;patchId&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;ontul-3.0.0-SNAPSHOT-20260530-1f3a&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;clusterId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ontul-main&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;applied&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">&quot;hosts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;nm-host1-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;instanceIds&quot;</span><span class="p">:[</span><span class="s2">&quot;ontul-main-master&quot;</span><span class="p">],</span><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="s2">&quot;applied&quot;</span><span class="p">},</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;nm-host2-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;instanceIds&quot;</span><span class="p">:[</span><span class="s2">&quot;ontul-main-worker-1&quot;</span><span class="p">],</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="s2">&quot;applied&quot;</span><span class="p">},</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="s2">&quot;nm-host3-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;instanceIds&quot;</span><span class="p">:[</span><span class="s2">&quot;ontul-main-worker-2&quot;</span><span class="p">],</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="s2">&quot;applied&quot;</span><span class="p">}</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="rollback">Rollback</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;component&quot;:&quot;ontul&quot;,&quot;clusterId&quot;:&quot;ontul-main&quot;,&quot;to&quot;:&quot;lastBackup&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/rollback
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;component&quot;:&quot;ontul&quot;,&quot;clusterId&quot;:&quot;ontul-main&quot;,&quot;to&quot;:&quot;lastBackup&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/rollback
 </code></pre></div>
 <p>Rollback is the inverse of apply: each NM restores <code>lib/</code> and <code>admin-ui/dist/</code> from the requested <code>.bak/&lt;patchId&gt;/</code> directory and restarts the instance. <code>to: "lastBackup"</code> rolls back to the most recent apply; <code>to: "&lt;patchId&gt;"</code> rolls back to a specific past patch. Rollback also writes a fresh <code>.bak/&lt;rollbackId&gt;/</code> so a re-roll-forward stays possible.</p>
 <p>Because <code>.bak/</code> lives <strong>inside the instance install dir</strong>, rollback only sees patches that were applied to that host — not the master's global library. If you wiped <code>/opt/components/&lt;instanceId&gt;/.bak/</code> by hand, the corresponding rollback target is gone.</p>
 <h3 id="history">History</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">     </span><span class="s2">&quot;</span><span class="nv">$BASE</span><span class="s2">/admin/api/patch/history?component=ontul&amp;clusterId=ontul-main&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">     </span><span class="s2">&quot;</span><span class="nv">$BASE</span><span class="s2">/admin/api/patch/history?component=ontul&amp;clusterId=ontul-main&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.
 </code></pre></div>
 <p>Returns the list of patches whose <code>.bak/</code> is still present on the cluster — applied in newest-first order, one row per <code>(patchId, host)</code>. The admin UI uses this to drive the PatchHistoryCard on each component page.</p>
 <h2 id="on-disk-layout">On-disk layout</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>&lt;install_dir&gt;/data/master/patches/
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    &lt;patchId&gt;.tgz                ← the raw uploaded tarball
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    &lt;patchId&gt;.json               ← parsed manifest + sha256
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>/opt/components/&lt;instanceId&gt;/
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    lib/                         ← live jars  (overlaid by patch apply)
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    admin-ui/dist/               ← live UI    (overlaid by patch apply)
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    .bak/
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>        &lt;patchId&gt;/
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>            lib.tgz              ← pre-apply backup
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>            admin-ui.tgz         ← pre-apply backup (when applicable)
-<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>            manifest.json        ← copy of the applied manifest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>&lt;install_dir&gt;/data/master/patches/
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    &lt;patchId&gt;.tgz                ← the raw uploaded tarball
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    &lt;patchId&gt;.json               ← parsed manifest + sha256
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>/opt/components/&lt;instanceId&gt;/
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    lib/                         ← live jars  (overlaid by patch apply)
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    admin-ui/dist/               ← live UI    (overlaid by patch apply)
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    .bak/
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>        &lt;patchId&gt;/
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>            lib.tgz              ← pre-apply backup
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>            admin-ui.tgz         ← pre-apply backup (when applicable)
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>            manifest.json        ← copy of the applied manifest
 </code></pre></div>
 <p>The leader keeps the master library; each NM keeps the per-instance backups. Two different chango clusters never share a <code>.bak/</code>.</p>
 <h2 id="non-leader-catch-up-pr-5">Non-leader catch-up (PR 5)</h2>
@@ -1717,12 +1768,12 @@
 <p>This is also what makes the patch system survive a backup / restore: when a fresh chango cluster restores from a backup tarball, the leader's <code>data/master/patches/</code> directory is included (see below), and every newly-elected follower pulls from it on startup.</p>
 <h2 id="backup-inclusion">Backup inclusion</h2>
 <p><code>BackupService.packTarball</code> includes <code>data/master/patches/</code> in the cluster-state backup whenever the directory exists. The manifest reflects this:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;backupId&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;20260530-…&quot;</span><span class="p">,</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">&quot;patchesDir&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;/opt/chango/data/master/patches&quot;</span><span class="p">,</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">&quot;patchesIncluded&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="err">...</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">&quot;backupId&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;20260530-…&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">&quot;patchesDir&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;/opt/chango/data/master/patches&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">&quot;patchesIncluded&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="err">...</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">}</span>
 </code></pre></div>
 <p>Restoring the backup re-populates the patch library on the new master; followers then catch up via PATCH_INDEX / PATCH_FETCH.</p>
 <h2 id="admin-ui">Admin UI</h2>
@@ -1742,9 +1793,9 @@
 package the cluster was installed from — <code>ontul/ontul-1.0.0.tar.gz</code> — and a patch
 replaces jars inside an install without touching the package on the master. The
 two facts are reported separately:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>GET /admin/api/patch/level?clusterId=&lt;id&gt;
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>→ { &quot;clusterId&quot;: &quot;...&quot;, &quot;patchLevel&quot;: &quot;1.0.1&quot;,
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    &quot;appliedPatches&quot;: [ { &quot;patchId&quot;: &quot;ontul-1.0.1-ab12cd34ef56&quot;, &quot;version&quot;: &quot;1.0.1&quot;, &quot;type&quot;: &quot;jar&quot; } ] }
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>GET /admin/api/patch/level?clusterId=&lt;id&gt;
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>→ { &quot;clusterId&quot;: &quot;...&quot;, &quot;patchLevel&quot;: &quot;1.0.1&quot;,
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    &quot;appliedPatches&quot;: [ { &quot;patchId&quot;: &quot;ontul-1.0.1-ab12cd34ef56&quot;, &quot;version&quot;: &quot;1.0.1&quot;, &quot;type&quot;: &quot;jar&quot; } ] }
 </code></pre></div>
 <p>The Apply drawer shows both, because the difference is the thing an operator has
 to understand before clicking: <em>installed version</em> is what a scale-out or a
@@ -1801,17 +1852,30 @@ something legitimate, and a hard refusal there is worse than a warning.</p>
 <li><strong>Patches are immutable.</strong> <code>patchId</code> is a content-derived id; the same tarball uploaded twice deduplicates.</li>
 <li><strong>A scale-out stays level with the cluster.</strong> Patches recorded on a cluster are replayed onto instances a scale-out adds. A reinstall is not — see <a href="#patch-level-and-what-a-scale-out-does-with-it">Patch level</a>.</li>
 <li><strong>The version field keeps meaning "which package".</strong> A patch never rewrites it, because a scale-out and a reinstall both resolve their package from it.</li>
-<li><strong>First-party only (v1).</strong> Open-source engines (Trino, Spark, Flink, …) are not patchable through this system; chango itself is patchable only via <a href="#chango-self-patch-v2">v2</a> on <code>branch-3.0.0</code>.</li>
+<li><strong>Only what chango wrote.</strong> Open-source jars are never patched — chango pins
+  their versions after testing the stack against them. For the engines that
+  means the authorization plugin and nothing else.</li>
+<li><strong>Every patch carries an SBOM and a checksum.</strong> A patch enters an air-gapped
+  site the same way a bundle does, so it is held to the same standard:
+  <code>&lt;out&gt;.sha256</code> beside the tarball to check after the transfer, and
+  <code>sbom/&lt;component&gt;-&lt;version&gt;-patch.cdx.json</code> inside it listing what the patch
+  ships (not the whole install).</li>
+<li><strong>A restarted instance is watched.</strong> <code>start()</code> returns when the launcher
+  returns, which is before the process has decided whether it can run. Apply and
+  rollback wait to see the instance stay up and fail that instance otherwise, so
+  one that dies on startup triggers the per-instance rollback instead of being
+  reported as a success.</li>
 </ul>
-<h2 id="chango-self-patch-v2">Chango self-patch (v2)</h2>
-<p>The patch system is also able to patch <strong>chango itself</strong> — the chango master JARs and the chango admin UI — but only on <code>branch-3.0.0</code> of chango (the v2 codepath ships there, not yet on <code>master</code>). Conceptually the contract is identical:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span>--component<span class="w"> </span>chango<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span>--type<span class="w">      </span>both<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/chango/lib<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/chango/admin-ui/dist<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span>--out<span class="w">       </span>dist/chango-patch-3.0.0.tgz
+<h2 id="chango-self-patch">Chango self-patch</h2>
+<p>The patch system also patches <strong>chango itself</strong> — the chango JARs and the chango
+admin UI. The contract is identical:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>/opt/chango/bin/chango-pack<span class="w"> </span>patch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span>--component<span class="w"> </span>chango<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span>--version<span class="w">   </span><span class="m">3</span>.0.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span>--type<span class="w">      </span>both<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span>--jars<span class="w">      </span>/path/to/chango/lib<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/chango/admin-ui/dist<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span>--out<span class="w">       </span>dist/chango-patch-3.0.0.tgz
 </code></pre></div>
 <p>What differs is the execution model — chango is patching itself, so it can not be the process that overlays its own running JARs. Apply runs a <strong>3-phase fan-out</strong> through a detached helper:</p>
 <ol>
@@ -1821,7 +1885,54 @@ something legitimate, and a hard refusal there is worse than a warning.</p>
 </ol>
 <p>On every target host the master forks a <code>setsid</code>-detached helper that does <code>sleep 3 &amp;&amp; download &amp;&amp; backup .bak/&lt;patchId&gt;/{lib,admin-ui}.tgz &amp;&amp; overlay &amp;&amp; stop-master.sh / stop-node-manager.sh &amp;&amp; start-…sh</code>. The helper preserves <code>CHANGO_MASTER_KEY</code>, <code>JAVA_HOME</code>, and the original <code>-Dchango.*</code> system properties from the running process's <code>/proc/&lt;pid&gt;/cmdline</code>.</p>
 <p>Because the leader writes a <code>master-leader-preferred:&lt;expiresAt&gt;</code> hint to ZooKeeper just before its graceful stop, the <strong>sticky-leader</strong> mechanism (see <a href="../sticky-leader/">Sticky Leader Election</a>) reclaims leadership for the same nodeId once the helper finishes the restart — no leadership toggle, no double KMS / IAM init.</p>
-<p>Self-patch rollback follows the same 3-phase fan-out but the helper restores <code>lib/</code> and <code>admin-ui/dist/</code> from the requested <code>.bak/&lt;patchId&gt;/</code> before restarting. The rollback branch ships in <code>branch-3.0.0</code> only — on <code>master</code> the rollback codepath is still v1-only (apply lands without rollback on the chango self side).</p>
+<h3 id="rolling-a-self-patch-back">Rolling a self-patch back</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;component&quot;:&quot;chango&quot;,&quot;clusterId&quot;:&quot;chango&quot;,&quot;to&quot;:&quot;lastBackup&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/rollback
+</code></pre></div>
+<p>Same route as any other rollback, and the same 3-phase fan-out in the same
+order — node managers, then follower masters one at a time so quorum survives,
+then the leader last. The recorded level is cleared <em>before</em> the leader restarts
+itself; a write deferred past that point would never run.</p>
+<p>The route dispatches on the component because chango has no component
+<em>instances</em>: its jars live in <code>/opt/chango</code>, not under <code>/opt/components</code>. The
+generic instance-based path would find nothing and answer <code>no-instances</code>, which
+reads like "nothing to do".</p>
+<p><code>to: "lastBackup"</code> means <strong>each host's own newest snapshot</strong>, and the response
+says so. That matters when hosts are not level — a rollback restores each host
+to what that host was running, which is the correct behaviour and not
+necessarily one uniform build.</p>
+<p>The snapshot is a full directory tarball (<code>lib.tgz</code>, <code>admin-ui.tgz</code>), not a
+patch-sized diff, so a restore is an extract and cannot leave a half-reverted
+install.</p>
+<div class="admonition warning">
+<p class="admonition-title">One backup per host, not per role</p>
+<p>A host that runs both a master and a node manager runs the helper <strong>twice</strong>,
+once per role, against the same <code>/opt/chango</code>. Both used to take a backup —
+so the second captured the state the first had already overlaid, and
+<code>.bak/&lt;patchId&gt;/lib.tgz</code> ended up holding the <em>patched</em> jars. A rollback then
+restored the patch and logged <code>restore lib … DONE</code>. On a 3-node cluster the
+two colocated nodes silently kept the new code while the third went back,
+leaving the control plane running two different builds.</p>
+<p>The backup is now taken once per host per patch: whichever role takes the
+host lock first captures the pre-patch state, and the second keeps it. If you
+are reading this because you are auditing an older install, compare
+<code>.bak/&lt;patchId&gt;/lib.tgz</code>'s contents against the running jars before trusting
+a rollback.</p>
+</div>
+<h3 id="verifying-a-self-patch">Verifying a self-patch</h3>
+<p>The helper is detached, so the RPC answers <code>helper-spawned</code> <strong>before</strong> anything
+has been swapped. That ack is not evidence. Check four things:</p>
+<ol>
+<li>the jar's checksum on every host matches the one you built,</li>
+<li>the process actually restarted (<code>ps -o lstart=</code>),</li>
+<li>the level record lists the patch (<code>GET /admin/api/patch/level?component=chango&amp;clusterId=chango</code>),</li>
+<li>the behaviour you patched actually changed.</li>
+</ol>
+<p>A helper that fails after the ack leaves <code>/opt/chango/.self-patch-failed</code> and a
+log under <code>/var/log/chango/self-patch-&lt;patchId&gt;.log</code> — read those before
+concluding a patch "did nothing".</p>
 
 
 

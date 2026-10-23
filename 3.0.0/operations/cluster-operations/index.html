@@ -1090,6 +1090,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#after-a-host-reboot" class="md-nav__link">
+    After a host reboot
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rolling-restart" class="md-nav__link">
     Rolling restart
   </a>
@@ -1523,18 +1530,64 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-node-manager.sh
 </code></pre></div>
 <p>A node manager restart costs no component downtime — managed component processes (Trino, Spark, …) keep running, and the NM re-attaches to them by reading their pid files when it starts again.</p>
+<h2 id="after-a-host-reboot">After a host reboot</h2>
+<p>chango does not install systemd units. That is a deliberate consequence of the
+operator holding the master key: a unit that starts the master at boot would
+need the key on disk. So after a reboot <strong>nothing chango-managed is running</strong>,
+and recovery is two steps in this order.</p>
+<p>What <em>does</em> come back by itself: the mounts (every data mount carries <code>nofail</code>),
+<code>firewalld</code>, the air-gap egress rules (their own unit, not <code>nftables.service</code>),
+<code>nginx</code>, and MinIO when it is installed as a service.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># 1. control plane — from the control node, with the key in the environment</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>&lt;bundle&gt;/ansible
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span><span class="k">$(</span>cat<span class="w"> </span>~/.chango-master-key<span class="k">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>start.yml
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># 2. components — in dependency order</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="k">for</span><span class="w"> </span>c<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;components/pg-1&quot;</span><span class="w"> </span><span class="s2">&quot;polaris/polaris-1&quot;</span><span class="w"> </span><span class="s2">&quot;ontul/ontul-1&quot;</span><span class="w">          </span><span class="s2">&quot;trino/trino-1&quot;</span><span class="w"> </span><span class="s2">&quot;trino/trino-2&quot;</span><span class="w"> </span><span class="s2">&quot;trino-gateway/tg-1&quot;</span><span class="w">          </span><span class="s2">&quot;kafka/kafka-1&quot;</span><span class="w"> </span><span class="s2">&quot;spark/spark-1&quot;</span><span class="w"> </span><span class="s2">&quot;flink/flink-1&quot;</span><span class="w">          </span><span class="s2">&quot;kiok/kiok-1&quot;</span><span class="w"> </span><span class="s2">&quot;ui-proxy/uiproxy-1&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BASE</span><span class="s2">/admin/api/</span><span class="nv">$c</span><span class="s2">/start&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">done</span>
+</code></pre></div>
+<p>Order matters. Something started before what it depends on comes up and dies
+seconds later, and its status reads RUNNING for a while first.</p>
+<div class="admonition warning">
+<p class="admonition-title"><code>RUNNING</code> right after a reboot can be a stale record</p>
+<p>The node managers re-report instance state after they start, and for a short
+window the API still answers with what it knew before the reboot. Two or
+three minutes in, that converges to <code>STOPPED</code> on its own. If you need the
+answer immediately, count processes instead:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ps<span class="w"> </span>-eo<span class="w"> </span>comm,args<span class="w"> </span>--no-headers<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;$1==&quot;java&quot;&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-c<span class="w"> </span>/opt/components/
+</code></pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Kafka brokers may need one retry — chango does it for you</p>
+<p>The brokers come back before ZooKeeper has expired their previous sessions,
+and because ZooKeeper restarted too, the ephemeral <code>/brokers/ids/&lt;id&gt;</code> comes
+back from its snapshot with no client left to disconnect it. Registration
+fails with <code>NodeExistsException</code>, the broker logs a fatal and exits. The
+condition clears itself once the old session times out, so chango waits and
+starts the broker again — up to three attempts, deciding on whether the
+listener <em>accepts</em> rather than on the recorded status. If it still fails
+after that, the log names the instance and the broker's own <code>.out</code> file has
+the reason.</p>
+</div>
+<p>Check the inventory before you use it. A bundle ships several, and one that was
+copied from another environment will have the wrong addresses:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>hostname<span class="w"> </span>-I<span class="w">                                    </span><span class="c1"># what this host actually is</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>grep<span class="w"> </span>ansible_host<span class="w"> </span>&lt;bundle&gt;/ansible/inventory*.yml
+</code></pre></div>
 <h2 id="rolling-restart">Rolling restart</h2>
 <p>For an HA cluster (more than one master), restart followers first, then the leader.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># 1. On each follower host, in turn:</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-master.sh
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># wait until the master is back to `ready = true` in the admin UI before moving on</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># 2. Finally, the leader:</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-master.sh
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># 1. On each follower host, in turn:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-master.sh
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># wait until the master is back to `ready = true` in the admin UI before moving on</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="c1"># 2. Finally, the leader:</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-master.sh
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
 </code></pre></div>
 <p>Leadership hands off to one of the followers on stop; when the old leader comes back up the <strong>sticky-leader</strong> mechanism re-elects it without a leadership toggle. The leader writes a <code>master-leader-preferred:&lt;expiresAt&gt;</code> hint to ZK during its graceful stop; any follower that receives <code>takeLeadership</code> while the hint is fresh yields back during the <code>deferenceWindowMs</code> window so the original leader can reclaim leadership on restart. See <a href="../../features/sticky-leader/">Sticky Leader Election</a> for the two mechanisms (cold-start deference + hot-restart sticky-back) and the ZK znodes.</p>
 <p>Node managers can be restarted in any order — the order does not affect cluster availability.</p>
@@ -1549,7 +1602,7 @@
 <p>Run the playbook limited to the new host (from the ansible controller, with the chango tarballs staged the same way as initial install):</p>
 </li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>add-nodemanager.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;new-host&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>add-nodemanager.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;new-host&gt;
 </code></pre></div>
 <ol>
 <li>The playbook prompts for <code>CHANGO MASTER KEY</code> — type the same value you used at first install (you should be holding it in your secret manager). The key is <code>private</code> (not echoed) and never persisted on disk on the new host.</li>
@@ -1563,23 +1616,23 @@
 <li><strong>Copy the chango distribution</strong> onto the new host (the same lean tarball used at install).</li>
 <li><strong>Create the <code>chango</code> user</strong> and base directories:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>sudo<span class="w"> </span>groupadd<span class="w"> </span>-r<span class="w"> </span>chango<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>sudo<span class="w"> </span>useradd<span class="w"> </span>-r<span class="w"> </span>-g<span class="w"> </span>chango<span class="w"> </span>-s<span class="w"> </span>/bin/bash<span class="w"> </span>-d<span class="w"> </span>/opt/chango<span class="w"> </span>-M<span class="w"> </span>chango<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>sudo<span class="w"> </span>install<span class="w"> </span>-d<span class="w"> </span>-o<span class="w"> </span>chango<span class="w"> </span>-g<span class="w"> </span>chango<span class="w"> </span>/opt/chango<span class="w"> </span>/var/lib/chango<span class="w"> </span>/var/log/chango
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>sudo<span class="w"> </span>groupadd<span class="w"> </span>-r<span class="w"> </span>chango<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>sudo<span class="w"> </span>useradd<span class="w"> </span>-r<span class="w"> </span>-g<span class="w"> </span>chango<span class="w"> </span>-s<span class="w"> </span>/bin/bash<span class="w"> </span>-d<span class="w"> </span>/opt/chango<span class="w"> </span>-M<span class="w"> </span>chango<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>sudo<span class="w"> </span>install<span class="w"> </span>-d<span class="w"> </span>-o<span class="w"> </span>chango<span class="w"> </span>-g<span class="w"> </span>chango<span class="w"> </span>/opt/chango<span class="w"> </span>/var/lib/chango<span class="w"> </span>/var/log/chango
 </code></pre></div>
 <ol>
 <li><strong>Extract chango</strong> under <code>/opt/chango</code> and chown to chango.</li>
 <li><strong>Grant passwordless sudo</strong> for the chango user:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;chango ALL=(ALL) NOPASSWD:ALL&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/sudoers.d/chango
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">0440</span><span class="w"> </span>/etc/sudoers.d/chango
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;chango ALL=(ALL) NOPASSWD:ALL&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/sudoers.d/chango
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">0440</span><span class="w"> </span>/etc/sudoers.d/chango
 </code></pre></div>
 <ol>
 <li><strong>Start the node manager</strong> with the cluster master key in the environment:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-node-manager.sh<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-node-manager.sh<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
 </code></pre></div>
 <h2 id="add-another-chango-master">Add another chango master</h2>
 <p>Multi-master mode is for control-plane HA. The bundle ships <code>ansible/add-master.yml</code> to do this end-to-end — it runs <code>node-prep</code> + Java 11/17/25 + chango install + first-boot start on the new host, prompts for the master key interactively (never writing it to disk on the new host), and is the recommended path. There is a manual fallback for environments where ansible is not an option.</p>
@@ -1589,7 +1642,7 @@
 <li>Add the new host to your inventory under <code>chango_masters:</code> with a distinct <code>chango_master_zk_id</code>.</li>
 <li>Run the playbook limited to the new host:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>add-master.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;new-master-host&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>add-master.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;new-master-host&gt;
 </code></pre></div>
 <ol>
 <li>Type the same <code>CHANGO MASTER KEY</code> you used at first install when prompted (or set <code>CHANGO_MASTER_KEY</code> in the controller's environment for non-interactive runs — the prompt uses that as its default).</li>
@@ -1598,25 +1651,25 @@
 <h3 id="manual-a-second-master-on-a-new-host">Manual — a second master on a <em>new</em> host</h3>
 <p>If you cannot use ansible:</p>
 <p>Same steps as the manual NM install above up through "Grant passwordless sudo" (which already covers Java 11, 17, and 25), then:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/opt/openlogic-openjdk-17.0.7+7-linux-x64
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Start bundled ZooKeeper on the new host (extend the quorum — see &quot;ZK quorum&quot; below)</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-zk.sh<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;extended-quorum&gt;
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="c1"># Start chango master</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;extended-quorum&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/opt/openlogic-openjdk-17.0.7+7-linux-x64
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># Start bundled ZooKeeper on the new host (extend the quorum — see &quot;ZK quorum&quot; below)</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-zk.sh<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;extended-quorum&gt;
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="c1"># Start chango master</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;extended-quorum&gt;
 </code></pre></div>
 <h3 id="a-second-master-on-the-same-host">A second master on the <em>same</em> host</h3>
 <p>Chango masters are multi-per-host. To run two on the same host, pick distinct admin / internal ports for the second one:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span>-Dchango.master.admin.port<span class="o">=</span><span class="m">8090</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span>-Dchango.master.internal.port<span class="o">=</span><span class="m">20000</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span>-Dchango.master.admin.port<span class="o">=</span><span class="m">8090</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span>-Dchango.master.internal.port<span class="o">=</span><span class="m">20000</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
 </code></pre></div>
 <p><code>bin/chango-common.sh</code> automatically suffixes the pid file with the admin port (<code>master-8090.pid</code>), so the two instances coexist without colliding on the pid.</p>
 <h3 id="zk-quorum">ZK quorum</h3>
@@ -1630,29 +1683,29 @@
 <p>For a single-master cluster you do not need to touch ZK quorum config — the ZK ensemble is already a one-node quorum.</p>
 <h2 id="verifying">Verifying</h2>
 <p>After any start, sanity-check from the admin UI's Cluster → Nodes page (or REST):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>http://&lt;master&gt;:8080/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;pw&gt;&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>curl<span class="w"> </span>-sH<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>http://&lt;master&gt;:8080/admin/api/nodes/masters
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>curl<span class="w"> </span>-sH<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>http://&lt;master&gt;:8080/admin/api/nodes/node-managers
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>http://&lt;master&gt;:8080/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;pw&gt;&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>curl<span class="w"> </span>-sH<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>http://&lt;master&gt;:8080/admin/api/nodes/masters
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>curl<span class="w"> </span>-sH<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>http://&lt;master&gt;:8080/admin/api/nodes/node-managers
 </code></pre></div>
 <p>Every entry should show <code>ready = true</code>. Exactly one master should show <code>isLeader = true</code>.</p>
 <h2 id="resetting-a-cluster">Resetting a cluster</h2>
 <p>To wipe a chango cluster back to first-boot state (test / demo / disaster):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># On every chango host — stop everything</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-node-manager.sh
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-master.sh<span class="w">         </span><span class="c1"># master hosts only</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-zk.sh<span class="w">             </span><span class="c1"># master hosts only</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="c1"># Wipe RocksDB stores and ZK data on the master hosts</span>
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>sudo<span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span>/var/lib/chango/<span class="o">{</span>kms,iam,metadata,zookeeper<span class="o">}</span>/*
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
-<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="c1"># Start fresh — first start re-creates the default admin/admin user</span>
-<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
-<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-zk.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;<span class="w">     </span><span class="c1"># master</span>
-<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;<span class="w"> </span><span class="c1"># master</span>
-<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-node-manager.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;<span class="w">  </span><span class="c1"># every host</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># On every chango host — stop everything</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-node-manager.sh
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-master.sh<span class="w">         </span><span class="c1"># master hosts only</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-zk.sh<span class="w">             </span><span class="c1"># master hosts only</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="c1"># Wipe RocksDB stores and ZK data on the master hosts</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>sudo<span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span>/var/lib/chango/<span class="o">{</span>kms,iam,metadata,zookeeper<span class="o">}</span>/*
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="c1"># Start fresh — first start re-creates the default admin/admin user</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_MASTER_KEY</span><span class="o">=</span>&lt;from<span class="w"> </span>your<span class="w"> </span>secret<span class="w"> </span>store&gt;
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-zk.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;<span class="w">     </span><span class="c1"># master</span>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-master.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;<span class="w"> </span><span class="c1"># master</span>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-node-manager.sh<span class="w"> </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;<span class="w">  </span><span class="c1"># every host</span>
 </code></pre></div>
 <p>Component install dirs under <code>/opt/components/</code> are not removed by this — wipe them separately if you want a clean component slate too.</p>
 <p>This is destructive; for HA, do the wipe on every master at the same time, otherwise a still-running follower will push stale state back when the wiped master rejoins.</p>

@@ -1139,6 +1139,26 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#several-launchers-never-read-jvmconf" class="md-nav__link">
+    Several launchers never read jvm.conf
+  </a>
+  
+    <nav class="md-nav" aria-label="Several launchers never read jvm.conf">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#roles-that-can-be-tuned" class="md-nav__link">
+    Roles that can be tuned
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#trino-the-ram-percentage-default" class="md-nav__link">
     Trino: the RAM-percentage default
   </a>
@@ -1468,6 +1488,86 @@
 <li>The rendered file always starts with the <code># Managed by chango</code> comment, so an operator reading the host can tell at a glance which file chango owns.</li>
 </ul>
 <p>Values are passed through verbatim after trimming — chango does not validate that <code>-Xmx3g</code> is achievable on the node. A heap larger than physical RAM produces a JVM that fails to start, and the component lands in <code>FAILED</code> with the JVM's own error in the component log.</p>
+<h2 id="several-launchers-never-read-jvmconf">Several launchers never read <code>jvm.conf</code></h2>
+<p>This is the part that costs time. For a number of components the rendered file is
+<strong>a record for the operator, not the mechanism</strong> — the launcher reads an
+environment variable and nothing else. Writing only the file produces a setting
+that is stored, replayed on scale-out and shown in the UI while the process runs
+on the launcher's default.</p>
+<table>
+<thead>
+<tr>
+<th>Component / role</th>
+<th>What actually applies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trino (all roles)</td>
+<td><code>etc/jvm.config</code> — the file <em>is</em> the mechanism</td>
+</tr>
+<tr>
+<td>Spark master / worker / history server</td>
+<td><code>SPARK_DAEMON_MEMORY</code> + <code>SPARK_DAEMON_JAVA_OPTS</code> in <code>conf/spark-env.sh</code></td>
+</tr>
+<tr>
+<td>Livy</td>
+<td><code>LIVY_SERVER_JAVA_OPTS</code></td>
+</tr>
+<tr>
+<td>Kafka broker</td>
+<td><code>KAFKA_HEAP_OPTS</code> in a <code>kafka-env.sh</code> the start command sources</td>
+</tr>
+<tr>
+<td>Schema Registry (standalone <strong>and</strong> the one co-located with Kafka)</td>
+<td><code>SCHEMA_REGISTRY_HEAP_OPTS</code></td>
+</tr>
+<tr>
+<td>UI Proxy</td>
+<td><code>CHANGO_UI_PROXY_OPTS</code></td>
+</tr>
+<tr>
+<td>Flink</td>
+<td><code>&lt;role&gt;.memory.process.size</code> in <code>config.yaml</code> — Flink <em>derives</em> <code>-Xmx</code> from it</td>
+</tr>
+<tr>
+<td>First-party products (Ontul, kiok, …)</td>
+<td><code>conf/jvm.conf</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two consequences worth knowing:</p>
+<ul>
+<li><strong>Flink's <code>-Xmx</code> will not equal what you set.</strong> You set a process size; Flink
+  subtracts metaspace, network and managed memory and derives the heap. Setting
+  <code>1536m</code> on a TaskManager produced <code>-Xmx436207608</code> (≈416 MB). That is correct,
+  not a bug.</li>
+<li><strong>The env path is a chango record, so it can be written while the instance is
+  stopped.</strong> That is deliberate: the case that matters is a heap too large for
+  the host, where the process is already dead — and writing a config <em>file</em>
+  requires a RUNNING instance. chango writes the variable first for exactly this
+  reason.</li>
+</ul>
+<h3 id="roles-that-can-be-tuned">Roles that can be tuned</h3>
+<p>Every role chango runs as a long-lived JVM accepts a <code>JvmConfig</code>. Two were
+missing until recently and are called out because an older install will not
+offer them:</p>
+<ul>
+<li><strong>Spark History Server.</strong> Its heap follows the size of the event logs it
+  renders, not the size of the cluster, and the launcher default is a flat 1 GB.
+  It is usually the first daemon to die of OOM on a busy lakehouse, and what the
+  operator sees is "the history UI is down".</li>
+<li><strong>Schema Registry.</strong> Its heap follows the number of subjects and versions it
+  holds. The co-located one had no setting at all.</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">A post-install change must be persisted, or a scale-out undoes it</p>
+<p>chango stores the changed <code>JvmConfig</code> in cluster settings so a later
+scale-out installs the new instance with it. Without that the new instance
+comes up on the <strong>install-time</strong> heap and the cluster quietly runs two
+different sizes. If you are auditing an older install, compare a scaled-out
+instance's actual <code>-Xmx</code> against the others rather than against the UI.</p>
+</div>
 <h2 id="trino-the-ram-percentage-default">Trino: the RAM-percentage default</h2>
 <p>Trino is the one component whose heap default has a real history, because Trino's own packaged <code>jvm.config</code> assumes a dedicated node.</p>
 <p>Chango's rendered <code>etc/jvm.config</code> sets:</p>
@@ -1507,8 +1607,17 @@
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>sudo<span class="w"> </span>cat<span class="w"> </span>/opt/components/&lt;instanceId&gt;/conf/jvm.conf
 </code></pre></div>
 <p>Then confirm the running process actually picked it up — the file on disk is what chango <em>intends</em>, the command line is what the JVM <em>got</em>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ps<span class="w"> </span>-ef<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>&lt;instanceId&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39; &#39;</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;^-X&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ps<span class="w"> </span>-eo<span class="w"> </span>comm,args<span class="w"> </span>--no-headers<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;$1==&quot;java&quot;&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-F<span class="w"> </span><span class="s2">&quot;&lt;instanceId&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39; &#39;</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;^-X&#39;</span>
 </code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Filter to <code>java</code> first</p>
+<p>A bare <code>ps -ef | grep &lt;instanceId&gt;</code> also matches <strong>the grep itself and the
+shell command you are running</strong> — including an ssh command line that happens
+to contain the instance id. That has produced "the process is not running"
+and "the restart did not happen" conclusions that were simply wrong.
+Filtering on the command name removes the whole class.</p>
+</div>
 <p>And check the heap the JVM resolved, which is the only number that settles a <code>RAMPercentage</code> question:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># JDK 25 is extracted under /opt by the java25 ansible role —</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># /opt/openlogic-openjdk-25.0.3+9-linux-x64 for the shipped build.</span>
