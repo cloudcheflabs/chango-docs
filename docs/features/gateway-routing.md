@@ -33,6 +33,34 @@ Membership is different. It used to live in chango and no longer does:
 
 Creating a cluster-group in chango creates the corresponding Ontul group as a side effect, so the name is shared. Adding *people* to it is Ontul's job.
 
+## The gateway asks Ontul too — and that token is filled in for you
+
+Every initial query is authorized by the gateway itself, against Ontul, under
+its **own** service identity (`Token <value>` on
+`/v1/api/authz/check-batch`). chango resolves that token from the running
+Ontul cluster at install time; there is nothing to paste.
+
+When it is missing the failure is misdirected. Routing still works, so
+`SELECT 1` and `SHOW CATALOGS` pass, and only queries that touch a table fail:
+
+```
+403  {"error":"authorization unavailable: ontul authz returned HTTP 401: …"}
+```
+
+That message reads as an Ontul outage, which sends you to check policies and
+group membership — neither of which is wrong. Confirm the property instead:
+
+```bash
+curl -s "http://master:8080/admin/api/trino-gateway/<id>/config"   -H "Authorization: Bearer $TOKEN" | python3 -c   'import json,sys;[print(l) for l in json.load(sys.stdin)["properties"] if "authz" in l]'
+#   gateway.ontul.authz.url=http://…:18080
+#   gateway.ontul.authz.token=OTOK…        ← empty means this failure
+```
+
+Rotating the service identity afterwards is a config edit — *Configure →
+**IAM Service Token*** in the console, or `ontulAuthzToken` on
+`POST /trino-gateway/<id>/config`. Supplying one at install time overrides the
+auto-discovery, for deployments that mint a dedicated service principal.
+
 ## Minimum viable topology
 
 Three things, in this order.

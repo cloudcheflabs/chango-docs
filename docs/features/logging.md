@@ -25,6 +25,16 @@ Each component writes under its own install dir:
 
 The path inside `logs/` is component-specific (`server.log` for Trino, `master.log` for Spark, …). The admin UI's "Logs" panel knows the right path per component type and shows a tail in the browser.
 
+### Set it at install — the first start already writes somewhere
+
+Every component's install request takes `logDir`, and the install drawer has a
+**Log Directory** tab next to *Install*. Setting it there means the first
+process ever started writes to the volume you chose.
+
+Doing it afterwards works too, but it costs a restart, and until then the logs
+are on the disk the platform itself runs on — which is the disk the move exists
+to protect.
+
 ### Move it off the platform disk — every component, right after install
 
 That default puts logs on whatever filesystem the install directory lives on.
