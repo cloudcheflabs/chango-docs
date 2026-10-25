@@ -1611,7 +1611,7 @@
 <tr>
 <td><code>backup.s3.object-prefix</code></td>
 <td><code>chango-backups/</code></td>
-<td>Key prefix inside the bucket</td>
+<td>Key prefix inside the bucket. A trailing <code>/</code> is added when missing, so <code>chango-backups</code> and <code>chango-backups/</code> both produce <code>chango-backups/&lt;id&gt;.tar.gz</code></td>
 </tr>
 <tr>
 <td><code>backup.s3.path-style</code></td>
@@ -1633,18 +1633,18 @@
 <td><code>AES256</code></td>
 <td>Server-side encryption to request; <code>none</code> disables it</td>
 </tr>
-<tr>
-<td><code>backup.retention.days</code></td>
-<td><code>0</code></td>
-<td><code>0</code> keeps archives forever</td>
-</tr>
-<tr>
-<td><code>backup.cron</code></td>
-<td><em>(empty)</em></td>
-<td>5-field UNIX cron; empty disables scheduled runs</td>
-</tr>
 </tbody>
 </table>
+<div class="admonition warning">
+<p class="admonition-title"><code>AES256</code> fails on a store without a KMS</p>
+<p>The default asks the endpoint to encrypt at rest. Endpoints that do not
+implement it — MinIO with no KMS configured, several S3-compatible stores —
+reject the upload with <code>HTTP 501 NotImplemented</code>, and the console shows only
+a 500. Set it to <code>none</code> there; the archive is KMS envelope-encrypted by
+chango either way, so this is a second layer, not the only one.</p>
+</div>
+<p>| <code>backup.retention.days</code> | <code>0</code> | <code>0</code> keeps archives forever |
+| <code>backup.cron</code> | <em>(empty)</em> | 5-field UNIX cron; empty disables scheduled runs |</p>
 <p><code>GET /admin/api/backup/config</code> additionally returns two read-only values: <code>backup.cron.nextFireTime</code> and <code>backup.masterKeyFingerprint</code> (the key a restore of today's archives will need).</p>
 <h3 id="server-side-encryption-is-an-explicit-choice">Server-side encryption is an explicit choice</h3>
 <p>The archive is already envelope-encrypted by chango, so SSE is defence in depth rather than the primary control. It is still requested by default, because AWS S3 always supports it.</p>

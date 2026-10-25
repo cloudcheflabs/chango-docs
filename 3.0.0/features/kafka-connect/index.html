@@ -880,6 +880,13 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#adding-connect-to-a-running-cluster-does-not-start-it" class="md-nav__link">
+    Adding Connect to a running cluster does not start it
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#installing-or-removing-restarts-the-workers" class="md-nav__link">
     Installing or removing restarts the workers
   </a>
@@ -912,6 +919,13 @@
   
     <nav class="md-nav" aria-label="Connectors">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-registered-connector-is-not-a-running-one" class="md-nav__link">
+    A registered connector is not a running one
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#logs" class="md-nav__link">
@@ -1525,6 +1539,20 @@ connector class. Keeping the set on the master makes a scale-out a replay of it.
 directory under <code>plugin.path</code> its own classloader. Flattening two connectors into
 one directory is how a dependency clash becomes a <code>NoSuchMethodError</code> that neither
 connector produces on its own.</p>
+<h3 id="adding-connect-to-a-running-cluster-does-not-start-it">Adding Connect to a running cluster does not start it</h3>
+<p>Installing the role leaves every worker <code>INSTALLED</code>. The REST port stays shut
+until you ask for a bring-up:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://master:8080/admin/api/kafka/&lt;id&gt;/connect/restart&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{}&#39;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1">#   {&quot;status&quot;:&quot;ok&quot;,&quot;started&quot;:2,&quot;restarted&quot;:0}</span>
+</code></pre></div>
+<p>The call starts workers that are down and restarts the ones that are up; the
+counts in the response are what it actually did.</p>
+<p>Two plugin listings exist and they answer different questions. <code>GET
+…/connect/plugins</code> is <strong>the archive chango holds</strong> — it answers even when no
+worker is running. The worker's own <code>/connector-plugins</code> is <strong>what was
+loaded</strong>. Judging "the connector is installed" from the first one is how an
+unstarted Connect cluster looks healthy.</p>
 <h3 id="installing-or-removing-restarts-the-workers">Installing or removing restarts the workers</h3>
 <p>Connect scans <code>plugin.path</code> <strong>once, at startup</strong>. A plugin copied to a running
 worker is on disk and invisible — which looks exactly like the upload having
@@ -1542,21 +1570,21 @@ assembled inside Ontul produce the same records. A different connector version
 would not fail; it would quietly change the envelope, which is worse.</p>
 <p>It installs with the Connect role when <em>Install the bundled Debezium connectors</em>
 is left ticked, and afterwards from the Plugins tab:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># all four</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://master:8080/admin/api/kafka/&lt;id&gt;/connect/plugins/default&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{}&#39;</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># or name the ones you want</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>…<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;connectors&quot;:[&quot;postgres&quot;,&quot;mysql&quot;]}&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># all four</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://master:8080/admin/api/kafka/&lt;id&gt;/connect/plugins/default&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{}&#39;</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># or name the ones you want</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>…<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;connectors&quot;:[&quot;postgres&quot;,&quot;mysql&quot;]}&#39;</span>
 </code></pre></div>
 <h3 id="uploading-your-own">Uploading your own</h3>
 <p>The console accepts a <code>.zip</code>, a <code>.tar.gz</code> or a bare <code>.jar</code>. The archive is
 unpacked on the master, checked to contain at least one jar, and pushed to every
 worker.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://master:8080/admin/api/kafka/&lt;id&gt;/connect/plugins?pluginId=my-connector&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/octet-stream&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--data-binary<span class="w"> </span>@my-connector-1.0.0.zip
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://master:8080/admin/api/kafka/&lt;id&gt;/connect/plugins?pluginId=my-connector&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/octet-stream&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>--data-binary<span class="w"> </span>@my-connector-1.0.0.zip
 </code></pre></div>
 <p><code>name</code> and <code>version</code> may be passed as query parameters too; they are recorded
 with the plugin and shown in the console. <code>pluginId</code> is required, because it is
@@ -1580,8 +1608,8 @@ you are looking at them.</p>
 Connect keeps it in <code>config.storage.topic</code>; a second copy here would drift the
 moment anything touched Connect directly — a <code>kafka-connect</code> CLI, another
 console, a connector that reconfigured itself.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>GET/POST/PUT/DELETE  /admin/api/kafka/&lt;id&gt;/connect/connectors[/&lt;name&gt;[/...]]
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>GET                  /admin/api/kafka/&lt;id&gt;/connect/connector-plugins
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>GET/POST/PUT/DELETE  /admin/api/kafka/&lt;id&gt;/connect/connectors[/&lt;name&gt;[/...]]
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>GET                  /admin/api/kafka/&lt;id&gt;/connect/connector-plugins
 </code></pre></div>
 <p>Connect's own errors pass through unchanged. They name the failing field
 ("Connector configuration is invalid and contains the following 1 error(s)"),
@@ -1593,6 +1621,36 @@ running rather than from what someone pasted last.</p>
 <p>Expanding a row shows its <strong>tasks</strong>: state, the worker each is assigned to, and
 the failure trace when there is one. A failed task can be restarted on its own,
 without disturbing the ones that are fine.</p>
+<h3 id="a-registered-connector-is-not-a-running-one">A registered connector is not a running one</h3>
+<p>The connector and its tasks have separate states, and only the pair means the
+pipeline is moving:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>connector=RUNNING  tasks=[&#39;RUNNING&#39;]     flowing
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>connector=RUNNING  tasks=[&#39;FAILED&#39;]      registered, nothing flowing
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>connector=RUNNING  tasks=[]              tasks not assigned yet
+</code></pre></div>
+<p>The second line is the one that misleads, because registration returned 200 and
+the connector row is green. A Debezium PostgreSQL source reaches it on a
+least-privilege replication account: the default
+<code>publication.autocreate.mode=filtered</code> makes the connector maintain the
+publication itself, and PostgreSQL requires <strong>table ownership</strong> to do that.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>ConnectException: Unable to update filtered publication dbz_publication
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>                  for &quot;public&quot;.&quot;orders&quot;
+</code></pre></div>
+<p>Create the publication as the superuser and hand it over, then set the mode to
+<code>disabled</code> and name it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="n">PUBLICATION</span><span class="w"> </span><span class="n">dbz_publication</span><span class="w"> </span><span class="k">FOR</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">public</span><span class="p">.</span><span class="n">orders</span><span class="p">;</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">ALTER</span><span class="w"> </span><span class="n">PUBLICATION</span><span class="w"> </span><span class="n">dbz_publication</span><span class="w"> </span><span class="k">OWNER</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">cdc</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">&quot;publication.autocreate.mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;disabled&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nt">&quot;publication.name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dbz_publication&quot;</span>
+</code></pre></div>
+<p>Deleting a connector does <strong>not</strong> drop its replication slot. The orphaned slot
+holds WAL that nothing consumes, and the source database fills up:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">slot_name</span><span class="p">,</span><span class="w"> </span><span class="n">active</span><span class="p">,</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">       </span><span class="n">pg_size_pretty</span><span class="p">(</span><span class="n">pg_wal_lsn_diff</span><span class="p">(</span><span class="n">pg_current_wal_lsn</span><span class="p">(),</span><span class="w"> </span><span class="n">restart_lsn</span><span class="p">))</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_replication_slots</span><span class="p">;</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">pg_drop_replication_slot</span><span class="p">(</span><span class="s1">&#39;ex_orders_slot&#39;</span><span class="p">);</span>
+</code></pre></div>
 <h3 id="logs">Logs</h3>
 <p>Kafka Connect has <strong>no per-connector log API</strong>. Two things exist, and the
 console shows both, labelled by where they came from:</p>
@@ -1640,16 +1698,16 @@ generic "run this command on a node" capability.</p>
 <li><em>Plugins</em> — confirm the workers loaded what you installed.</li>
 <li><em>Connectors</em> — create one. For Debezium against PostgreSQL:</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;connector.class&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;io.debezium.connector.postgresql.PostgresConnector&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;tasks.max&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">&quot;database.hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pg.internal&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">&quot;database.port&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;5432&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">&quot;database.user&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;debezium&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">&quot;database.password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;…&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="nt">&quot;database.dbname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;inventory&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="nt">&quot;topic.prefix&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;inventory&quot;</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">&quot;connector.class&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;io.debezium.connector.postgresql.PostgresConnector&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">&quot;tasks.max&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">&quot;database.hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pg.internal&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nt">&quot;database.port&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;5432&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="nt">&quot;database.user&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;debezium&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">  </span><span class="nt">&quot;database.password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;…&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">  </span><span class="nt">&quot;database.dbname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;inventory&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span><span class="nt">&quot;topic.prefix&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;inventory&quot;</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">}</span>
 </code></pre></div>
 <ol>
 <li><strong>Topics</strong> — the connector's topics appear as it starts emitting.</li>

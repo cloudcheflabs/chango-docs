@@ -1451,7 +1451,19 @@
 <li>Drives component install / start / stop / restart. Followers refuse mutating REST routes with HTTP <code>421 Misdirected Request</code> and the leader's address in the body — clients can follow that to retry against the leader.</li>
 <li>Pulls per-component CPU / memory samples from every node manager on a fixed interval.</li>
 <li>Runs the periodic nginx reconciler that re-applies component nginx configs after instance changes.</li>
+<li>Sweeps the managed products' admin credentials: rotates the default password, stashes the result KMS-encrypted, and mints the service token where the product offers one.</li>
 </ul>
+<div class="admonition warning">
+<p class="admonition-title">The credential sweep is leader-only on purpose</p>
+<p>Two masters sweeping the same product rotate its admin password
+<strong>concurrently, each with its own random value</strong>. The product applies both
+("Password changed for user: admin" twice, milliseconds apart) and chango's
+metadata keeps whichever write landed last — which is not necessarily the
+one the product ended up with. The stashed password is then wrong and
+nobody can log into that product; recovery needs the product's own CLI
+(<code>bin/*-cli.sh iam:reset-password</code>) followed by
+<code>POST /&lt;component&gt;/&lt;id&gt;/credentials</code> to register the new value.</p>
+</div>
 <p>Election uses Curator's <code>LeaderSelector</code> against <code>/chango/master-leader</code>. The last leader's <code>nodeId</code> is recorded under <code>/chango/master-leader-id</code> (persistent znode) so a restarted master can defer briefly and let its predecessor reclaim leadership — this is the "sticky leader" pattern. It prevents flap during a rolling restart.</p>
 <h2 id="followers">Followers</h2>
 <p>Followers exist for HA — they hold a hot copy of every store and can take over leadership in sub-second. They serve read-only REST routes (auth, list, status, metrics) at full speed; they refuse mutating routes with <code>421</code>.</p>

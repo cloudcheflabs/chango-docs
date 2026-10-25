@@ -902,6 +902,13 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#set-it-at-install-the-first-start-already-writes-somewhere" class="md-nav__link">
+    Set it at install — the first start already writes somewhere
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#move-it-off-the-platform-disk-every-component-right-after-install" class="md-nav__link">
     Move it off the platform disk — every component, right after install
   </a>
@@ -1455,6 +1462,13 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>/opt/components/&lt;instanceId&gt;/logs/...
 </code></pre></div>
 <p>The path inside <code>logs/</code> is component-specific (<code>server.log</code> for Trino, <code>master.log</code> for Spark, …). The admin UI's "Logs" panel knows the right path per component type and shows a tail in the browser.</p>
+<h3 id="set-it-at-install-the-first-start-already-writes-somewhere">Set it at install — the first start already writes somewhere</h3>
+<p>Every component's install request takes <code>logDir</code>, and the install drawer has a
+<strong>Log Directory</strong> tab next to <em>Install</em>. Setting it there means the first
+process ever started writes to the volume you chose.</p>
+<p>Doing it afterwards works too, but it costs a restart, and until then the logs
+are on the disk the platform itself runs on — which is the disk the move exists
+to protect.</p>
 <h3 id="move-it-off-the-platform-disk-every-component-right-after-install">Move it off the platform disk — every component, right after install</h3>
 <p>That default puts logs on whatever filesystem the install directory lives on.
 A streaming job or a busy broker fills it, and when it fills, the component and
