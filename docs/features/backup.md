@@ -63,11 +63,19 @@ All keys live in the metadata store (envelope-encrypted) and are set through the
 | `backup.s3.endpoint` | — | `https://s3.<region>.amazonaws.com`, `http://<shannonstore-api>:8081`, a MinIO URL, … |
 | `backup.s3.region` | `us-east-1` | SigV4 region; anything for non-AWS providers |
 | `backup.s3.bucket` | — | Must already exist |
-| `backup.s3.object-prefix` | `chango-backups/` | Key prefix inside the bucket |
+| `backup.s3.object-prefix` | `chango-backups/` | Key prefix inside the bucket. A trailing `/` is added when missing, so `chango-backups` and `chango-backups/` both produce `chango-backups/<id>.tar.gz` |
 | `backup.s3.path-style` | `true` | `false` for virtual-hosted addressing |
 | `backup.s3.access-key` | — | |
 | `backup.s3.secret-key` | — | Returned as `<set>` by `GET`, never echoed back |
 | `backup.s3.sse` | `AES256` | Server-side encryption to request; `none` disables it |
+
+!!! warning "`AES256` fails on a store without a KMS"
+    The default asks the endpoint to encrypt at rest. Endpoints that do not
+    implement it — MinIO with no KMS configured, several S3-compatible stores —
+    reject the upload with `HTTP 501 NotImplemented`, and the console shows only
+    a 500. Set it to `none` there; the archive is KMS envelope-encrypted by
+    chango either way, so this is a second layer, not the only one.
+
 | `backup.retention.days` | `0` | `0` keeps archives forever |
 | `backup.cron` | *(empty)* | 5-field UNIX cron; empty disables scheduled runs |
 

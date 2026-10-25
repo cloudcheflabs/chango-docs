@@ -11,20 +11,50 @@ A managed component (Ontul, kiok, ShannonStore, …) has a hotfix you want to de
 
 ## Component coverage
 
-Patch v1 supports the first-party components:
+What is patchable is exactly what chango wrote. Everything else is an
+open-source artifact whose version chango picked after testing the stack
+against it, and swapping one of those is not a patch — it is an upgrade.
 
-| Component | Type |
+| Component | What a patch may carry |
 |---|---|
-| Ontul          | `jar`, `ui`, `both` |
-| kiok           | `jar`, `ui`, `both` |
-| ItdaStream     | `jar`, `ui`, `both` |
-| ShannonStore   | `jar`, `ui`, `both` |
-| NeoRunBase     | `jar`, `ui`, `both` |
-| Mium           | `jar`, `ui`, `both` |
+| Ontul · kiok · ItdaStream · ShannonStore · NeoRunBase · Mium | `lib/*.jar`, `admin-ui/**` |
+| chango itself | `lib/*.jar`, `admin-ui/**` — see [self-patch](#chango-self-patch) |
+| Trino Gateway · UI Proxy | `lib/*.jar` — chango wrote these; they ship as components |
+| Trino · Spark · Flink | **`plugin/<name>/*.jar` only** — the authorization plugin, never `lib/` |
 
-Patch v2 (only on `branch-3.0.0` of chango itself) additionally supports patching chango itself — the chango master JARs and the chango admin UI bundle. See the [Chango self-patch (v2)](#chango-self-patch-v2) section below.
+The engines are the interesting row. chango's authorization plugin runs
+*inside* Trino, Spark and Flink, so it has to be patchable — but their `lib/`
+holds the engine itself. So for those three the tool refuses `--jars`
+outright:
 
-A patch built for any other component (open-source engines — Trino, Spark, Flink, Kafka, Postgres, Polaris, Trino Gateway, UI Proxy, Schema Registry) is rejected at upload time. Upgrade those via [Blue / Green Upgrade](../operations/upgrade.md) — chango does not own their lifecycle the way it does the first-party stack.
+```
+$ chango-pack patch --component trino --type jar --jars ./build/libs --out p.tgz
+chango-pack patch: 'trino' 은 --jars 를 쓸 수 없습니다 (lib/ 은
+  chango 가 버전을 고정한 오픈소스 jar 입니다). chango 의 플러그인만
+  --plugin <이름>=<디렉터리> 로 담으세요.
+```
+
+and the upload re-checks every path in the extracted tree against the
+component, so a hand-assembled tarball does not get through either.
+
+To move an engine to a different version, use
+[Blue / Green Upgrade](../operations/upgrade.md).
+
+### A plugin patch only touches hosts that have that plugin
+
+Where a plugin belongs is the installer's decision — the engines' authorization
+plugin is installed on **coordinators only**. A patch that created
+`plugin/<name>/` on a worker would leave the first-party jar there without the
+dependencies the installer would have put beside it. Trino loads it anyway,
+because the plugin class itself needs nothing, so the drift stays invisible
+until a release touches a dependency at class-init and that worker stops
+starting. So an instance without the directory is skipped, and the node manager
+logs that it skipped it.
+
+The matching rule on the way back: if a rollback empties a plugin directory, the
+directory goes with its last jar. An **empty** plugin directory is worse than
+none — Trino refuses to start with
+`No service providers of type io.trino.spi.Plugin in the classpath: []`.
 
 ## Building a patch — `chango-pack patch`
 
@@ -303,11 +333,24 @@ The patch system is deliberately narrower than "in-place upgrade":
 - **Patches are immutable.** `patchId` is a content-derived id; the same tarball uploaded twice deduplicates.
 - **A scale-out stays level with the cluster.** Patches recorded on a cluster are replayed onto instances a scale-out adds. A reinstall is not — see [Patch level](#patch-level-and-what-a-scale-out-does-with-it).
 - **The version field keeps meaning "which package".** A patch never rewrites it, because a scale-out and a reinstall both resolve their package from it.
-- **First-party only (v1).** Open-source engines (Trino, Spark, Flink, …) are not patchable through this system; chango itself is patchable only via [v2](#chango-self-patch-v2) on `branch-3.0.0`.
+- **Only what chango wrote.** Open-source jars are never patched — chango pins
+  their versions after testing the stack against them. For the engines that
+  means the authorization plugin and nothing else.
+- **Every patch carries an SBOM and a checksum.** A patch enters an air-gapped
+  site the same way a bundle does, so it is held to the same standard:
+  `<out>.sha256` beside the tarball to check after the transfer, and
+  `sbom/<component>-<version>-patch.cdx.json` inside it listing what the patch
+  ships (not the whole install).
+- **A restarted instance is watched.** `start()` returns when the launcher
+  returns, which is before the process has decided whether it can run. Apply and
+  rollback wait to see the instance stay up and fail that instance otherwise, so
+  one that dies on startup triggers the per-instance rollback instead of being
+  reported as a success.
 
-## Chango self-patch (v2)
+## Chango self-patch
 
-The patch system is also able to patch **chango itself** — the chango master JARs and the chango admin UI — but only on `branch-3.0.0` of chango (the v2 codepath ships there, not yet on `master`). Conceptually the contract is identical:
+The patch system also patches **chango itself** — the chango JARs and the chango
+admin UI. The contract is identical:
 
 ```bash
 /opt/chango/bin/chango-pack patch \
@@ -329,4 +372,59 @@ On every target host the master forks a `setsid`-detached helper that does `slee
 
 Because the leader writes a `master-leader-preferred:<expiresAt>` hint to ZooKeeper just before its graceful stop, the **sticky-leader** mechanism (see [Sticky Leader Election](sticky-leader.md)) reclaims leadership for the same nodeId once the helper finishes the restart — no leadership toggle, no double KMS / IAM init.
 
-Self-patch rollback follows the same 3-phase fan-out but the helper restores `lib/` and `admin-ui/dist/` from the requested `.bak/<patchId>/` before restarting. The rollback branch ships in `branch-3.0.0` only — on `master` the rollback codepath is still v1-only (apply lands without rollback on the chango self side).
+### Rolling a self-patch back
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOK" \
+     -H 'Content-Type: application/json' \
+     -d '{"component":"chango","clusterId":"chango","to":"lastBackup"}' \
+     $BASE/admin/api/patch/rollback
+```
+
+Same route as any other rollback, and the same 3-phase fan-out in the same
+order — node managers, then follower masters one at a time so quorum survives,
+then the leader last. The recorded level is cleared *before* the leader restarts
+itself; a write deferred past that point would never run.
+
+The route dispatches on the component because chango has no component
+*instances*: its jars live in `/opt/chango`, not under `/opt/components`. The
+generic instance-based path would find nothing and answer `no-instances`, which
+reads like "nothing to do".
+
+`to: "lastBackup"` means **each host's own newest snapshot**, and the response
+says so. That matters when hosts are not level — a rollback restores each host
+to what that host was running, which is the correct behaviour and not
+necessarily one uniform build.
+
+The snapshot is a full directory tarball (`lib.tgz`, `admin-ui.tgz`), not a
+patch-sized diff, so a restore is an extract and cannot leave a half-reverted
+install.
+
+!!! warning "One backup per host, not per role"
+    A host that runs both a master and a node manager runs the helper **twice**,
+    once per role, against the same `/opt/chango`. Both used to take a backup —
+    so the second captured the state the first had already overlaid, and
+    `.bak/<patchId>/lib.tgz` ended up holding the *patched* jars. A rollback then
+    restored the patch and logged `restore lib … DONE`. On a 3-node cluster the
+    two colocated nodes silently kept the new code while the third went back,
+    leaving the control plane running two different builds.
+
+    The backup is now taken once per host per patch: whichever role takes the
+    host lock first captures the pre-patch state, and the second keeps it. If you
+    are reading this because you are auditing an older install, compare
+    `.bak/<patchId>/lib.tgz`'s contents against the running jars before trusting
+    a rollback.
+
+### Verifying a self-patch
+
+The helper is detached, so the RPC answers `helper-spawned` **before** anything
+has been swapped. That ack is not evidence. Check four things:
+
+1. the jar's checksum on every host matches the one you built,
+2. the process actually restarted (`ps -o lstart=`),
+3. the level record lists the patch (`GET /admin/api/patch/level?component=chango&clusterId=chango`),
+4. the behaviour you patched actually changed.
+
+A helper that fails after the ack leaves `/opt/chango/.self-patch-failed` and a
+log under `/var/log/chango/self-patch-<patchId>.log` — read those before
+concluding a patch "did nothing".

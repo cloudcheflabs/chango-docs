@@ -22,6 +22,17 @@ When more than one chango master is running, exactly one is elected leader. Only
 - Drives component install / start / stop / restart. Followers refuse mutating REST routes with HTTP `421 Misdirected Request` and the leader's address in the body — clients can follow that to retry against the leader.
 - Pulls per-component CPU / memory samples from every node manager on a fixed interval.
 - Runs the periodic nginx reconciler that re-applies component nginx configs after instance changes.
+- Sweeps the managed products' admin credentials: rotates the default password, stashes the result KMS-encrypted, and mints the service token where the product offers one.
+
+!!! warning "The credential sweep is leader-only on purpose"
+    Two masters sweeping the same product rotate its admin password
+    **concurrently, each with its own random value**. The product applies both
+    ("Password changed for user: admin" twice, milliseconds apart) and chango's
+    metadata keeps whichever write landed last — which is not necessarily the
+    one the product ended up with. The stashed password is then wrong and
+    nobody can log into that product; recovery needs the product's own CLI
+    (`bin/*-cli.sh iam:reset-password`) followed by
+    `POST /<component>/<id>/credentials` to register the new value.
 
 Election uses Curator's `LeaderSelector` against `/chango/master-leader`. The last leader's `nodeId` is recorded under `/chango/master-leader-id` (persistent znode) so a restarted master can defer briefly and let its predecessor reclaim leadership — this is the "sticky leader" pattern. It prevents flap during a rolling restart.
 

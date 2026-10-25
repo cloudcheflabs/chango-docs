@@ -23,7 +23,37 @@ Each component writes under its own install dir:
 /opt/components/<instanceId>/logs/...
 ```
 
-The path inside `logs/` is component-specific (`server.log` for Trino, `master.log` for Spark, …). The admin UI's "Logs" panel knows the right path per component type and shows a tail in the browser.
+The path inside `logs/` is component-specific (`server.log` for Trino,
+`master.log` for Spark, …).
+
+Chango does **not** keep a table of those paths. The node manager scans two
+directories and tails the newest `*.log` / `*.out` it finds there, skipping GC
+logs and the `data/` tree:
+
+1. the log directory configured for the instance, if one was set;
+2. the install directory.
+
+In that order, and the first one that yields anything wins. The order is the
+whole point. When logs have been moved off the install disk, what is left
+under the install directory is the launcher's own stdout capture — whose last
+line is literally `Output redirected to /data1/log/...`. Scanning the install
+directory first showed that line as "the log" for ontul, kiok, Flink, Polaris
+and PostgreSQL, and for the Trino gateway, which leaves nothing behind at all,
+the panel came up empty while an 8 KB log sat in the configured directory.
+
+The configured directory is read from the variables the platform itself sets
+on the instance — `CHANGO_PREPARE_LOG_DIR` for every component, and
+`<PRODUCT>_LOG_PATH` for the first-party ones that read their own variable.
+
+### Set it at install — the first start already writes somewhere
+
+Every component's install request takes `logDir`, and the install drawer has a
+**Log Directory** tab next to *Install*. Setting it there means the first
+process ever started writes to the volume you chose.
+
+Doing it afterwards works too, but it costs a restart, and until then the logs
+are on the disk the platform itself runs on — which is the disk the move exists
+to protect.
 
 ### Move it off the platform disk — every component, right after install
 
@@ -78,7 +108,16 @@ place.
 
 ## Tailing from the admin UI
 
-Every component page in the admin UI has a "Logs" button per instance. Click it and the master opens a streaming tail over the internal NIO protocol against the NM that hosts the instance. The tail is read-only — you can scroll, search, and copy, but not write.
+Every component page in the admin UI has a "Logs" button per instance. Click
+it and the master opens a streaming tail over the internal NIO protocol
+against the NM that hosts the instance. The tail is read-only — you can
+scroll, search, and copy, but not write.
+
+If the panel shows a handful of lines that look like installation output
+(`tar: Ignoring unknown extended header keyword …`) rather than the component
+running, the instance is on a build from before the scan order above was
+fixed. The same symptom with an *empty* panel means the component writes
+nothing under its install directory.
 
 The chango master itself can also be tailed from the admin UI's Master log page (driven by an in-memory `RingBufferAppender` that holds the last N log lines).
 

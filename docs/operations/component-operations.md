@@ -78,6 +78,48 @@ Add an instance by listing its target NM. The provisioner allocates fresh ports,
 
 Components that require an odd quorum (ZooKeeper, NeoRunBase ZK) refuse a scale request that would leave the cluster with an even count.
 
+### What a new instance inherits
+
+A scale-out does not just install the package. Between installing and
+starting, the provisioner seeds the new instance with everything the cluster
+has accumulated since it was created:
+
+- the properties saved on the cluster from earlier Configure calls;
+- for Trino, every catalog registered with `POST /<comp>/<clusterId>/catalogs`
+  — the package only ships the three built-in ones (`tpch`, `tpcds`, `jmx`).
+
+That ordering — install, seed, start — matters, and it collided with the rule
+that a config change requires a running instance. The rule exists so an
+operator's config call cannot report success while the process reads something
+else; applied to provisioning it rejected every seed write, the service logged
+the rejection and carried on, and the instance joined without them.
+
+The resulting failure is worth recognising, because it does not look like a
+missing file. A Trino worker without `etc/catalog/iceberg.properties` answers
+`SHOW CATALOGS` and `SHOW TABLES` normally, since metadata resolves on the
+coordinator, and `SELECT`, `UPDATE` and `DELETE` keep working. `MERGE` into a
+*partitioned* table fails with Trino's `No catalog 'iceberg'` — a partitioned
+write puts a fragment on every worker, so it is the first statement whose plan
+reaches the one node missing the file. The error names a catalog that plainly
+exists.
+
+If you are on a build that predates the fix, the master log says so plainly:
+
+```
+Cluster trino-1 scale — could NOT replay catalog iceberg to trino-1-worker-3:
+  instance 'trino-1-worker-3' is INSTALLED — settings that are written into
+  the instance's own config files need it running …
+```
+
+and the two-minute way to confirm it on any cluster is to compare the
+directory across instances:
+
+```bash
+for d in /opt/components/trino-1-*; do
+  echo "$(basename $d): $(ls $d/etc/catalog 2>/dev/null | tr '\n' ' ')"
+done
+```
+
 ## Logs
 
 Every component page has a Logs panel per instance — the master streams a tail over the internal NIO protocol from the NM hosting the instance. See [Logging](../features/logging.md) for the file locations and the REST endpoint.

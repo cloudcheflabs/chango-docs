@@ -85,6 +85,26 @@ directory under `plugin.path` its own classloader. Flattening two connectors int
 one directory is how a dependency clash becomes a `NoSuchMethodError` that neither
 connector produces on its own.
 
+### Adding Connect to a running cluster does not start it
+
+Installing the role leaves every worker `INSTALLED`. The REST port stays shut
+until you ask for a bring-up:
+
+```bash
+curl -X POST "http://master:8080/admin/api/kafka/<id>/connect/restart" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{}'
+#   {"status":"ok","started":2,"restarted":0}
+```
+
+The call starts workers that are down and restarts the ones that are up; the
+counts in the response are what it actually did.
+
+Two plugin listings exist and they answer different questions. `GET
+…/connect/plugins` is **the archive chango holds** — it answers even when no
+worker is running. The worker's own `/connector-plugins` is **what was
+loaded**. Judging "the connector is installed" from the first one is how an
+unstarted Connect cluster looks healthy.
+
 ### Installing or removing restarts the workers
 
 Connect scans `plugin.path` **once, at startup**. A plugin copied to a running
@@ -174,6 +194,51 @@ running rather than from what someone pasted last.
 Expanding a row shows its **tasks**: state, the worker each is assigned to, and
 the failure trace when there is one. A failed task can be restarted on its own,
 without disturbing the ones that are fine.
+
+### A registered connector is not a running one
+
+The connector and its tasks have separate states, and only the pair means the
+pipeline is moving:
+
+```
+connector=RUNNING  tasks=['RUNNING']     flowing
+connector=RUNNING  tasks=['FAILED']      registered, nothing flowing
+connector=RUNNING  tasks=[]              tasks not assigned yet
+```
+
+The second line is the one that misleads, because registration returned 200 and
+the connector row is green. A Debezium PostgreSQL source reaches it on a
+least-privilege replication account: the default
+`publication.autocreate.mode=filtered` makes the connector maintain the
+publication itself, and PostgreSQL requires **table ownership** to do that.
+
+```
+ConnectException: Unable to update filtered publication dbz_publication
+                  for "public"."orders"
+```
+
+Create the publication as the superuser and hand it over, then set the mode to
+`disabled` and name it:
+
+```sql
+CREATE PUBLICATION dbz_publication FOR TABLE public.orders;
+ALTER PUBLICATION dbz_publication OWNER TO cdc;
+```
+
+```json
+"publication.autocreate.mode": "disabled",
+"publication.name": "dbz_publication"
+```
+
+Deleting a connector does **not** drop its replication slot. The orphaned slot
+holds WAL that nothing consumes, and the source database fills up:
+
+```sql
+SELECT slot_name, active,
+       pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn))
+  FROM pg_replication_slots;
+SELECT pg_drop_replication_slot('ex_orders_slot');
+```
 
 ### Logs
 
