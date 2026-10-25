@@ -54,6 +54,13 @@ The start scripts do **not** persist the `-D` arguments they were given. A maste
 | `chango.master.component.install.timeout.ms` | `600000` | Must cover transferring a multi-hundred-MB package |
 | `chango.master.component.op.timeout.ms` | `120000` | Start / stop / restart / delete |
 | `chango.master.component.transfer.chunk.bytes` | `4194304` | Streaming frame size, so neither side buffers a whole package |
+| `chango.master.observability.poll.timeout.ms` | `5000` | Wait for a node manager's answer to a metrics or log-tail poll. Short deliberately: these sit behind a screen the operator is already watching, so a node that has gone away should cost one slow refresh, not stall the panel. Raising it does not make a dead node answer |
+| `chango.master.leader.metrics.pull.timeout.ms` | `5000` | Wait when a follower pulls the cluster-wide metrics series from the leader. Timing out means the follower draws its own view instead of the cluster's, rather than showing nothing |
+| `chango.master.node.liveness.probe.timeout.ms` | `3000` | Wait for a node manager's socket on the liveness probe. This decides when a node is declared down, so too generous is as wrong as too tight — a node that is really gone keeps being handed work until the probe gives up. Keep it well under `chango.master.node.liveness.probe.interval.seconds` |
+| `chango.master.leadership.hint.ttl.ms` | `60000` | How long a hint naming the master that should take leadership survives a deliberate hand-over. It has to expire: a master that never comes back would otherwise keep every other master deferring to a node that is gone |
+| `chango.master.component.http.connect.timeout.ms` | `10000` | Connecting to a component's own API (catalog REST, gateway, workflow engine). Failing here means the address or the firewall is wrong; waiting longer does not help |
+| `chango.master.component.http.request.timeout.ms` | `30000` | An accepted request to the same APIs. Separate from connect because this one may legitimately take a while — bootstrapping a catalog, listing many tables |
+| `chango.kafka.broker.settle.ms` | `10000` | Wait after a messaging cluster's brokers start before installing the roles that connect to them. A broker accepts connections before it has a partition leader; a schema registry or Connect worker started in that gap dies with `NotLeaderOrFollowerException` and the cluster comes up with one role missing for no visible reason. Raise it on slow disks — the cost is install time only |
 
 ## Node manager
 

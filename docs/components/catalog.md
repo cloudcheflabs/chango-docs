@@ -90,6 +90,27 @@ different object stores — a ShannonStore catalog and a MinIO catalog side by s
 The cluster-level key in the *S3 Credentials* tab is only the fallback for a catalog
 that does not set its own.
 
+**Per-catalog principals, and where to read them.** Creating a catalog also
+creates a principal scoped to it, recorded as
+`catalogPrincipalClientId.<catalog>` / `catalogPrincipalClientSecret.<catalog>`.
+Engines and the IAM engine must use *that* pair, not the bootstrap
+`polaris-root`, which is not a registered principal and refuses catalog work
+with `TopLevelEntity of type PRINCIPAL does not exist` — a message that reads
+like wrong credentials.
+
+The secret is stripped from the general cluster listing, so it does not appear
+on every settings screen. Read it from the route that exists for it:
+
+```bash
+curl -s $A/polaris/<clusterId>/credentials -H "Authorization: Bearer $T"
+#   catalogPrincipalClientId.<catalog>  / catalogPrincipalClientSecret.<catalog>
+#   icebergRestEndpoint  oauthTokenEndpoint  realm
+```
+
+`icebergRestEndpoint` is the proxy address, not a server port — pointing a
+client at one server's `:8180` makes the whole catalog disappear when that
+server stops.
+
 !!! note "Why only the `table-default.` prefix works"
     A bare `s3.access-key-id` on a catalog is accepted by Polaris and then ignored:
     it never reaches the FileIO that actually talks to the object store. Only

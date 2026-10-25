@@ -25,7 +25,7 @@ The UI Proxy is a chango component like any other — install it from the admin 
 
 ## Upstreams
 
-A UI Proxy upstream is one `host=url` mapping: the hostname the end user types in their browser, and the internal URL the proxy forwards to. For example:
+A UI Proxy upstream is one `host=url` mapping: the hostname the end user types in their browser, and the internal URL the proxy forwards to. One entry per hostname: the operator's list and every component's auto-registered list are merged by hostname, and where both name the same host the managed entry wins, because that is the one reconcile keeps current when a component is reinstalled onto another host or port. For example:
 
 | User-facing hostname | Internal upstream |
 |---|---|
@@ -63,11 +63,54 @@ The combined set (what you picked + what registered itself) is written to every 
 
 The proxy forwards to `upstream + request path`, so a UI that does not live at the root of its port needs that prefix in the upstream. Trino's UI is at `/ui`, and **Livy serves its REST API at `/` with the dashboard at `/ui`** — an upstream of just `host:port` for Livy lands the operator on JSON.
 
+An upstream that carries a path is only half the story, though, because the
+prefix must not be added twice. The proxy appends the request path to the
+upstream *unless the request path already begins with the upstream's own
+path*. Without that check, an upstream whose backend answers with an
+**absolute** path loops:
+
+```
+/                       → 303 Location: /ui/login.html      (Trino's own redirect)
+/ui/login.html          → upstream /ui/ui/login.html        → 303, one segment longer
+/ui/login.html?/ui/…    → …                                 until the browser gives up
+```
+
+Trino does exactly this. Livy, registered the same way, hid the bug for a long
+time — its pages use only relative links, so it never asks for a path starting
+with its own prefix. "Another path-bearing upstream works" is therefore not
+evidence; whether the backend emits absolute paths is.
+
+A prefix is only treated as a repeat when the path equals it or continues with
+`/`, so an upstream at `/ui` still prepends for a request to `/uiextra`.
+
+### Redirects back to the proxy's own host
+
+An upstream that builds absolute URLs from the `Host` header it was given
+sends back the virtual hostname — but without the port the browser is using,
+because the forwarded `Host` carries only the name. The proxy rewrites any
+`Location` whose host matches the request's own host into a path, so the
+browser stays on whatever `host:port` it came in on. Redirects to anywhere
+else are forwarded untouched: an upstream sending the user to an identity
+provider means it.
+
 ## Signing in
 
 When a request arrives:
 
-1. The proxy looks for its **own** session cookie (`chango_ui_session`). Without one, it serves its login page.
+1. The proxy looks for its **own** session cookie (`chango_ui_session`). Without one, it serves its login page, titled **UI Proxy**.
+
+!!! warning "Three sign-in screens, three account stores"
+    The credentials here are **Ontul IAM accounts** — not the chango console's.
+    An operator typically meets three login screens on one cluster, and until
+    recently this page was titled with the product name, which told them
+    nothing about which one they had landed on.
+
+    | Screen | Accounts |
+    |---|---|
+    | chango console (`<coordinator>:8080/admin`) | the console's own IAM — installs, config, patches |
+    | **UI Proxy** (`<upstream-host>:<proxy-port>`) | **Ontul IAM** |
+    | the component's own UI, once forwarded | whatever that component uses |
+
 2. The credentials typed there are posted to Ontul's `POST /admin/auth/login`. Ontul answers yes or no; the proxy does not reuse Ontul's token.
 3. On success the proxy mints its own AES-256-GCM session cookie, signed with the cluster-wide `uiproxy.session.secret`, and forwards the original request upstream.
 

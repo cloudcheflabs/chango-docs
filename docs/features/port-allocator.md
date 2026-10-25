@@ -26,8 +26,8 @@ A **band** is a named (base, range) tuple for a specific role of a specific comp
 | `postgresql` | 5432 | Managed PostgreSQL |
 | `trino-coordinator` / `trino-worker` | 8480 / 8580 | Trino |
 | `trino-gateway` | 8680 | Trino Gateway |
-| `spark-master` / `spark-worker` | 8780 / 8880 | Spark |
-| `flink-jobmanager` / `flink-taskmanager` | 8980 / 9080 | Flink |
+| `spark-master` / `spark-worker` | 8780 / 8880 | Spark. The history server and Livy allocate from `spark-master` too — see below |
+| `flink-jobmanager` / `flink-taskmanager` | 8980 / 9080 | Flink. Four and three consecutive ports per instance — see below |
 | `kafka-broker` | 9092 | Kafka brokers **and that cluster's Kafka Connect workers** |
 | `schema-registry` | 8081 | Confluent Schema Registry |
 | `itdastream-broker` | 9092 | ItdaStream |
@@ -57,6 +57,46 @@ Chango's own ports are fixed rather than allocated: `8080` (master admin + UI), 
 Defaults live in `PortAllocator.DEFAULT_BASE`; every band's base and range is overridable in `chango.properties` (`chango.component.port.<band>.base` / `.range`).
 
 When `allocate(host, band, 3)` is called, the allocator scans the band from `base` to `base + range`, picking the first contiguous 3-port block that is not already in use on that host.
+
+## Every socket a role opens comes from its band
+
+A band entry is not one port per instance. A role that opens several sockets
+reserves a consecutive block, and the provisioner writes each number into the
+component's own configuration. Anything left unwritten is chosen by the
+runtime, which means it lands outside the band a site firewall was built from.
+
+| Role | Ports | What they are |
+|---|---|---|
+| Flink JobManager | 4 from `flink-jobmanager` | rpc, REST, blob server, metrics query service |
+| Flink TaskManager | 3 from `flink-taskmanager` | rpc, data, metrics query service |
+| Spark master | 2 from `spark-master` | rpc, web UI |
+| Spark worker | 2 from `spark-worker` | rpc, web UI |
+| Spark history server | 1 from `spark-master` | web UI |
+| Livy | 1 from `spark-master` | REST |
+
+Two of these were wrong until recently and the shape of the failure is worth
+knowing, because neither announced itself.
+
+**Flink chose five ports itself.** `blob.server.port`,
+`taskmanager.rpc.port`, `taskmanager.data.port` and the two metrics query
+service ports default to `0`, so the kernel picked. On a live cluster the
+JobManager listened on 8980, 8981 and two kernel-chosen ports, and each
+TaskManager on three — none of them the port chango had allocated for it. It
+worked, because the cluster firewall carries a blanket peer rule. Where a site
+opens the documented ports and nothing else, JobManager ↔ TaskManager traffic
+is cut and both bands look fully populated.
+
+**The Spark history server and Livy had no band at all.** They asked for
+`spark-history-server` and `livy`, neither of which was declared, so both fell
+through to the allocator's fallback base and took 30000 and 30001 — a range in
+no row of the port document, and consecutive enough that after one reboot the
+history server came up on 30001 and Livy could not bind. They allocate from
+`spark-master` now: already published, already firewalled, 200 ports wide
+against the two the master itself takes. Declaring new bands would have meant
+amending a port document already handed to customers.
+
+Clusters installed before these changes keep the ports recorded at install.
+Only a fresh install or a scale-out moves.
 
 ## Host-awareness
 
