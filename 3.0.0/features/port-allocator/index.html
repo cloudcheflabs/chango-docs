@@ -803,6 +803,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#every-socket-a-role-opens-comes-from-its-band" class="md-nav__link">
+    Every socket a role opens comes from its band
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#host-awareness" class="md-nav__link">
     Host-awareness
   </a>
@@ -1470,12 +1477,12 @@
 <tr>
 <td><code>spark-master</code> / <code>spark-worker</code></td>
 <td>8780 / 8880</td>
-<td>Spark</td>
+<td>Spark. The history server and Livy allocate from <code>spark-master</code> too — see below</td>
 </tr>
 <tr>
 <td><code>flink-jobmanager</code> / <code>flink-taskmanager</code></td>
 <td>8980 / 9080</td>
-<td>Flink</td>
+<td>Flink. Four and three consecutive ports per instance — see below</td>
 </tr>
 <tr>
 <td><code>kafka-broker</code></td>
@@ -1563,6 +1570,72 @@ widens it for Connect too.</p>
 <p>Chango's own ports are fixed rather than allocated: <code>8080</code> (master admin + UI), <code>19999</code> (master internal), <code>19998</code> (node-manager internal), and <code>2181 / 2888 / 3888</code> for the control-plane ZK quorum.</p>
 <p>Defaults live in <code>PortAllocator.DEFAULT_BASE</code>; every band's base and range is overridable in <code>chango.properties</code> (<code>chango.component.port.&lt;band&gt;.base</code> / <code>.range</code>).</p>
 <p>When <code>allocate(host, band, 3)</code> is called, the allocator scans the band from <code>base</code> to <code>base + range</code>, picking the first contiguous 3-port block that is not already in use on that host.</p>
+<h2 id="every-socket-a-role-opens-comes-from-its-band">Every socket a role opens comes from its band</h2>
+<p>A band entry is not one port per instance. A role that opens several sockets
+reserves a consecutive block, and the provisioner writes each number into the
+component's own configuration. Anything left unwritten is chosen by the
+runtime, which means it lands outside the band a site firewall was built from.</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Ports</th>
+<th>What they are</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flink JobManager</td>
+<td>4 from <code>flink-jobmanager</code></td>
+<td>rpc, REST, blob server, metrics query service</td>
+</tr>
+<tr>
+<td>Flink TaskManager</td>
+<td>3 from <code>flink-taskmanager</code></td>
+<td>rpc, data, metrics query service</td>
+</tr>
+<tr>
+<td>Spark master</td>
+<td>2 from <code>spark-master</code></td>
+<td>rpc, web UI</td>
+</tr>
+<tr>
+<td>Spark worker</td>
+<td>2 from <code>spark-worker</code></td>
+<td>rpc, web UI</td>
+</tr>
+<tr>
+<td>Spark history server</td>
+<td>1 from <code>spark-master</code></td>
+<td>web UI</td>
+</tr>
+<tr>
+<td>Livy</td>
+<td>1 from <code>spark-master</code></td>
+<td>REST</td>
+</tr>
+</tbody>
+</table>
+<p>Two of these were wrong until recently and the shape of the failure is worth
+knowing, because neither announced itself.</p>
+<p><strong>Flink chose five ports itself.</strong> <code>blob.server.port</code>,
+<code>taskmanager.rpc.port</code>, <code>taskmanager.data.port</code> and the two metrics query
+service ports default to <code>0</code>, so the kernel picked. On a live cluster the
+JobManager listened on 8980, 8981 and two kernel-chosen ports, and each
+TaskManager on three — none of them the port chango had allocated for it. It
+worked, because the cluster firewall carries a blanket peer rule. Where a site
+opens the documented ports and nothing else, JobManager ↔ TaskManager traffic
+is cut and both bands look fully populated.</p>
+<p><strong>The Spark history server and Livy had no band at all.</strong> They asked for
+<code>spark-history-server</code> and <code>livy</code>, neither of which was declared, so both fell
+through to the allocator's fallback base and took 30000 and 30001 — a range in
+no row of the port document, and consecutive enough that after one reboot the
+history server came up on 30001 and Livy could not bind. They allocate from
+<code>spark-master</code> now: already published, already firewalled, 200 ports wide
+against the two the master itself takes. Declaring new bands would have meant
+amending a port document already handed to customers.</p>
+<p>Clusters installed before these changes keep the ports recorded at install.
+Only a fresh install or a scale-out moves.</p>
 <h2 id="host-awareness">Host-awareness</h2>
 <p>Two instances on <strong>different</strong> hosts can have the same port. The allocator scope is per-host — every host has its own occupied-port set. This is what makes the small-cluster layout (master + NM + several components on a single host) work: ports collide within a host but not across hosts.</p>
 <p>Occupancy of a host comes from three sources:</p>

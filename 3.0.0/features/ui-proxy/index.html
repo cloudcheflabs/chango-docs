@@ -859,6 +859,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#redirects-back-to-the-proxys-own-host" class="md-nav__link">
+    Redirects back to the proxy's own host
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1466,7 +1473,7 @@
 <li>Stateless — each instance hits the same Ontul for session validation.</li>
 </ul>
 <h2 id="upstreams">Upstreams</h2>
-<p>A UI Proxy upstream is one <code>host=url</code> mapping: the hostname the end user types in their browser, and the internal URL the proxy forwards to. For example:</p>
+<p>A UI Proxy upstream is one <code>host=url</code> mapping: the hostname the end user types in their browser, and the internal URL the proxy forwards to. One entry per hostname: the operator's list and every component's auto-registered list are merged by hostname, and where both name the same host the managed entry wins, because that is the one reconcile keeps current when a component is reinstalled onto another host or port. For example:</p>
 <table>
 <thead>
 <tr>
@@ -1542,10 +1549,64 @@
 </div>
 <h3 id="paths-matter-as-much-as-ports">Paths matter as much as ports</h3>
 <p>The proxy forwards to <code>upstream + request path</code>, so a UI that does not live at the root of its port needs that prefix in the upstream. Trino's UI is at <code>/ui</code>, and <strong>Livy serves its REST API at <code>/</code> with the dashboard at <code>/ui</code></strong> — an upstream of just <code>host:port</code> for Livy lands the operator on JSON.</p>
+<p>An upstream that carries a path is only half the story, though, because the
+prefix must not be added twice. The proxy appends the request path to the
+upstream <em>unless the request path already begins with the upstream's own
+path</em>. Without that check, an upstream whose backend answers with an
+<strong>absolute</strong> path loops:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>/                       → 303 Location: /ui/login.html      (Trino&#39;s own redirect)
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>/ui/login.html          → upstream /ui/ui/login.html        → 303, one segment longer
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>/ui/login.html?/ui/…    → …                                 until the browser gives up
+</code></pre></div>
+<p>Trino does exactly this. Livy, registered the same way, hid the bug for a long
+time — its pages use only relative links, so it never asks for a path starting
+with its own prefix. "Another path-bearing upstream works" is therefore not
+evidence; whether the backend emits absolute paths is.</p>
+<p>A prefix is only treated as a repeat when the path equals it or continues with
+<code>/</code>, so an upstream at <code>/ui</code> still prepends for a request to <code>/uiextra</code>.</p>
+<h3 id="redirects-back-to-the-proxys-own-host">Redirects back to the proxy's own host</h3>
+<p>An upstream that builds absolute URLs from the <code>Host</code> header it was given
+sends back the virtual hostname — but without the port the browser is using,
+because the forwarded <code>Host</code> carries only the name. The proxy rewrites any
+<code>Location</code> whose host matches the request's own host into a path, so the
+browser stays on whatever <code>host:port</code> it came in on. Redirects to anywhere
+else are forwarded untouched: an upstream sending the user to an identity
+provider means it.</p>
 <h2 id="signing-in">Signing in</h2>
 <p>When a request arrives:</p>
 <ol>
-<li>The proxy looks for its <strong>own</strong> session cookie (<code>chango_ui_session</code>). Without one, it serves its login page.</li>
+<li>The proxy looks for its <strong>own</strong> session cookie (<code>chango_ui_session</code>). Without one, it serves its login page, titled <strong>UI Proxy</strong>.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Three sign-in screens, three account stores</p>
+<p>The credentials here are <strong>Ontul IAM accounts</strong> — not the chango console's.
+An operator typically meets three login screens on one cluster, and until
+recently this page was titled with the product name, which told them
+nothing about which one they had landed on.</p>
+<table>
+<thead>
+<tr>
+<th>Screen</th>
+<th>Accounts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>chango console (<code>&lt;coordinator&gt;:8080/admin</code>)</td>
+<td>the console's own IAM — installs, config, patches</td>
+</tr>
+<tr>
+<td><strong>UI Proxy</strong> (<code>&lt;upstream-host&gt;:&lt;proxy-port&gt;</code>)</td>
+<td><strong>Ontul IAM</strong></td>
+</tr>
+<tr>
+<td>the component's own UI, once forwarded</td>
+<td>whatever that component uses</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ol>
 <li>The credentials typed there are posted to Ontul's <code>POST /admin/auth/login</code>. Ontul answers yes or no; the proxy does not reuse Ontul's token.</li>
 <li>On success the proxy mints its own AES-256-GCM session cookie, signed with the cluster-wide <code>uiproxy.session.secret</code>, and forwards the original request upstream.</li>
 </ol>
@@ -1559,21 +1620,21 @@
 <h3 id="single-sign-on-oidc-saml">Single sign-on (OIDC, SAML)</h3>
 <p>A password — local or directory — is a form post, so it can be forwarded to Ontul. <strong>OIDC and SAML cannot be</strong>: they send the browser to the identity provider and back, and Ontul's callback redirects only to a path on Ontul and delivers the session in a URL <em>fragment</em>, which a browser never sends to a server. So the proxy performs those two flows itself, using the same <code>ccl-sso</code> library chango's control plane uses — the same code validates the issuer, audience, expiry and signature on both sides of the product.</p>
 <p>Configure them under <strong>Configure → Single Sign-On</strong> on the UI Proxy page. The login page then shows a button per configured provider, and nothing for the ones that are not.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="na">uiproxy.sso.oidc.enabled</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="na">uiproxy.sso.oidc.issuer</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">https://keycloak.example.com/realms/company</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="na">uiproxy.sso.oidc.client.id</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">chango-uiproxy</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="na">uiproxy.sso.oidc.client.secret</span><span class="o">=</span><span class="w"> </span><span class="s">…</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="na">uiproxy.sso.oidc.redirect.uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://spark-prod-ui.chango.local/chango-auth/sso/oidc/callback</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="na">uiproxy.sso.oidc.groups.claim</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">groups</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="na">uiproxy.sso.saml.enabled</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="na">uiproxy.sso.saml.idp.entity.id</span><span class="o">=</span><span class="w"> </span><span class="s">https://idp.example.com/realms/company</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="na">uiproxy.sso.saml.idp.sso.url</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">https://idp.example.com/protocol/saml</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="na">uiproxy.sso.saml.idp.certificate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">MIIC…</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="na">uiproxy.sso.saml.sp.entity.id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">chango-uiproxy</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="na">uiproxy.sso.saml.sp.acs.url</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s">https://spark-prod-ui.chango.local/chango-auth/sso/saml/acs</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="na">uiproxy.sso.group.mappings</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">platform-ops:viewers</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="na">uiproxy.sso.oidc.enabled</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">uiproxy.sso.oidc.issuer</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">https://keycloak.example.com/realms/company</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="na">uiproxy.sso.oidc.client.id</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">chango-uiproxy</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="na">uiproxy.sso.oidc.client.secret</span><span class="o">=</span><span class="w"> </span><span class="s">…</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="na">uiproxy.sso.oidc.redirect.uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://spark-prod-ui.chango.local/chango-auth/sso/oidc/callback</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="na">uiproxy.sso.oidc.groups.claim</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">groups</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="na">uiproxy.sso.saml.enabled</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="na">uiproxy.sso.saml.idp.entity.id</span><span class="o">=</span><span class="w"> </span><span class="s">https://idp.example.com/realms/company</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="na">uiproxy.sso.saml.idp.sso.url</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">https://idp.example.com/protocol/saml</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="na">uiproxy.sso.saml.idp.certificate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">MIIC…</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="na">uiproxy.sso.saml.sp.entity.id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">chango-uiproxy</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="na">uiproxy.sso.saml.sp.acs.url</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s">https://spark-prod-ui.chango.local/chango-auth/sso/saml/acs</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="na">uiproxy.sso.group.mappings</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">platform-ops:viewers</span>
 </code></pre></div>
 <p><strong>Register the proxy at your provider in its own right.</strong> Its callback URL is its own, not the console's — this is a second relying party, which is inherent to a redirect flow rather than a chango decision. The proxy publishes its SAML SP metadata at <code>/chango-auth/sso/saml/metadata</code>, which beats transcribing the entity id and ACS URL by hand.</p>
 <p><strong>Group mapping is the only restriction available.</strong> Left empty, any identity the provider authenticated is let through — the proxy fronts dashboards, and an operator who wrote no mapping asked for no restriction. Once set it is exhaustive: an identity whose groups all map to nothing is refused rather than admitted with none, because the latter produces someone who is signed in and sees everything.</p>

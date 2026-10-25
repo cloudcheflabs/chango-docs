@@ -1135,6 +1135,19 @@
     Scale
   </a>
   
+    <nav class="md-nav" aria-label="Scale">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-a-new-instance-inherits" class="md-nav__link">
+    What a new instance inherits
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1542,6 +1555,39 @@
 <h2 id="scale">Scale</h2>
 <p>Add an instance by listing its target NM. The provisioner allocates fresh ports, installs the package, and starts the new instance, joining it to the existing cluster (worker → existing master URL, broker → existing kafka cluster, …). Removing an instance walks the inverse path.</p>
 <p>Components that require an odd quorum (ZooKeeper, NeoRunBase ZK) refuse a scale request that would leave the cluster with an even count.</p>
+<h3 id="what-a-new-instance-inherits">What a new instance inherits</h3>
+<p>A scale-out does not just install the package. Between installing and
+starting, the provisioner seeds the new instance with everything the cluster
+has accumulated since it was created:</p>
+<ul>
+<li>the properties saved on the cluster from earlier Configure calls;</li>
+<li>for Trino, every catalog registered with <code>POST /&lt;comp&gt;/&lt;clusterId&gt;/catalogs</code>
+  — the package only ships the three built-in ones (<code>tpch</code>, <code>tpcds</code>, <code>jmx</code>).</li>
+</ul>
+<p>That ordering — install, seed, start — matters, and it collided with the rule
+that a config change requires a running instance. The rule exists so an
+operator's config call cannot report success while the process reads something
+else; applied to provisioning it rejected every seed write, the service logged
+the rejection and carried on, and the instance joined without them.</p>
+<p>The resulting failure is worth recognising, because it does not look like a
+missing file. A Trino worker without <code>etc/catalog/iceberg.properties</code> answers
+<code>SHOW CATALOGS</code> and <code>SHOW TABLES</code> normally, since metadata resolves on the
+coordinator, and <code>SELECT</code>, <code>UPDATE</code> and <code>DELETE</code> keep working. <code>MERGE</code> into a
+<em>partitioned</em> table fails with Trino's <code>No catalog 'iceberg'</code> — a partitioned
+write puts a fragment on every worker, so it is the first statement whose plan
+reaches the one node missing the file. The error names a catalog that plainly
+exists.</p>
+<p>If you are on a build that predates the fix, the master log says so plainly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Cluster trino-1 scale — could NOT replay catalog iceberg to trino-1-worker-3:
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  instance &#39;trino-1-worker-3&#39; is INSTALLED — settings that are written into
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  the instance&#39;s own config files need it running …
+</code></pre></div>
+<p>and the two-minute way to confirm it on any cluster is to compare the
+directory across instances:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">for</span><span class="w"> </span>d<span class="w"> </span><span class="k">in</span><span class="w"> </span>/opt/components/trino-1-*<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>basename<span class="w"> </span><span class="nv">$d</span><span class="k">)</span><span class="s2">: </span><span class="k">$(</span>ls<span class="w"> </span><span class="nv">$d</span>/etc/catalog<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="k">)</span><span class="s2">&quot;</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">done</span>
+</code></pre></div>
 <h2 id="logs">Logs</h2>
 <p>Every component page has a Logs panel per instance — the master streams a tail over the internal NIO protocol from the NM hosting the instance. See <a href="../../features/logging/">Logging</a> for the file locations and the REST endpoint.</p>
 <h2 id="nginx">Nginx</h2>
@@ -1549,8 +1595,8 @@
 <p>Spark / Trino / Flink intentionally do <strong>not</strong> ship a per-cluster nginx — their UIs are exposed through the UI Proxy instead, with Ontul-based authentication.</p>
 <h2 id="deleting">Deleting</h2>
 <p>Delete is destructive — the component's install dir and any chango-owned data dir is removed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/trino/trino-prod
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/trino/trino-prod
 </code></pre></div>
 <p>Component data <strong>outside</strong> the install dir (Iceberg files on S3, NeoRunBase data dirs, Kafka log segments) is <strong>not</strong> removed — chango does not own data-plane state. Clean that up at the data-plane layer if you need a full reset.</p>
 <p>The deleted clusterId is free to reuse immediately.</p>

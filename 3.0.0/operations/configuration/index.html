@@ -1672,6 +1672,41 @@
 <td><code>4194304</code></td>
 <td>Streaming frame size, so neither side buffers a whole package</td>
 </tr>
+<tr>
+<td><code>chango.master.observability.poll.timeout.ms</code></td>
+<td><code>5000</code></td>
+<td>Wait for a node manager's answer to a metrics or log-tail poll. Short deliberately: these sit behind a screen the operator is already watching, so a node that has gone away should cost one slow refresh, not stall the panel. Raising it does not make a dead node answer</td>
+</tr>
+<tr>
+<td><code>chango.master.leader.metrics.pull.timeout.ms</code></td>
+<td><code>5000</code></td>
+<td>Wait when a follower pulls the cluster-wide metrics series from the leader. Timing out means the follower draws its own view instead of the cluster's, rather than showing nothing</td>
+</tr>
+<tr>
+<td><code>chango.master.node.liveness.probe.timeout.ms</code></td>
+<td><code>3000</code></td>
+<td>Wait for a node manager's socket on the liveness probe. This decides when a node is declared down, so too generous is as wrong as too tight — a node that is really gone keeps being handed work until the probe gives up. Keep it well under <code>chango.master.node.liveness.probe.interval.seconds</code></td>
+</tr>
+<tr>
+<td><code>chango.master.leadership.hint.ttl.ms</code></td>
+<td><code>60000</code></td>
+<td>How long a hint naming the master that should take leadership survives a deliberate hand-over. It has to expire: a master that never comes back would otherwise keep every other master deferring to a node that is gone</td>
+</tr>
+<tr>
+<td><code>chango.master.component.http.connect.timeout.ms</code></td>
+<td><code>10000</code></td>
+<td>Connecting to a component's own API (catalog REST, gateway, workflow engine). Failing here means the address or the firewall is wrong; waiting longer does not help</td>
+</tr>
+<tr>
+<td><code>chango.master.component.http.request.timeout.ms</code></td>
+<td><code>30000</code></td>
+<td>An accepted request to the same APIs. Separate from connect because this one may legitimately take a while — bootstrapping a catalog, listing many tables</td>
+</tr>
+<tr>
+<td><code>chango.kafka.broker.settle.ms</code></td>
+<td><code>10000</code></td>
+<td>Wait after a messaging cluster's brokers start before installing the roles that connect to them. A broker accepts connections before it has a partition leader; a schema registry or Connect worker started in that gap dies with <code>NotLeaderOrFollowerException</code> and the cluster comes up with one role missing for no visible reason. Raise it on slow disks — the cost is install time only</td>
+</tr>
 </tbody>
 </table>
 <h2 id="node-manager">Node manager</h2>

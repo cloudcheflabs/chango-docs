@@ -1678,6 +1678,22 @@ properties on the catalog. That is what lets one Polaris cluster serve catalogs 
 different object stores — a ShannonStore catalog and a MinIO catalog side by side.
 The cluster-level key in the <em>S3 Credentials</em> tab is only the fallback for a catalog
 that does not set its own.</p>
+<p><strong>Per-catalog principals, and where to read them.</strong> Creating a catalog also
+creates a principal scoped to it, recorded as
+<code>catalogPrincipalClientId.&lt;catalog&gt;</code> / <code>catalogPrincipalClientSecret.&lt;catalog&gt;</code>.
+Engines and the IAM engine must use <em>that</em> pair, not the bootstrap
+<code>polaris-root</code>, which is not a registered principal and refuses catalog work
+with <code>TopLevelEntity of type PRINCIPAL does not exist</code> — a message that reads
+like wrong credentials.</p>
+<p>The secret is stripped from the general cluster listing, so it does not appear
+on every settings screen. Read it from the route that exists for it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-s<span class="w"> </span><span class="nv">$A</span>/polaris/&lt;clusterId&gt;/credentials<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$T</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1">#   catalogPrincipalClientId.&lt;catalog&gt;  / catalogPrincipalClientSecret.&lt;catalog&gt;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1">#   icebergRestEndpoint  oauthTokenEndpoint  realm</span>
+</code></pre></div>
+<p><code>icebergRestEndpoint</code> is the proxy address, not a server port — pointing a
+client at one server's <code>:8180</code> makes the whole catalog disappear when that
+server stops.</p>
 <div class="admonition note">
 <p class="admonition-title">Why only the <code>table-default.</code> prefix works</p>
 <p>A bare <code>s3.access-key-id</code> on a catalog is accepted by Polaris and then ignored:
