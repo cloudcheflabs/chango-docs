@@ -824,6 +824,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-kernel-can-hand-out-a-band-port-as-an-ephemeral-one" class="md-nav__link">
+    The kernel can hand out a band port as an ephemeral one
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#failure-mode" class="md-nav__link">
     Failure mode
   </a>
@@ -1647,9 +1654,37 @@ Only a fresh install or a scale-out moves.</p>
 <p>The "chango-itself" reservation is what prevents the most common foot-gun: installing a component ZK (Ontul, Mium, ItdaStream) on the same host as a chango master used to silently collide on <code>:2181</code>. Now the component's ZK is automatically pushed to the next free port in its band — typically <code>:2182 / :2889 / :3889</code>.</p>
 <h2 id="sessions">Sessions</h2>
 <p>Provisioners allocate ports inside a <strong>session</strong> (<code>PortAllocator.Session</code>). A session is one provision-or-scale operation; ports it hands out are remembered for the life of that session so a later <code>allocate</code> in the same call does not reuse them. Once the operation persists the new <code>ComponentInstance</code> records, the session ends — subsequent operations see the freshly-persisted ports through source 1 (managed component config) above.</p>
+<h2 id="the-kernel-can-hand-out-a-band-port-as-an-ephemeral-one">The kernel can hand out a band port as an ephemeral one</h2>
+<p>A band keeps chango's own components from colliding. It does not stop the
+kernel from handing one of those ports to an <strong>outbound connection</strong> as its
+source port.</p>
+<p>Storage tuning commonly widens the ephemeral range to the whole space:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>net.ipv4.ip_local_port_range = 1024 65535      # what the MinIO guide recommends
+</code></pre></div>
+<p>On a host shared with components, every port chango hands out is then eligible.
+When the kernel picks one, the component that owns it fails to bind:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>java.net.BindException: Address already in use                    ← Flink JobManager, 8980
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>ERROR Leaving listener thread for address cp-1:3890 after 3 errors ← ZooKeeper election
+</code></pre></div>
+<p>And <code>ss -ltnp</code> is <strong>empty</strong> seconds later, because the squatter was a transient
+client socket. Restarting works. So it reads as an environment flake, gets
+written off, and comes back at the next cluster start — which is exactly how it
+behaved here until the ephemeral range was the thing someone looked at.</p>
+<p><code>node-prep</code> reserves the bands from the port table:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cat<span class="w"> </span>/proc/sys/net/ipv4/ip_local_reserved_ports
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1">#   2181-2380,2888-3087,3888-4087,5432-5631,8080-8379,8480-9379,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1">#   18080-18699,18890,19081-19519,19998-19999</span>
+</code></pre></div>
+<p>A reservation blocks <strong>automatic</strong> allocation only; an explicit bind still
+works, which is what components do. The role reads the value back from <code>/proc</code>
+and asserts, because a rejected value leaves the file on disk and the play
+green — old kernels and over-long lists both fail that way.</p>
+<p>"Open in the firewall" and "reserved from the ephemeral pool" are different
+things and both are needed. The firewall decides what may come in; this decides
+what this host will not use on its way out.</p>
 <h2 id="failure-mode">Failure mode</h2>
 <p>If a band is fully exhausted on a host the allocator throws <code>IllegalStateException</code> with a message like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>no free 3-port block for band &#39;ontul-master&#39; on host 10.0.0.11 within [18080, 18280)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>no free 3-port block for band &#39;ontul-master&#39; on host 10.0.0.11 within [18080, 18280)
 </code></pre></div>
 <p>This is a deliberately loud failure — collapsing into "let's overlap" silently is much worse. The fix is either:</p>
 <ul>
@@ -1671,9 +1706,9 @@ place is reported in the instance's status and log; taking a neighbour's port
 surfaces as a different component's outage, which is much harder to trace.</p>
 <p>When a port looks wrong, compare the assignment with the actual bind rather than
 trusting either alone:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/components<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.[] | select(.clusterId|startswith(&quot;spark&quot;)) | &quot;\(.instanceId) \(.config)&quot;&#39;</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>sudo<span class="w"> </span>ss<span class="w"> </span>-ltnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:3000[01]&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/components<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.[] | select(.clusterId|startswith(&quot;spark&quot;)) | &quot;\(.instanceId) \(.config)&quot;&#39;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>sudo<span class="w"> </span>ss<span class="w"> </span>-ltnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:3000[01]&#39;</span>
 </code></pre></div>
 <h2 id="component-nginx-ports">Component nginx ports</h2>
 <p>The <code>*-nginx</code> bands start at 19200 and their bases are spaced 20 apart, so each component's proxy has a predictable place to look for.</p>
@@ -1683,8 +1718,8 @@ trusting either alone:</p>
 <li>Open each band from its base for the full range (<code>19200–19399</code> for ShannonStore's). Wide, but no re-request when a component is added.</li>
 <li>
 <p>Pin the windows first, by narrowing the range so they really are disjoint:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="na">chango.component.port.shannonstore-nginx.range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="na">chango.component.port.ontul-nginx.range</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="na">chango.component.port.shannonstore-nginx.range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="na">chango.component.port.ontul-nginx.range</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
 </code></pre></div>
 <p>Then the band is exactly the stretch the rule names, and an exhausted band fails loudly at install time instead of quietly using a port nobody opened.</p>
 </li>

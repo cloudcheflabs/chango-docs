@@ -775,6 +775,20 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#3-secrets-are-not-in-the-cluster-json-at-all" class="md-nav__link">
+    3. Secrets are not in the cluster JSON at all
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-free-form-config-bodies-are-masked-too" class="md-nav__link">
+    4. Free-form config bodies are masked too
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1487,6 +1501,14 @@
 <td>The access key's secret + (optionally) session token — single-use download.</td>
 </tr>
 <tr>
+<td><code>GET /admin/api/credentials/download?component=&amp;clusterId=&amp;field=</code></td>
+<td>One named credential, as a file download.</td>
+</tr>
+<tr>
+<td><code>GET /admin/api/&lt;comp&gt;/&lt;id&gt;/credentials</code></td>
+<td>PostgreSQL's superuser password, Polaris's root and per-catalog client secrets.</td>
+</tr>
+<tr>
 <td><code>GET /admin/api/&lt;comp&gt;/&lt;id&gt;/password</code></td>
 <td>The component's superuser / admin password (Postgres, Shannonstore, Ontul, Kiok, NeoRunBase, Mium).</td>
 </tr>
@@ -1507,14 +1529,59 @@
 <p>Both gates are in <code>AdminApiHandler.handle()</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kt">boolean</span><span class="w"> </span><span class="n">mutating</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="o">!</span><span class="s">&quot;GET&quot;</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">method</span><span class="p">);</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kt">boolean</span><span class="w"> </span><span class="n">revealsSecret</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">startsWith</span><span class="p">(</span><span class="s">&quot;iam/download-key/&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/admin-password&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/password&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/catalog-config&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/catalog-connection&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="err">…</span><span class="p">;</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">mutating</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">revealsSecret</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">rest</span><span class="p">.</span><span class="na">startsWith</span><span class="p">(</span><span class="s">&quot;auth/&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">isAdmin</span><span class="p">(</span><span class="n">authUser</span><span class="p">))</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">403</span><span class="p">;</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">startsWith</span><span class="p">(</span><span class="s">&quot;credentials/download&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/credentials&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/admin-password&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/password&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/catalog-config&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="n">rest</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="s">&quot;/catalog-connection&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">                      </span><span class="o">||</span><span class="w"> </span><span class="err">…</span><span class="p">;</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">mutating</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">revealsSecret</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">rest</span><span class="p">.</span><span class="na">startsWith</span><span class="p">(</span><span class="s">&quot;auth/&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">isAdmin</span><span class="p">(</span><span class="n">authUser</span><span class="p">))</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">403</span><span class="p">;</span>
 </code></pre></div>
+<p><code>…/&lt;id&gt;/credentials</code> was missing from that list for a while. It is a plain
+<code>GET</code>, the console hid the buttons from a read-only user, and the route did
+not — so a non-admin could fetch the PostgreSQL superuser password and
+Polaris's catalog secrets by asking for them directly. Hiding a button is not
+a gate.</p>
+<h3 id="3-secrets-are-not-in-the-cluster-json-at-all">3. Secrets are not in the cluster JSON at all</h3>
+<p><code>GET /admin/api/&lt;comp&gt;</code> used to return <code>adminPassword</code> and <code>adminOtok</code> in the
+settings, and the console rendered them behind an eye toggle. The toggle hid
+them from the screen and from nobody else: the value had already been sent, so
+it sat in the response body for anyone with the browser's network tab open, in
+any HAR capture, and in whatever proxy log was in between.</p>
+<p>So the response does not carry them. One function decides what a secret is —
+by the shape of the key name (<code>secret</code>, <code>password</code>, <code>passwd</code>, <code>passphrase</code>,
+<code>credential</code>, <code>privatekey</code>, or a name ending in <code>token</code>/<code>otok</code>), with an
+explicit list of the few names that read like one and are not: access key ids,
+client ids, user names. Those stay visible on purpose, because hiding them
+leaves the operator unable to tell <em>which</em> credential is in use.</p>
+<p>Each stripped key comes back as <code>&lt;key&gt;Present</code>, so the console can tell "not
+issued yet" — the platform rotates these on a timer after a cluster reaches
+RUNNING — from "stored, download it". The credential card shows
+<em>stored — download to read</em> with one button, and the button goes to
+<code>credentials/download</code>, which serves exactly one credential from a fixed list
+and logs who asked. The fixed list matters: the same records hold the cluster
+master key, and a route that reads an arbitrary setting name is a route that
+reads that.</p>
+<p>A name-shape rule replaced a list of names because the list leaked every time a
+component grew a credential. It predated the admin password and service token;
+<code>catalogPrincipalClientSecret.&lt;catalog&gt;</code> needed a second prefix-matching list
+bolted on; and <code>exchangeS3SecretKey</code> and <code>eventLogS3SecretKey</code> — the query
+engine's and the processing engine's object-storage keys — were never added at
+all. There were also four separate functions building that JSON, each with its
+own copy of the list, which is how <code>polarisJson</code> came to strip three keys and
+pass a live per-catalog credential straight through.</p>
+<h3 id="4-free-form-config-bodies-are-masked-too">4. Free-form config bodies are masked too</h3>
+<p>Catalog properties are a text blob, not key/value rows, so opening a Trino
+catalog in the console printed its object-storage secret key on screen. Nobody
+opens a catalog to read that value.</p>
+<p><code>listCatalogs</code> masks every property whose key is a secret and reports which keys
+are hidden. The write-back is where this kind of masking usually goes wrong, so
+<code>applyCatalog</code> reads the mask as <em>keep what is stored</em> and restores the real
+value — saving the mask would put <code>********</code> in the catalog file and the catalog
+would stop reaching its storage at the next restart, far from the edit. A mask
+sent for a property that has no stored value is refused rather than saved empty.</p>
 <p><code>auth/*</code> (login, refresh, session, logout, change-password) stays open — that's how a user reaches the admin UI in the first place. <code>change-password</code> runs <code>requireLeader()</code> internally; a non-admin rotating their own password works fine.</p>
 <h2 id="admin-ui-behaviour">Admin UI behaviour</h2>
 <p><code>useAuth()</code> exposes an <code>isAdmin</code> flag derived from the login response (<code>/admin/api/auth/login</code> returns <code>{accessToken, isAdmin}</code>). The non-admin UI:</p>

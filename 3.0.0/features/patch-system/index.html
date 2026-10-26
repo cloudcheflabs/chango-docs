@@ -1877,6 +1877,18 @@ admin UI. The contract is identical:</p>
 <a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">    </span>--admin-ui<span class="w">  </span>/path/to/chango/admin-ui/dist<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span>--out<span class="w">       </span>dist/chango-patch-3.0.0.tgz
 </code></pre></div>
+<p>A chango patch has to carry <strong>four modules together</strong> — <code>chango-common</code>,
+<code>chango-cluster</code>, <code>chango-protocol</code>, <code>chango-master</code> — and <code>chango-pack</code> refuses
+one that is missing any of them. They call each other directly, so shipping one
+without another produces an install that passes the build, passes the upload,
+reports <em>all hosts ok</em>, and then will not start:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>Exception in thread &quot;main&quot; java.lang.NoSuchMethodError:
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  &#39;long com.cloudcheflabs.chango.common.config.ChangoConfig.getNginxCertInstallTimeoutMs()&#39;
+</code></pre></div>
+<p>That is a real one: a config accessor added to <code>chango-common</code>, a patch built
+with only <code>chango-master</code> and <code>chango-node-manager</code>, and three masters down
+while the patch system said every host was fine. Carrying an unchanged module
+costs a few hundred KB. Omitting one costs the control plane.</p>
 <p>What differs is the execution model — chango is patching itself, so it can not be the process that overlays its own running JARs. Apply runs a <strong>3-phase fan-out</strong> through a detached helper:</p>
 <ol>
 <li>Node managers first.</li>
@@ -1884,12 +1896,23 @@ admin UI. The contract is identical:</p>
 <li>Leader self last.</li>
 </ol>
 <p>On every target host the master forks a <code>setsid</code>-detached helper that does <code>sleep 3 &amp;&amp; download &amp;&amp; backup .bak/&lt;patchId&gt;/{lib,admin-ui}.tgz &amp;&amp; overlay &amp;&amp; stop-master.sh / stop-node-manager.sh &amp;&amp; start-…sh</code>. The helper preserves <code>CHANGO_MASTER_KEY</code>, <code>JAVA_HOME</code>, and the original <code>-Dchango.*</code> system properties from the running process's <code>/proc/&lt;pid&gt;/cmdline</code>.</p>
+<p>The download is retried, size-checked and <code>gzip -t</code>'d before anything is
+stopped, and the helper's <code>fail()</code> is defined before the first thing that calls
+it. All three exist because of one incident: the leader was being restarted as
+part of the same rolling sequence a follower was downloading from, curl exited
+18 on the truncated transfer, and <code>fail</code> was declared further down the script —
+so the shell printed <code>fail: command not found</code>, carried on, stopped the master,
+overlaid a half-extracted stage directory, started it again and wrote <code>DONE</code>.
+The failure marker was never written either; writing it is what <code>fail()</code> does.</p>
+<p><code>set -e</code> is deliberately not used instead. The helper relies on non-zero exits
+in several places — looking for a backup, probing for nginx — and would abort on
+the first of them.</p>
 <p>Because the leader writes a <code>master-leader-preferred:&lt;expiresAt&gt;</code> hint to ZooKeeper just before its graceful stop, the <strong>sticky-leader</strong> mechanism (see <a href="../sticky-leader/">Sticky Leader Election</a>) reclaims leadership for the same nodeId once the helper finishes the restart — no leadership toggle, no double KMS / IAM init.</p>
 <h3 id="rolling-a-self-patch-back">Rolling a self-patch back</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;component&quot;:&quot;chango&quot;,&quot;clusterId&quot;:&quot;chango&quot;,&quot;to&quot;:&quot;lastBackup&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/rollback
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;component&quot;:&quot;chango&quot;,&quot;clusterId&quot;:&quot;chango&quot;,&quot;to&quot;:&quot;lastBackup&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/rollback
 </code></pre></div>
 <p>Same route as any other rollback, and the same 3-phase fan-out in the same
 order — node managers, then follower masters one at a time so quorum survives,

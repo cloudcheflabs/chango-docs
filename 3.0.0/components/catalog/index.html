@@ -1694,6 +1694,33 @@ on every settings screen. Read it from the route that exists for it:</p>
 <p><code>icebergRestEndpoint</code> is the proxy address, not a server port — pointing a
 client at one server's <code>:8180</code> makes the whole catalog disappear when that
 server stops.</p>
+<p><strong><code>DROP TABLE</code> needs a property on the catalog.</strong> The query engine always drops
+with <code>purgeRequested=true</code> and has no way to ask otherwise; Polaris refuses that
+unless the catalog carries
+<code>polaris.config.drop-with-purge.enabled</code>. What the engine reports is</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Failed to drop table &#39;events&#39;        (ICEBERG_CATALOG_ERROR)
+</code></pre></div>
+<p>— nothing about purge, the catalog, or a property, so the statement reads as
+broken rather than unconfigured. Chango sets the property when it creates a
+catalog (the <em>DROP TABLE may delete the data files</em> checkbox on the catalog
+panel). Turn it off and <code>DROP TABLE</code> fails on that catalog, which is the point:
+the files outlive the registration.</p>
+<p><code>DROP TABLE IF EXISTS</code> on a table that does not exist succeeds either way. That
+is why this went unnoticed through several installs — install verification does
+exactly that, passes, and the gap waits for something that has to drop a table
+that is really there.</p>
+<p><strong>The per-catalog grant is verified, not assumed.</strong> Creating a catalog wires a
+principal, a principal-role, the assignment between them, and the
+<code>catalog_admin</code> grant. Re-assigning an existing principal-role does not come
+back <code>409</code> — Polaris lets the database error through as a <code>500</code> carrying
+<code>duplicate key value violates unique constraint "grant_records_pkey"</code>. Treating
+that as fatal left the catalog created with no grants, and every catalog
+operation then answered</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Principal &#39;lakehouse_admin&#39; … is not authorized for op LIST_NAMESPACES
+</code></pre></div>
+<p>which reads like wrong credentials. The wiring steps now check the state by
+reading it back instead of trusting the status code, and the end state is
+verified regardless of how the calls answered.</p>
 <div class="admonition note">
 <p class="admonition-title">Why only the <code>table-default.</code> prefix works</p>
 <p>A bare <code>s3.access-key-id</code> on a catalog is accepted by Polaris and then ignored:
