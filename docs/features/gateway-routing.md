@@ -248,7 +248,73 @@ otherwise, which leaves a surface that reports success and refuses connections.
 TLS is not a choice here: **Trino's JDBC driver refuses to send Basic
 credentials over plain HTTP**, so a plaintext surface cannot be used by the
 clients that matter, and any tool that does connect sends access keys in the
-clear. chango generates a self-signed certificate for the surface.
+clear. chango generates a certificate for the surface so it can come up at all.
+
+### Replacing it with your own CA's certificate
+
+A certificate chango generated is not something a corporate PKI will accept, and
+the alternative — telling every client to trust one chango made — does not scale
+past the first audit. So the surface's certificate can be replaced, from the
+gateway's **Configure → TLS Certificate** tab or:
+
+```bash
+curl -sS -X POST $BASE/admin/api/trino-gateway/<clusterId>/nginx/certificate \
+  -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+  -d "$(python3 - <<'PY'
+import json
+print(json.dumps({
+  "certificate": open("gw.crt").read(),      # the leaf
+  "privateKey":  open("gw.key").read(),
+  "chain":       open("intermediate.crt").read(),   # omit if there is none
+}))
+PY
+)"
+#   {"subject":"… CN=gw.corp.example","issuer":"… CN=Corp Issuing CA",
+#    "notAfter":"Jan 28 10:44:10 2029 GMT","daysRemaining":824,
+#    "selfSigned":false,"chainCerts":1}
+```
+
+The PEMs are read from files rather than passed as arguments on purpose — an
+argument lands in shell history and in `ps` output.
+
+`GET …/nginx/certificate/info` answers the question an operator asks *before*
+replacing anything — subject, issuer, SANs, expiry, fingerprint, and whether it
+is still the one chango generated. The tab renders it, with a badge when the
+certificate expires within 30 days.
+
+#### What the node refuses, and what each would have caused
+
+Validation happens on the node that will serve the certificate, before anything
+is written. Every one of these installs cleanly otherwise and fails later at a
+client, in a message that names neither the host nor the file:
+
+| Sent | Refused with | Had it been allowed |
+|---|---|---|
+| key that does not match the certificate | `the private key does not belong to this certificate` | nginx refuses to start — the surface goes down at the next *reload*, not at the install |
+| expired certificate | `this certificate expired on …` | every client fails at once while the file looks correctly installed |
+| no subjectAltName | `this certificate has no subjectAltName` | modern clients, Java included, do not fall back to the common name — trusting the CA cannot save it |
+| SAN not covering the host | `none of this host's names … is in the certificate's SAN` | same |
+| passphrase-protected key | `nginx cannot be prompted for one` | the surface simply never comes back after a reload |
+
+A failed `nginx -t` restores the previous pair and reloads, so a bad certificate
+cannot take the surface down. `ssl_certificate` is written as leaf +
+intermediates in one file: serving the leaf alone works for clients that already
+hold the intermediate and fails for the rest, which is the worst kind of
+half-working.
+
+#### Confirming it — ask the port, not the screen
+
+```bash
+openssl s_client -connect <surface>:<port> -servername <surface> \
+  -CAfile corporate-root-ca.pem </dev/null 2>/dev/null \
+  | grep -E "Verify return code|subject="
+#   Verify return code: 0 (ok)
+```
+
+The screen shows the file chango read; the port shows what clients get. The two
+differ when a reload failed. `example/tls/verify_python.py` carries this
+through to a query, and `example/tls/java/` does the same for a JVM client,
+which needs its own trust store either way.
 
 ### Trusting the certificate
 
@@ -354,15 +420,20 @@ curl -sS -X POST $BASE/admin/api/kiok/<clusterId>/config \
     "-Djavax.net.ssl.trustStorePassword":"changeit"}},
   "workerJvm":{"extra":{
     "-Djavax.net.ssl.trustStore":"/etc/chango/truststore.jks",
-    "-Djavax.net.ssl.trustStorePassword":"changeit"}}}'
+    "-Djavax.net.ssl.trustStorePassword":"${TRUSTSTORE_PASSWORD}"}}}'
 ```
 
 Verify by running the same job **several times**: one success only proves the
 node it happened to land on. Every worker should appear as the driver.
 
 Re-applying nginx reuses the existing certificate, so the fingerprint is stable
-and trust stores stay valid. Deleting `/etc/nginx/ssl/<conf>.crt` and
-re-applying generates a new one — rebuild the trust stores then.
+and trust stores stay valid — including one installed through the TLS
+Certificate tab.
+
+Rotating a certificate issued by the same CA needs no client-side work at all:
+that is the whole reason to trust the **CA** rather than the server certificate.
+Replacing a chango-generated one, or deleting `/etc/nginx/ssl/<conf>.crt` so a
+new one is generated, does invalidate the trust stores built from it.
 
 ## Why a missing route looks like an auth failure
 

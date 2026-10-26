@@ -114,6 +114,48 @@ The "chango-itself" reservation is what prevents the most common foot-gun: insta
 
 Provisioners allocate ports inside a **session** (`PortAllocator.Session`). A session is one provision-or-scale operation; ports it hands out are remembered for the life of that session so a later `allocate` in the same call does not reuse them. Once the operation persists the new `ComponentInstance` records, the session ends — subsequent operations see the freshly-persisted ports through source 1 (managed component config) above.
 
+## The kernel can hand out a band port as an ephemeral one
+
+A band keeps chango's own components from colliding. It does not stop the
+kernel from handing one of those ports to an **outbound connection** as its
+source port.
+
+Storage tuning commonly widens the ephemeral range to the whole space:
+
+```
+net.ipv4.ip_local_port_range = 1024 65535      # what the MinIO guide recommends
+```
+
+On a host shared with components, every port chango hands out is then eligible.
+When the kernel picks one, the component that owns it fails to bind:
+
+```
+java.net.BindException: Address already in use                    ← Flink JobManager, 8980
+ERROR Leaving listener thread for address cp-1:3890 after 3 errors ← ZooKeeper election
+```
+
+And `ss -ltnp` is **empty** seconds later, because the squatter was a transient
+client socket. Restarting works. So it reads as an environment flake, gets
+written off, and comes back at the next cluster start — which is exactly how it
+behaved here until the ephemeral range was the thing someone looked at.
+
+`node-prep` reserves the bands from the port table:
+
+```bash
+cat /proc/sys/net/ipv4/ip_local_reserved_ports
+#   2181-2380,2888-3087,3888-4087,5432-5631,8080-8379,8480-9379,
+#   18080-18699,18890,19081-19519,19998-19999
+```
+
+A reservation blocks **automatic** allocation only; an explicit bind still
+works, which is what components do. The role reads the value back from `/proc`
+and asserts, because a rejected value leaves the file on disk and the play
+green — old kernels and over-long lists both fail that way.
+
+"Open in the firewall" and "reserved from the ephemeral pool" are different
+things and both are needed. The firewall decides what may come in; this decides
+what this host will not use on its way out.
+
 ## Failure mode
 
 If a band is fully exhausted on a host the allocator throws `IllegalStateException` with a message like:
