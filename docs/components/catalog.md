@@ -111,6 +111,42 @@ curl -s $A/polaris/<clusterId>/credentials -H "Authorization: Bearer $T"
 client at one server's `:8180` makes the whole catalog disappear when that
 server stops.
 
+**`DROP TABLE` needs a property on the catalog.** The query engine always drops
+with `purgeRequested=true` and has no way to ask otherwise; Polaris refuses that
+unless the catalog carries
+`polaris.config.drop-with-purge.enabled`. What the engine reports is
+
+```
+Failed to drop table 'events'        (ICEBERG_CATALOG_ERROR)
+```
+
+— nothing about purge, the catalog, or a property, so the statement reads as
+broken rather than unconfigured. Chango sets the property when it creates a
+catalog (the *DROP TABLE may delete the data files* checkbox on the catalog
+panel). Turn it off and `DROP TABLE` fails on that catalog, which is the point:
+the files outlive the registration.
+
+`DROP TABLE IF EXISTS` on a table that does not exist succeeds either way. That
+is why this went unnoticed through several installs — install verification does
+exactly that, passes, and the gap waits for something that has to drop a table
+that is really there.
+
+**The per-catalog grant is verified, not assumed.** Creating a catalog wires a
+principal, a principal-role, the assignment between them, and the
+`catalog_admin` grant. Re-assigning an existing principal-role does not come
+back `409` — Polaris lets the database error through as a `500` carrying
+`duplicate key value violates unique constraint "grant_records_pkey"`. Treating
+that as fatal left the catalog created with no grants, and every catalog
+operation then answered
+
+```
+Principal 'lakehouse_admin' … is not authorized for op LIST_NAMESPACES
+```
+
+which reads like wrong credentials. The wiring steps now check the state by
+reading it back instead of trusting the status code, and the end state is
+verified regardless of how the calls answered.
+
 !!! note "Why only the `table-default.` prefix works"
     A bare `s3.access-key-id` on a catalog is accepted by Polaris and then ignored:
     it never reaches the FileIO that actually talks to the object store. Only

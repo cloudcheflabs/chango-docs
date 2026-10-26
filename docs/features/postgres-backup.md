@@ -118,11 +118,52 @@ There is deliberately no "restore the latest" shortcut. The situation where that
 
 An archive does not have to have come from the instance it is restored into. Restoring a production dump into a staging instance is a legitimate thing to want. It does have to live under the configured prefix, so a restore cannot be pointed at an arbitrary object in the bucket.
 
+### Stop whatever holds a connection first
+
+**A database cannot be replaced while a session is connected to it.** This is the whole of restoring in practice, and it is not optional: the catalog server keeps connections open to `postgres` — which is where its metastore lives — so restoring with it running skips that database entirely.
+
+```bash
+# Who is holding what. Ask; do not assume.
+sudo -u postgres psql -c "SELECT datname, usename, count(*) FROM pg_stat_activity
+                          WHERE datname IS NOT NULL GROUP BY 1,2 ORDER BY 1,2"
+#    datname  |      usename      | count
+#   postgres  | polaris_polaris_1 |     4      ← this blocks the restore
+```
+
+Stop those components, restore, start them again, then check the data — not the job status.
+
+The restore refuses rather than proceeding:
+
+```
+status: FAILED
+restore did not take effect — 24 blocking error(s), e.g.
+  ERROR: cannot drop the currently open database (and 23 more).
+  The archive was replayed but existing objects were kept, so this instance
+  still holds the data it had. Stop the components that hold connections to
+  these databases and retry.
+```
+
+Being refused is the good outcome. The same situation used to finish `COMPLETED` with the pre-restore data untouched, which is how an operator finds out at the worst possible moment.
+
+### The replay runs from `template1`
+
+`pg_dumpall --clean` emits `DROP DATABASE postgres;` before recreating it, and a session cannot drop the database it is connected to. Replaying through `-d postgres` therefore failed that statement — and then every `CREATE TABLE` and `COPY` inside it, because the objects were still there. `psql` without `ON_ERROR_STOP` exits 0 regardless, so the job reported success with 44 non-fatal errors and the old data in place.
+
+The replay connects to `template1` instead, the database `pg_dumpall` recreates first. The dump's own `DROP`/`CREATE` for `template1` are filtered out of the stream, because that one statement would fail for the same reason and produce the same error text as a genuinely blocked database — which made a *correct* restore report `FAILED`.
+
 ### Non-fatal errors
 
-A dumpall replay always reports some errors that do not matter: dropping the role it is connected as, recreating the database it is connected to. Running with `ON_ERROR_STOP` would abort every restore on the first one.
+A dumpall replay still reports errors that genuinely do not matter — dropping the role it is connected as, a role that already exists. `psql` runs without `ON_ERROR_STOP` so one of those cannot abort the whole restore, and the **count is returned and displayed**.
 
-So `psql` runs without it, and the **count of errors is returned and displayed** instead. `2 non-fatal` next to a completed restore is normal for a single-database instance. A number far larger than that is worth reading the job log over. Reporting only "ok" would make a genuinely broken restore indistinguishable from a healthy one.
+`4 non-fatal` next to a completed restore is normal. What is *not* left to a count any more are the errors that mean nothing was restored:
+
+| Error | Means |
+|---|---|
+| `is being accessed by other users` | something holds a connection to a database the dump has to replace |
+| `cannot drop the currently open database` | the replay was connected to a database it had to drop |
+| `relation "…" already exists` | the drop did not happen, so the create was skipped — and the `COPY` with it |
+
+Those fail the job. Role-level noise does not, because it does not decide whether the data came back.
 
 ### Checksum verification
 

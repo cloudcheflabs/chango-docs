@@ -57,6 +57,8 @@ Some `GET` routes return live secrets in the response body — they're closed to
 | Route | What it reveals |
 |---|---|
 | `GET /admin/api/iam/download-key/<accessKeyId>` | The access key's secret + (optionally) session token — single-use download. |
+| `GET /admin/api/credentials/download?component=&clusterId=&field=` | One named credential, as a file download. |
+| `GET /admin/api/<comp>/<id>/credentials` | PostgreSQL's superuser password, Polaris's root and per-catalog client secrets. |
 | `GET /admin/api/<comp>/<id>/password` | The component's superuser / admin password (Postgres, Shannonstore, Ontul, Kiok, NeoRunBase, Mium). |
 | `GET /admin/api/<comp>/<id>/admin-password` | Same, for components that distinguish admin-password from a sweep-discovered password. |
 | `GET /admin/api/polaris/<id>/catalog-config` | Polaris catalog body including the S3 secret-access-key. |
@@ -67,6 +69,8 @@ Both gates are in `AdminApiHandler.handle()`:
 ```java
 boolean mutating       = !"GET".equals(method);
 boolean revealsSecret  = rest.startsWith("iam/download-key/")
+                      || rest.startsWith("credentials/download")
+                      || rest.endsWith("/credentials")
                       || rest.endsWith("/admin-password")
                       || rest.endsWith("/password")
                       || rest.endsWith("/catalog-config")
@@ -75,6 +79,58 @@ boolean revealsSecret  = rest.startsWith("iam/download-key/")
 if ((mutating || revealsSecret) && !rest.startsWith("auth/") && !isAdmin(authUser))
     return 403;
 ```
+
+`…/<id>/credentials` was missing from that list for a while. It is a plain
+`GET`, the console hid the buttons from a read-only user, and the route did
+not — so a non-admin could fetch the PostgreSQL superuser password and
+Polaris's catalog secrets by asking for them directly. Hiding a button is not
+a gate.
+
+### 3. Secrets are not in the cluster JSON at all
+
+`GET /admin/api/<comp>` used to return `adminPassword` and `adminOtok` in the
+settings, and the console rendered them behind an eye toggle. The toggle hid
+them from the screen and from nobody else: the value had already been sent, so
+it sat in the response body for anyone with the browser's network tab open, in
+any HAR capture, and in whatever proxy log was in between.
+
+So the response does not carry them. One function decides what a secret is —
+by the shape of the key name (`secret`, `password`, `passwd`, `passphrase`,
+`credential`, `privatekey`, or a name ending in `token`/`otok`), with an
+explicit list of the few names that read like one and are not: access key ids,
+client ids, user names. Those stay visible on purpose, because hiding them
+leaves the operator unable to tell *which* credential is in use.
+
+Each stripped key comes back as `<key>Present`, so the console can tell "not
+issued yet" — the platform rotates these on a timer after a cluster reaches
+RUNNING — from "stored, download it". The credential card shows
+*stored — download to read* with one button, and the button goes to
+`credentials/download`, which serves exactly one credential from a fixed list
+and logs who asked. The fixed list matters: the same records hold the cluster
+master key, and a route that reads an arbitrary setting name is a route that
+reads that.
+
+A name-shape rule replaced a list of names because the list leaked every time a
+component grew a credential. It predated the admin password and service token;
+`catalogPrincipalClientSecret.<catalog>` needed a second prefix-matching list
+bolted on; and `exchangeS3SecretKey` and `eventLogS3SecretKey` — the query
+engine's and the processing engine's object-storage keys — were never added at
+all. There were also four separate functions building that JSON, each with its
+own copy of the list, which is how `polarisJson` came to strip three keys and
+pass a live per-catalog credential straight through.
+
+### 4. Free-form config bodies are masked too
+
+Catalog properties are a text blob, not key/value rows, so opening a Trino
+catalog in the console printed its object-storage secret key on screen. Nobody
+opens a catalog to read that value.
+
+`listCatalogs` masks every property whose key is a secret and reports which keys
+are hidden. The write-back is where this kind of masking usually goes wrong, so
+`applyCatalog` reads the mask as *keep what is stored* and restores the real
+value — saving the mask would put `********` in the catalog file and the catalog
+would stop reaching its storage at the next restart, far from the edit. A mask
+sent for a property that has no stored value is refused rather than saved empty.
 
 `auth/*` (login, refresh, session, logout, change-password) stays open — that's how a user reaches the admin UI in the first place. `change-password` runs `requireLeader()` internally; a non-admin rotating their own password works fine.
 

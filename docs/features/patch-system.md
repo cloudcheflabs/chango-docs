@@ -362,6 +362,22 @@ admin UI. The contract is identical:
     --out       dist/chango-patch-3.0.0.tgz
 ```
 
+A chango patch has to carry **four modules together** — `chango-common`,
+`chango-cluster`, `chango-protocol`, `chango-master` — and `chango-pack` refuses
+one that is missing any of them. They call each other directly, so shipping one
+without another produces an install that passes the build, passes the upload,
+reports *all hosts ok*, and then will not start:
+
+```
+Exception in thread "main" java.lang.NoSuchMethodError:
+  'long com.cloudcheflabs.chango.common.config.ChangoConfig.getNginxCertInstallTimeoutMs()'
+```
+
+That is a real one: a config accessor added to `chango-common`, a patch built
+with only `chango-master` and `chango-node-manager`, and three masters down
+while the patch system said every host was fine. Carrying an unchanged module
+costs a few hundred KB. Omitting one costs the control plane.
+
 What differs is the execution model — chango is patching itself, so it can not be the process that overlays its own running JARs. Apply runs a **3-phase fan-out** through a detached helper:
 
 1. Node managers first.
@@ -369,6 +385,19 @@ What differs is the execution model — chango is patching itself, so it can not
 3. Leader self last.
 
 On every target host the master forks a `setsid`-detached helper that does `sleep 3 && download && backup .bak/<patchId>/{lib,admin-ui}.tgz && overlay && stop-master.sh / stop-node-manager.sh && start-…sh`. The helper preserves `CHANGO_MASTER_KEY`, `JAVA_HOME`, and the original `-Dchango.*` system properties from the running process's `/proc/<pid>/cmdline`.
+
+The download is retried, size-checked and `gzip -t`'d before anything is
+stopped, and the helper's `fail()` is defined before the first thing that calls
+it. All three exist because of one incident: the leader was being restarted as
+part of the same rolling sequence a follower was downloading from, curl exited
+18 on the truncated transfer, and `fail` was declared further down the script —
+so the shell printed `fail: command not found`, carried on, stopped the master,
+overlaid a half-extracted stage directory, started it again and wrote `DONE`.
+The failure marker was never written either; writing it is what `fail()` does.
+
+`set -e` is deliberately not used instead. The helper relies on non-zero exits
+in several places — looking for a backup, probing for nginx — and would abort on
+the first of them.
 
 Because the leader writes a `master-leader-preferred:<expiresAt>` hint to ZooKeeper just before its graceful stop, the **sticky-leader** mechanism (see [Sticky Leader Election](sticky-leader.md)) reclaims leadership for the same nodeId once the helper finishes the restart — no leadership toggle, no double KMS / IAM init.
 
