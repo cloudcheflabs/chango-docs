@@ -49,11 +49,16 @@ Two consequences worth knowing:
   subtracts metaspace, network and managed memory and derives the heap. Setting
   `1536m` on a TaskManager produced `-Xmx436207608` (≈416 MB). That is correct,
   not a bug.
+- **The heap you give at install is the process size Flink starts with.** It
+  used to lose to the packaged default `memory.process.size` (1728m /
+  1600m), so whatever heap was entered at install, every TaskManager ran the
+  default. Check with `grep process.size conf/config.yaml` on the instance, not
+  only the console's record.
 - **The env path is a chango record, so it can be written while the instance is
   stopped.** That is deliberate: the case that matters is a heap too large for
-  the host, where the process is already dead — and writing a config *file*
-  requires a RUNNING instance. chango writes the variable first for exactly this
-  reason.
+  the host, where the process is already dead. Config *files* can now be
+  written on a stopped or failed instance as well (only `STARTING`/`STOPPING`
+  is refused — see [Config Change Gate](../features/config-runtime-only.md)).
 
 ### Roles that can be tuned
 
@@ -116,7 +121,7 @@ JVM configuration is not hot-reloadable — the JVM reads it once at process sta
 2. Set `heapMin` / `heapMax`, add any `extra` flags, Save.
 3. **Restart** the affected instances. Chango rewrites the config file on save but does not bounce the process for you; a rolling restart, role by role, keeps the cluster serving.
 
-The cluster must be `RUNNING` for the edit to be accepted — see [Config Runtime-Only Policy](../features/config-runtime-only.md) for why chango refuses to stage configuration against a stopped cluster.
+The edit is refused only while an instance is `STARTING` or `STOPPING`; a stopped or failed cluster accepts it and reads it at the next start — see [Config Change Gate](../features/config-runtime-only.md).
 
 ## Verifying on the host
 
@@ -170,6 +175,34 @@ There is no universal answer, but a workable starting point on a shared chango h
 
 Reserve headroom for the OS page cache on every host. Component processes that do bulk I/O (Kafka, ShannonStore, anything reading Parquet) get more from free page cache than from a larger heap.
 
+## Remote JMX is off on the Kafka family
+
+Kafka's launcher, `kafka-run-class.sh`, fills an empty `KAFKA_JMX_OPTS` with
+`-Dcom.sun.management.jmxremote` and authentication and SSL **off**, and without
+a `jmxremote.port` the JVM opens its RMI registry on a random high port, on every
+interface. A 3-node install had six such listeners — broker, ZooKeeper, Connect
+and Schema Registry processes — that nobody asked for: unauthenticated remote
+management, and ports the [Port Allocator](../features/port-allocator.md) cannot
+see (one sat two numbers outside the UI Proxy band; on a busier host it lands
+inside somebody's band and that component "will not start" with no holder
+named).
+
+chango now sets the launcher's JMX variable to a single space in the **instance
+environment** of every Kafka-family role — `KAFKA_JMX_OPTS` for the broker,
+ZooKeeper and Connect, `SCHEMA_REGISTRY_JMX_OPTS` for the Schema Registry
+(standalone or co-located). A space, not an empty string: the launchers test
+`[ -z "$…_JMX_OPTS" ]`, and an empty value brings the default back. The
+environment rather than `kafka-env.sh`, because the Confluent registry package
+has no `config/` directory and reads a different variable anyway. **Apply &
+Restart** rewrites every role, so a cluster installed earlier is closed on its
+next restart; until then it keeps its random ports (the numbers change on each
+restart, which is easy to misread as "closed").
+
+This closes a default; it does not decide monitoring. To expose JMX, add
+`-Dcom.sun.management.jmxremote.port=<port>` — with the authentication flags
+that belong with it — to that role's JVM **extra** options. The port is then a
+value someone chose, and it shows in the console.
+
 ## Troubleshooting
 
 - **Component `FAILED` right after start, log shows an OOM or heap-configuration error.** Compare the heap in the rendered file against the node's RAM and, for Trino, against the heap floor above.
@@ -180,5 +213,5 @@ Reserve headroom for the OS page cache on every host. Component processes that d
 ## Related
 
 - [Component Operations](component-operations.md) — the install / configure request shape these blocks live in.
-- [Config Runtime-Only Policy](../features/config-runtime-only.md) — why the cluster must be running to accept a config change.
+- [Config Change Gate](../features/config-runtime-only.md) — which instance states accept a config change, and why.
 - [Cluster Operations](cluster-operations.md) — rolling restarts and scale-out.

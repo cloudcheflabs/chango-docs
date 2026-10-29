@@ -2,7 +2,7 @@
 
 Every setting chango reads from `chango.properties`, with its default and what changing it does.
 
-Some settings are deliberately **not** here — the S3 backup destination, the gateway topology, per-component settings. Those live in the replicated metadata store and are edited from the admin UI, so that a value is the same on every master and survives a reinstall. See [Config Runtime-Only Policy](../features/config-runtime-only.md) for where the line falls and why.
+Some settings are deliberately **not** here — the S3 backup destination, the gateway topology, per-component settings. Those live in the replicated metadata store and are edited from the admin UI, so that a value is the same on every master and survives a reinstall. See [Config Change Gate](../features/config-runtime-only.md) for where the line falls and why.
 
 ## Resolution order
 
@@ -46,7 +46,8 @@ The start scripts do **not** persist the `-D` arguments they were given. A maste
 | `chango.master.zk.client.port` | `2181` | Control-plane ZK. Also fed to the [port allocator](../features/port-allocator.md) so a component-bundled ZK on the same host does not get the same default |
 | `chango.master.zk.peer.port` | `2888` | |
 | `chango.master.zk.leader.port` | `3888` | |
-| `chango.master.admin.worker.threads` | `8` | Pool for blocking admin handlers (component install / start / stop), kept off the Netty event loop so package I/O does not stall other requests |
+| `chango.master.admin.worker.threads` | `8` | Pool for blocking admin handlers — component install / start / stop, patch upload / apply, backup, trust store — kept off the Netty event loop so package I/O, NIO fan-out and object-storage calls do not stall other requests. A chango self-patch holds one thread while it waits for the follower masters |
+| `chango.master.selfpatch.follower.wait.ms` | `180000` | How long a chango self-patch waits for each follower master to re-register in ZooKeeper and report ready before it moves on. A follower that does not come back in time stops the run: the **leader is not restarted** and the result reports it as `held`. A follower on a host that also runs a node manager waits for that node manager's patch first, so allow for both restarts. `ui` patches restart nothing and do not wait. See [Patch System](../features/patch-system.md#what-restarts-and-in-what-order) |
 | `chango.master.admin.ui.static.path` | `./chango-admin-ui/dist` | |
 | `chango.master.admin.ui.context.path` | `/admin` | Set to `/` to serve at the root. **Must match the UI build's `CHANGO_ADMIN_UI_BASE`** — the SPA is compiled with its base path |
 | `chango.master.leader.deference.window.ms` | `3000` | How long a starting master waits for the previous incumbent to reclaim leadership. See [Sticky Leader Election](../features/sticky-leader.md) |

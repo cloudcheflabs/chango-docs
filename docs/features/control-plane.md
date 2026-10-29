@@ -12,7 +12,33 @@ The master holds three authoritative pieces of state, all in local RocksDB on th
 | KMS | `<install_dir>/data/master/kms` | KEKs that wrap component DEKs |
 | Metadata | `<install_dir>/data/master/metadata` | Component inventory · per-cluster settings · nginx state · gateway topology |
 
-ZooKeeper holds **ephemeral** topology — who is alive right now — under `/chango/nodes/{masters,node-managers}/<nodeId>`. Persistent state never lives in ZooKeeper.
+ZooKeeper holds **ephemeral** topology — who is alive right now — under `/chango/nodes/{masters,node-managers}/<nodeId>`.
+
+An ephemeral znode belongs to a ZooKeeper session, and a session can expire
+while the process lives on — a long GC pause, a short network cut, memory
+pressure; the default session timeout is 30 s. Curator reconnects, but the new
+session has no ephemeral node, so the node used to stay **missing from the
+registry for the rest of its life** while it kept running. Everything the leader
+does to the rest of the cluster — component dispatch, patch fan-out, cluster
+sync, `/etc/hosts` sync, the topology screen — walks that registry and skips an
+absent node without an error. A node manager in that state answered component
+calls with `400 no registered node manager with id: …` although all its
+instances were RUNNING.
+
+Each master and node manager now checks on every reconnect whether its own node
+exists and re-creates it with the registration it remembers, logging
+`Re-registered … — the previous ZooKeeper session expired …`. The ready flag is
+restored as it was, so a node that was not ready before stays outside the
+cluster until it is.
+
+Alongside the ephemeral node, each node manager writes its address to a
+**persistent** `node-addresses/<nodeId>` znode. When a node manager is briefly
+absent — restarting during a patch, for instance — calls that only need its
+address use the last known one instead of putting the node id where a host name
+belongs (`http://nm-host3-19998:19320` was refused as `unsupported URI`, and a
+catalog listing or a Flink job lookup failed with a message that did not point
+at the restart). Installs and scale-outs still require the node to be
+registered.
 
 ## Leader election
 
@@ -50,7 +76,40 @@ The admin UI and the REST API are served from the same Netty HTTP server on `cha
 - `GET/POST /admin/api/…` — REST API surface.
 - `GET  /admin/api/auth/{login,refresh}` — only routes that do not require a Bearer token.
 
-Long-running admin operations (component install, cluster start, NIO log tail) run on a dedicated worker thread pool (`chango.master.admin.worker.threads`, default 8) so package I/O does not stall other admin-API requests on the Netty event loop.
+Long-running admin operations — component install / start / stop, NIO log tail, patch upload and apply, backup, trust-store changes — run on a dedicated worker thread pool (`chango.master.admin.worker.threads`, default 8) so package I/O, fan-out to every node manager and object-storage calls do not stall other admin-API requests on the Netty event loop.
+
+### Unknown request fields are reported, not rejected
+
+A request body bound to a typed request whose fields include a name the endpoint
+does not know is **accepted** — the field is dropped — and a successful JSON
+object response carries the names it dropped:
+
+```json
+{
+  "clusterId": "trino-1",
+  "…": "…",
+  "ignoredFields": ["exchangeBaseDirs"],
+  "ignoredFieldsNote": "These request fields are not part of this endpoint and were discarded. A misspelled field is silently dropped, so a value you meant to set may be missing — check the names against the endpoint's request fields."
+}
+```
+
+Before this, a misspelled field vanished and the call answered `200` with
+nothing to say so — `exchangeBaseDirs` for `exchangeBaseDirectory` installed a
+Trino whose coordinator and workers never started, `endpoints` for
+`gatewayInstanceIds` removed a proxy instead of applying it, `registryNodes` for
+`schemaRegistryNodes` never installed the registry. Rejecting with `400` would
+be stricter, but the browser bundle and the server are patched separately, so a
+newer console sending a field an older server does not know is a normal
+combination. The field is added only to `2xx` object responses — not to arrays
+(listings) and not to errors — so a client that does not look for it sees the
+same body as before. Treat a non-empty `ignoredFields` as a failed request.
+
+Two endpoints that take free-form key maps report the same thing their own way:
+`POST /admin/api/postgres/backup-config` answers `ignored` + `hint` (see
+[PostgreSQL Backup](postgres-backup.md#configuration)).
+
+A login with `username` or `password` missing answers `400 username and password
+are required` — it used to be a `500`.
 
 ## Cluster readiness gate
 

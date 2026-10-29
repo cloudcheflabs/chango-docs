@@ -54,6 +54,54 @@ Chango is the master copy of IAM state, but the actual data-plane components (Tr
 
 So chango's own IAM governs the admin UI and the REST API. Ontul's IAM governs query-time access to the data. Chango and Ontul are deliberately separate authorities — chango can be re-provisioned without invalidating Ontul tokens, and Ontul can be re-bootstrapped without re-issuing chango admin sessions.
 
+### When the authz call fails
+
+The engine plugins fail **closed**: if Ontul cannot answer, the query is denied.
+The denial now says why. For Trino, the row-filter and column-mask paths append
+the cause to `Access Denied: chango authz unavailable for column masks on
+data:table:…`, and the cause depends on Ontul's answer:
+
+| Ontul answered | The message adds | What to do |
+|---|---|---|
+| `401` / `403` | `ontul rejected the authz token … this is what a re-created ontul cluster looks like, because that issues a new admin OTOK. Update it in the admin console: the component's Configure drawer -> Ontul Authz -> Update Ontul Authz & Restart.` | Configuration, not availability — see below |
+| `404` | `ontul has no authz endpoint at the configured URL …` — a URL pointing at something other than an Ontul master answers 404 rather than failing to connect | Fix the endpoint |
+| `5xx` | `ontul is reachable but failing; check its master log.` | Look at Ontul |
+
+Before, all three produced the same sentence, and reaching the cause meant
+calling `/v1/api/authz/check-batch` by hand to see the 401.
+
+A token mismatch can look partial: `SHOW TABLES` succeeds — metadata is answered
+without an authorization check — while every `SELECT` fails with
+`authorization unavailable: ontul authz returned HTTP 401`.
+
+### When the IAM engine is re-created
+
+Deleting an Ontul cluster and creating it again starts from nothing: its
+policies, groups, users, issued keys, registered catalogs, admin password and
+service token (OTOK) are all new. chango issues the new OTOK itself; every
+engine installed against the old cluster still holds the old one.
+
+When chango issues an OTOK that differs from the one it had — including on a
+re-created cluster, whose record has no previous token — it logs every cluster
+that depends on it, by name:
+
+```
+ontul cluster ontul-1 has a NEW admin OTOK — these clusters still hold the previous
+one and every authorization call from them will be refused until it is updated:
+trino/trino-1, spark/spark-1, trino-gateway/tg-1. Update each in the admin console:
+Configure -> Ontul Authz -> Update Ontul Authz & Restart (Spark/Flink have the same section).
+```
+
+The Trino Gateway is in that list too (it is recognised by its stored token, not
+by an endpoint setting it does not keep); its update point is named differently —
+**Configure → IAM Service Token**. chango does not push the new token into the
+engines by itself: each engine has its own file format and restart policy. For
+each listed cluster, open **Configure → Ontul Authz**, paste nothing into the
+endpoint (blank keeps it), paste the new token — download it from the Ontul cluster's credential card, or
+`GET /admin/api/credentials/download?component=ontul&clusterId=<id>&field=adminOtok`
+(admin only) — and **Update Ontul Authz & Restart**. Then re-create the Ontul-side policies, groups and users the engines'
+users need.
+
 ## Engine coverage {#engine-coverage}
 
 All three data-plane engines delegate to the same Ontul authz model, but they do **not** all enforce the same *granularity*. It depends on the plan-rewrite surface each engine exposes to its first-party plugin:
@@ -114,6 +162,6 @@ All routes (except `auth/login` and `auth/refresh`) require a Bearer access toke
 
 ## Stage-1 RBAC
 
-The chango control plane currently runs in **Stage-1 RBAC** mode: an authenticated user is either **admin** (holds the `AdministratorAccess` policy directly or via a group) or **read-only**. Mutations and **secret-reveal `GET`s** — `iam/download-key/*`, `/password`, `/admin-password`, `/catalog-config`, `/catalog-connection` — are blocked for non-admins at the backend; the admin UI hides the corresponding buttons. Reads otherwise work for every authenticated user.
+The chango control plane currently runs in **Stage-1 RBAC** mode: an authenticated user is either **admin** (holds the `AdministratorAccess` policy directly or via a group) or **read-only**. Mutations and **secret-reveal `GET`s** — `iam/download-key/*`, `credentials/download`, `/credentials`, `/password`, `/admin-password`, `/catalog-config`, `/catalog-connection` — are blocked for non-admins at the backend; the admin UI hides the corresponding buttons. Reads otherwise work for every authenticated user.
 
 See [Role-Based Access (Stage 1)](role-based-access.md) for the full surface and the planned Stage-2 fine-grained model.

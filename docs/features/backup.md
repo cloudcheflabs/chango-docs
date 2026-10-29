@@ -56,7 +56,7 @@ The RocksDB paths are recorded **absolute**, resolved the same way `tar` resolve
 
 ## Configuration
 
-All keys live in the metadata store (envelope-encrypted) and are set through the admin UI or `POST /admin/api/backup/config`. They are **runtime config**, not `chango.properties` entries — see [Config Runtime-Only Policy](config-runtime-only.md).
+All keys live in the metadata store (envelope-encrypted) and are set through the admin UI or `POST /admin/api/backup/config`. They are **runtime config**, not `chango.properties` entries — see [Config Change Gate](config-runtime-only.md).
 
 | Key | Default | Notes |
 |---|---|---|
@@ -128,6 +128,9 @@ curl -X POST -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json'
     "backup.cron": "0 2 * * *"
   }' $BASE/admin/api/backup/config
 # → {"status":"ok"}
+# or, when the saved settings cannot actually upload:
+# → {"status":"ok","warnings":["a test upload to s3://chango-backups/prod/.chango-preflight-1a2b3c4d failed: …",
+#                              "this endpoint does not implement the server-side encryption you asked for — set backup.s3.sse=none …"]}
 
 curl -X POST -H "Authorization: Bearer $TOK" $BASE/admin/api/backup/run
 ```
@@ -146,7 +149,61 @@ curl -X POST -H "Authorization: Bearer $TOK" $BASE/admin/api/backup/run
 }
 ```
 
-`GET /admin/api/backup/config` and `POST /admin/api/backup/run` are leader-only; an invalid cron is rejected with `400` at save time rather than silently never firing.
+`POST /admin/api/backup/config` and `POST /admin/api/backup/run` are leader-only; an invalid cron is rejected with `400` at save time rather than silently never firing. Every `/admin/api/backup/*` route runs on the admin worker pool, off the HTTP event loop, because it waits on object storage.
+
+### Saving tests the destination
+
+After a save, the leader uploads a 2-byte probe object
+(`<prefix>.chango-preflight-<8 hex>`) with the saved settings and deletes it
+again. If that fails, the save **still happens** and the response carries
+`warnings` — the console shows them under the form. A `501` from the store adds
+a second line naming the cause and the fix: set `backup.s3.sse=none` (the archive
+is KMS envelope-encrypted by chango either way) or configure a KMS on the store,
+and *scheduled runs would fail the same way*. A probe that uploads but cannot be
+deleted is reported too — backups will work, but retention will not prune.
+
+The check is advisory on purpose: the store may legitimately be down right now,
+and refusing to record the operator's configuration because of that would be
+worse than a warning. The default `sse=AES256` against a MinIO without a KMS is
+the case it exists for — before it, the save looked fine and the first failure
+arrived at the cron hour on a master nobody was watching.
+
+### Run history
+
+Every attempt — manual or scheduled — is recorded, success or failure:
+
+```bash
+curl -s -H "Authorization: Bearer $TOK" $BASE/admin/api/backup/runs
+```
+
+```json
+[
+  {"at":"2026-10-27T19:13:00Z","trigger":"cron","outcome":"ok","elapsedMs":2140,
+   "backupId":"20261027T191300-…","objectKey":"chango/20261027T191300-….tar.gz",
+   "sizeBytes":1777090,"serverSideEncryption":"none","prunedCount":0},
+  {"at":"2026-10-27T19:11:00Z","trigger":"cron","outcome":"failed","elapsedMs":310,
+   "error":"PUT chango/… failed: HTTP 501 — this endpoint does not implement server-side encryption (AES256) …"}
+]
+```
+
+Newest first, the last 50 attempts (`error` truncated to 600 characters). The
+history is kept in replicated config, so `GET /admin/api/backup/runs` answers the
+same on a follower as on the leader. Recording never hides the outcome: a failed
+`POST /admin/api/backup/run` still answers with the error.
+
+**Settings → Backup** shows it as **Recent runs** — *When*, *Trigger*, *Outcome*,
+*Size*, *Took*, *Object / error*. When nothing has run yet the table says: *No
+backup has run yet. A scheduled run reports here — if the cron is set and this
+stays empty, the schedule is not firing.* Before this table, a failed scheduled
+run was one `WARN` line in the log of whichever master was leader that night.
+
+### HTTPS with a private CA
+
+The backup upload is made by the control plane itself, not by a component. If
+the endpoint presents a certificate from a corporate CA, register that CA on
+**Settings → Trust Store** — it applies to the next call without a restart. A
+CA registered only on a component does not reach these calls. See
+[Trust Store](trust-store.md).
 
 ### Schedule
 

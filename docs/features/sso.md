@@ -80,7 +80,8 @@ errors. Set `chango.sso.allow.unmapped.groups=true` to allow it anyway.
 Everything below can be set in the console under **Settings → SSO**, which stores it
 in the replicated metadata store and applies it on every master with no restart. The
 properties file is still read for anything left unset, so a cluster configured by
-file keeps working untouched.
+file keeps working untouched. The page is admin-only to change: a non-admin sees the current settings
+with every input and toggle disabled, not only the save button.
 
 Local passwords keep working while SSO is on. Enabling it cannot lock you out.
 

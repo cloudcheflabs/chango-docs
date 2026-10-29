@@ -53,6 +53,11 @@ A `pg_dump -Fc` per database would restore faster in parallel, but it would sile
 
 ## Where archives go
 
+The upload is made from the node manager and the archive listing from the
+master — both chango processes, so with an HTTPS endpoint whose certificate
+comes from a private CA, register the CA on **Settings → Trust Store** (see
+[Trust Store](trust-store.md)).
+
 The S3 destination is the same `backup.s3.*` configuration the master's own backup uses, edited on **Settings → Backup** in the admin UI. One bucket and one credential pair serve both. Configuring them twice is how a rotated key ends up applied to one and not the other, with the second failing quietly.
 
 Only the prefix differs:
@@ -75,6 +80,21 @@ The destination is shared; these three keys are PostgreSQL-specific and live in 
 | `backup.postgres.object-prefix` | `chango-postgres-backups/` | Key prefix inside the shared bucket |
 | `backup.postgres.cron` | *(empty)* | 5-field UNIX cron; empty means manual only |
 | `backup.postgres.retention.days` | `0` | `0` keeps archives forever |
+
+Any other key sent to `POST /admin/api/postgres/backup-config` is **not saved,
+and the response says so**:
+
+```json
+{
+  "status": "ok",
+  "ignored": ["backup.s3.endpoint", "backup.s3.bucket"],
+  "hint": "These keys are not owned by the PostgreSQL backup settings and were not saved. The S3 destination is shared with the control plane's own backup — set backup.s3.* on the Backup page (POST /admin/api/backup/config)."
+}
+```
+
+It used to answer `{"status":"ok"}` and drop them, and the next backup then
+failed with `backup S3 endpoint is not configured` — which reads as a problem
+separate from the save that had just succeeded.
 
 Static defaults are in `chango.properties`:
 

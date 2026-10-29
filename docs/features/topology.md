@@ -85,6 +85,6 @@ See [Hosts Sync](hosts-sync.md) for the sync details.
 ## Adding / removing hosts
 
 - **Adding** a node manager — prepare the host, add it to the inventory, re-run the install playbook with `--limit <new-host>`. The new NM registers in ZooKeeper, the leader picks it up, and component install panels in the admin UI start offering it as a target.
-- **Removing** a node manager — stop `chango-nodemanager.service` on that host. Its ephemeral znode disappears; the leader removes it from the live registry. Component instances still listed against that nodeId stay in metadata; before reusing the same nodeId on a different host, delete or move those instances first.
+- **Removing** a node manager — stop the node manager on that host. Its ephemeral znode disappears; the leader removes it from the live registry. (A node manager whose ZooKeeper *session* merely expired is not removed: it re-registers on reconnect — see [Control Plane](control-plane.md#what-the-control-plane-knows).) Component instances still listed against that nodeId stay in metadata; before reusing the same nodeId on a different host, delete or move those instances first.
 - **Adding** a master — start a new master process with a fresh `nodeId` against the same ZooKeeper. It joins the leader election. The existing leader keeps leadership (sticky leader).
 - **Removing** a master — stop `chango-master.service`. If it was the leader, the other masters elect a new leader within a second.

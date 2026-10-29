@@ -113,6 +113,17 @@ The tooling only needs `tar`, `sha256sum`, `find`, and a POSIX shell — it ship
 
 All mutating routes are admin-only (Stage-1 RBAC) and leader-only. Followers transparently forward to the leader.
 
+Every `/admin/api/patch/*` route runs on the admin worker pool
+(`chango.master.admin.worker.threads`), not on the HTTP event loop. An upload
+writes a 10 MB+ tarball and a chango self-patch waits minutes for the follower
+masters; on the event loop that blocked every other connection assigned to the
+same loop, so catalog listings on a leader that was up the whole time timed out
+during a patch. A self-patch holds one worker thread while it waits.
+
+A component patch whose target node manager is not registered reports that host
+as `nm-not-found` with the reason, rather than a bare status that reads like a
+mistyped node id.
+
 ### Upload
 
 ```bash
@@ -195,6 +206,15 @@ curl -s -H "Authorization: Bearer $TOK" \
 
 Returns the list of patches whose `.bak/` is still present on the cluster — applied in newest-first order, one row per `(patchId, host)`. The admin UI uses this to drive the PatchHistoryCard on each component page.
 
+For `component=chango` the rows have the same shape as for a component —
+`{patchId, instanceId, nodeId, createdAt}` plus `version`, `type`, `notes`,
+`builtAt`, `uploadedAt` — with `instanceId` set to `chango control plane` and
+one row per host the patch reached. Those come from `appliedPatchMeta`, a record
+of `{appliedAt, hosts[]}` per patch kept next to the apply order. A patch applied
+before that record existed shows a single row with no host and no time, and the
+console prints `—` there rather than *Invalid Date* or 1970. Rolling a patch
+back drops its record too.
+
 ## On-disk layout
 
 ```
@@ -252,7 +272,12 @@ Sidebar → **Settings → Patches** opens the cluster-wide patch console:
 
 ### Patch History card on each component page
 
-Every component's detail page (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium) shows a `PatchHistoryCard` in the right-hand panel listing the patches applied to the current cluster — one row per patch with **Rollback** buttons (`lastBackup` or "rollback to this specific patch").
+Every component's detail page (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium) shows a `PatchHistoryCard` in the right-hand panel listing the patches applied to the current cluster — one row per patch with **Rollback to last backup** (header) and **Rollback to this** (per row).
+
+Both rollback buttons open a confirmation, **Roll back patch**, that names the
+target cluster and which backup it restores and says it cannot be undone from
+there; the confirm button reads **Roll back**. For chango itself the target is
+every master and node manager. They used to run on a single click.
 
 ### Non-admin readonly
 
@@ -384,7 +409,98 @@ What differs is the execution model — chango is patching itself, so it can not
 2. Follower masters next.
 3. Leader self last.
 
-On every target host the master forks a `setsid`-detached helper that does `sleep 3 && download && backup .bak/<patchId>/{lib,admin-ui}.tgz && overlay && stop-master.sh / stop-node-manager.sh && start-…sh`. The helper preserves `CHANGO_MASTER_KEY`, `JAVA_HOME`, and the original `-Dchango.*` system properties from the running process's `/proc/<pid>/cmdline`.
+On every target host the master forks a `setsid`-detached helper that does `sleep 3 && download && backup .bak/<patchId>/{lib,admin-ui}.tgz && overlay && stop-master.sh / stop-node-manager.sh && start-…sh`. The helper carries **every `CHANGO_*` variable** and `JAVA_HOME` of the running process, plus its original `-Dchango.*` system properties from `/proc/<pid>/cmdline`, and passes the list as `CHANGO_CARRY_ENV` so the start script re-exports the same set across the `sudo -u chango` boundary. It used to carry only `CHANGO_MASTER_KEY` and `JAVA_HOME`; a node manager started with `CHANGO_ZK_SERVERLIST` then came back with `chango.zk.serverList is not configured` and exited, while the patch reported the host as patched.
+
+### What restarts, and in what order
+
+| Patch `type` | What the helper does |
+|---|---|
+| `ui` | Overlays `admin-ui/` and stops nothing. The master reads the admin UI from disk on every request, so the new bundle is served as soon as the files are written. |
+| `jar`, `both` | Overlay, then stop and start the role on that host. |
+
+For `jar` / `both` the fan-out is:
+
+1. **Node managers**, all of them. The helper waits up to 60 s for the node
+   manager's pid file and process to be back before it writes `DONE`; if it is
+   not back, the helper fails (`.self-patch-failed`, exit 1) and says the jars
+   are in place but the service is down, with the previous install under
+   `.bak/<patchId>/`.
+2. **Follower masters, one at a time.** After sending to a follower the leader
+   waits until that follower has **re-registered in ZooKeeper** (a new
+   registration znode, not the old one still standing) **and reports ready**,
+   up to `chango.master.selfpatch.follower.wait.ms` (default `180000`, in
+   `conf/chango.properties`). A follower on a host that also runs a node
+   manager queues behind that node manager's helper on the host lock, so the
+   wait has to cover both restarts. It used to be a fixed 8 s, which on such a
+   host ran out before the follower had even stopped — and the leader then
+   restarted in the same second, leaving no master to answer.
+3. **The leader**, last.
+
+If a follower does not come back within the wait, the leader is **not**
+restarted — restarting it too would leave no master. It keeps the previous
+version and the response says so:
+
+```json
+{
+  "patchId": "chango-3.0.0-…",
+  "component": "chango",
+  "status": "self-patch-leader-held",
+  "restarts": true,
+  "hosts": [
+    {"nodeId": "nm-host1-…", "role": "nm",          "status": "ack"},
+    {"nodeId": "nm-host2-…", "role": "nm",          "status": "ack"},
+    {"nodeId": "master-host2-…", "role": "follower", "status": "ack"},
+    {"nodeId": "master-host1-…", "role": "leader-self", "status": "held",
+     "error": "follower master master-host2-… did not come back within 180s, so this leader was not restarted — restarting it too would leave no master. It keeps the previous version. Check that follower's self-patch log, then apply again."}
+  ]
+}
+```
+
+A normal run answers `"status": "self-patch-scheduled"`. Per-host statuses are
+`ack`, `failed`, `transport-error`, `held`, and `unreachable` — the last for a
+host that carries component instances but is not in the node registry (its
+ZooKeeper session is gone). That row says how many instances on it keep the
+previous version: restart its node manager and apply again. Before, such a host
+was simply absent from the list and the result looked complete.
+
+While the leader restarts itself there is a window of a few seconds in which
+leadership moves and admin API calls can be refused; the sticky-leader hint
+(below) brings leadership back to the same node.
+
+The leader's own step is started **inside the leader process**, not sent to
+itself over the internal protocol. That request used to time out on the
+leader's own port: the helper never ran, the leader stayed on the old jars, and
+— because a node manager on the same host had already overlaid the shared
+`lib/` — the jar checksums still matched the patch. Judge a self-patch by each
+host's `self-patch-<patchId>.log` (a `DONE` line for **every role** on that host,
+`role=master` included on the leader host) and by the master process start
+time, not by jar checksums.
+
+**The Patches screen survives its own master restarting.** When the master
+serving the screen restarts mid-apply, the browser loses the connection; the
+screen then shows *Control plane restarting — confirming the result…* and reads
+`/admin/api/patch/level` and the patch history until a record newer than the
+click appears (up to five minutes), instead of reporting a network error for a
+patch that went through. Applying the same patch again is confirmed the same
+way.
+
+!!! warning "A fix to the orchestration itself takes effect from the next patch"
+    The fan-out and the helper script are run by the code that is **already
+    running** when you click Apply. A patch that changes how self-patching
+    works — the order, the wait, what the helper carries — is delivered by the
+    old orchestration, and its own behaviour first shows on the patch after it.
+
+On a host that runs both a master and a node manager the helper runs twice,
+once per role, serialised by a host lock. The tarball is downloaded **once per
+host**: the first role caches it under `/opt/chango/.patch-cache/<patchId>.tgz`
+and the second re-checks it with `gzip -t` and uses it, so it does not depend
+on the master that serves `/raw` still being up. When a download is needed it
+is retried for longer than one leader restart (`curl --retry 10 --retry-delay 3
+--retry-all-errors --retry-connrefused`; without `--retry-all-errors` curl does
+not retry exit 18, a truncated transfer). Before this, the node manager's
+restart on a shared host overlapped the leader's own restart, the master role's
+download was cut off, and that master went on serving pre-patch code while the
+apply said `ack`.
 
 The download is retried, size-checked and `gzip -t`'d before anything is
 stopped, and the helper's `fail()` is defined before the first thing that calls
@@ -455,5 +571,12 @@ has been swapped. That ack is not evidence. Check four things:
 4. the behaviour you patched actually changed.
 
 A helper that fails after the ack leaves `/opt/chango/.self-patch-failed` and a
-log under `/var/log/chango/self-patch-<patchId>.log` — read those before
-concluding a patch "did nothing".
+log under `<chango log dir>/self-patch-<patchId>.log` — read those before
+concluding a patch "did nothing". The master also reads the marker **on every
+start** and logs it at `ERROR` — `A self-patch failed on this host and was never
+applied. This process may be running code older than the jars on disk …` —
+until a later successful patch of that role removes it. Re-apply from
+**Settings → Patches**, or roll back; the previous install is under
+`/opt/chango/.bak/<patchId>`.
+
+For a `ui` patch, check (1) and (4) only: nothing restarts.

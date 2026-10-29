@@ -27,7 +27,8 @@ Spark, Trino, and Flink are deliberately omitted — their web UIs are exposed t
 For a supported component, open the cluster page in the admin UI and click **Nginx Proxy**. The panel shows:
 
 - A dropdown of node managers — pick one to host the nginx instance. If the NM does not have nginx installed yet chango installs it via `dnf install nginx` the first time you Apply.
-- The list of cluster instances behind the proxy (checkboxes — usually you check all).
+- The list of cluster instances behind the proxy (checkboxes). When no proxy is applied yet, every endpoint is **pre-selected** — putting all of them behind the proxy is the intended setup; uncheck the ones you want to leave out.
+- The submit button says what it will do: **Apply Proxy (n)** with *n* endpoints selected; **Remove Proxy** when nothing is selected and a proxy is applied; **Pick at least one endpoint** (disabled) when nothing is selected and no proxy exists. A drawer opened to *create* a proxy never offers to remove one.
 - A *Current Proxy URL* banner once the proxy is live, with the full `http://<host>:<port>` (per surface, for multi-surface components).
 
 Apply writes the nginx config under `/etc/nginx/conf.d/chango_<component>_<clusterId>.conf` (and `/etc/nginx/stream.d/...` for stream-block surfaces like NeoRunBase pgwire), enables and reloads nginx, and remembers the chosen host + listen port in the cluster's settings.
@@ -72,7 +73,7 @@ sudo grep public.endpoint /opt/components/<gatewayInstanceId>/conf/trino-gateway
 
 ## Removing the proxy
 
-Open the same Nginx panel and Apply with zero instances checked, or click *Remove Proxy*. Chango removes the `chango_<component>_<clusterId>.conf` file and reloads nginx. The chosen host's nginx daemon stays installed (it may be in use by another component's proxy on the same host).
+Open the same Nginx panel, uncheck every instance and click *Remove Proxy*. An empty selection is only a removal when a proxy is applied; with no proxy in place the button is disabled, and the Trino Gateway API refuses the empty request (see [Trino Gateway Routing](../features/gateway-routing.md#the-client-surface-nginx-and-it-is-always-tls)). Chango removes the `chango_<component>_<clusterId>.conf` file and reloads nginx. The chosen host's nginx daemon stays installed (it may be in use by another component's proxy on the same host).
 
 ## Multi-surface components
 
