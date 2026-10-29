@@ -185,7 +185,15 @@ body (`certificate` + `fileName`, or `gatewayClusterId`); it has no `GET` or
 **Registering the same `fileName` again** replaces the certificate on every
 node, including the JDK `cacerts` entry of the same alias — use it to roll a
 renewed CA. Deleting asks for confirmation in the tab, then removes the PEM
-and the PKCS12 under `/etc/chango/certs/` on every node of the cluster.
+and the PKCS12 under `/etc/chango/certs/` on every node of the cluster —
+**except on a node where another registration still uses the same file name**:
+the control plane (every node) or another component cluster with an instance
+on that node. All registrations share that one directory, so the same corporate
+CA registered as `corp-root-ca.pem` on the control plane and on several engines
+is one file per node. On those nodes the file stays and only this cluster's
+record goes; the response lists them under `kept` with `stillRegisteredBy`.
+Earlier builds removed the file regardless, which left the control plane and
+every other engine showing the certificate as registered while the file was gone.
 
 !!! warning "Deleting does not withdraw the trust"
     The `cacerts` alias (`chango-<name>`) and the OS trust anchor stay — they

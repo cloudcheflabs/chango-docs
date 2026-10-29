@@ -60,6 +60,21 @@ When more than one chango master is running, exactly one is elected leader. Only
     (`bin/*-cli.sh iam:reset-password`) followed by
     `POST /<component>/<id>/credentials` to register the new value.
 
+!!! note "A rotation whose answer was lost is still recovered"
+    The new password is recorded as `adminPasswordPending` **before** it is sent.
+    If the product applies the change but the answer never arrives — the product
+    restarting at that moment, which is exactly what a Trust Store **Apply &
+    Restart** right after install does — the next sweep logs in with the pending
+    value, confirms it and keeps it (`admin password rotation confirmed from the
+    pending value`). Earlier builds recorded the password only after a success
+    answer; in that case nothing was kept and the product's admin password was
+    known to no one.
+
+    The credential fields (`adminPassword`, `adminOtok`, the pending value) are
+    also protected from long-running operations that rewrite the whole cluster
+    record from a copy read before the sweep ran: such a write keeps the newer
+    credentials rather than the ones in its copy.
+
 Election uses Curator's `LeaderSelector` against `/chango/master-leader`. The last leader's `nodeId` is recorded under `/chango/master-leader-id` (persistent znode) so a restarted master can defer briefly and let its predecessor reclaim leadership — this is the "sticky leader" pattern. It prevents flap during a rolling restart.
 
 ## Followers

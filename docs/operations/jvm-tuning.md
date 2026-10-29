@@ -40,6 +40,7 @@ on the launcher's default.
 | Kafka broker | `KAFKA_HEAP_OPTS` in a `kafka-env.sh` the start command sources |
 | Schema Registry (standalone **and** the one co-located with Kafka) | `SCHEMA_REGISTRY_HEAP_OPTS` |
 | UI Proxy | `CHANGO_UI_PROXY_OPTS` |
+| Polaris | `POLARIS_JAVA_OPTS` — the same variable carries the `-D` server settings, so every rewrite (Configure, S3 credentials, scale-out) writes the heap with them |
 | Flink | `<role>.memory.process.size` in `config.yaml` — Flink *derives* `-Xmx` from it |
 | First-party products (Ontul, kiok, …) | `conf/jvm.conf` |
 
@@ -49,6 +50,12 @@ Two consequences worth knowing:
   subtracts metaspace, network and managed memory and derives the heap. Setting
   `1536m` on a TaskManager produced `-Xmx436207608` (≈416 MB). That is correct,
   not a bug.
+- **Polaris: check the running JVM, not the screen.** One variable carries both
+  the server settings and the heap, and the S3-credentials path used to rebuild
+  it without the heap — after one **Configure → Apply & Restart** both servers
+  ran with the JVM default (a quarter of host memory) and logged to the install
+  directory, while the console still showed the install-time `768m`. Confirm
+  with `jcmd <pid> VM.flags | tr ' ' '\n' | grep MaxHeapSize`.
 - **The heap you give at install is the process size Flink starts with.** It
   used to lose to the packaged default `memory.process.size` (1728m /
   1600m), so whatever heap was entered at install, every TaskManager ran the
