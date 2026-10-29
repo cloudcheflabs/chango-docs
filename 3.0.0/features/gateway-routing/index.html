@@ -755,6 +755,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -1129,7 +1143,7 @@
   
     <li class="md-nav__item">
       <a href="../config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1741,6 +1755,21 @@ after the cluster is up.</p>
 <a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1">#   nginxPort     19300</span>
 <a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="c1">#   nginxApplied  host-a:8680,host-b:8680     ← should list every gateway</span>
 </code></pre></div>
+<p>An empty <code>gatewayInstanceIds</code> means <strong>remove the proxy</strong>, which is what the
+console's <em>Remove Proxy</em> sends. Two requests that would have been read that way
+by mistake are refused with <code>400</code> instead:</p>
+<ul>
+<li><code>gatewayInstanceIds</code> empty (or missing — a misspelled field such as
+  <code>endpoints</code> is dropped) while no proxy is applied: <code>gatewayInstanceIds is
+  empty and no proxy is applied, so there is nothing to apply and nothing to
+  remove …</code>, followed by the gateway instance ids of this cluster;</li>
+<li>ids were sent but none of them is a gateway instance of this cluster:
+  <code>none of the requested gateway instances were recognised: [...]</code>, with the
+  same list.</li>
+</ul>
+<p>Both used to answer <code>200</code> with the cluster JSON and leave <code>conf.d</code> empty — the
+gateway then had no TLS front, and since Trino's JDBC driver refuses Basic
+credentials over plain HTTP, nothing authenticated could reach it.</p>
 <p><code>listenPort: 0</code> auto-allocates from a dedicated band. A port given explicitly is
 honoured only after it is confirmed free — nginx binding silently fails
 otherwise, which leaves a surface that reports success and refuses connections.</p>
@@ -1854,6 +1883,10 @@ to copy or paste. Pass a <code>certificate</code> (PEM) instead to install a <st
 CA</strong> — a JVM does not know that CA either, so it fails exactly like a
 self-signed one, except one CA certificate covers every server certificate it
 issues and survives their reissue.</p>
+<p>The same distribution exists for the engines themselves (Trino, Trino Gateway,
+Spark, Flink, Ontul) and for the control plane's own calls — see
+<a href="../trust-store/">Trust Store</a>. Reading the certificate off the gateway pins the
+leaf it serves today; the tab says so, and a renewal means running it again.</p>
 <p><code>taskConfigKeys</code> is the line to paste, per task type. The prefix differs
 (<code>trino.</code> / <code>ontul.</code> / <code>livy.</code> / none for <code>http</code>) and a wrong prefix is
 <strong>silently ignored</strong> — the result is a PKIX failure that says nothing about the

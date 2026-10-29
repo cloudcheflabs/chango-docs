@@ -755,6 +755,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -1101,6 +1115,13 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#what-restarts-and-in-what-order" class="md-nav__link">
+    What restarts, and in what order
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#rolling-a-self-patch-back" class="md-nav__link">
     Rolling a self-patch back
   </a>
@@ -1149,7 +1170,7 @@
   
     <li class="md-nav__item">
       <a href="../config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1683,6 +1704,15 @@ none — Trino refuses to start with
 </tbody>
 </table>
 <p>All mutating routes are admin-only (Stage-1 RBAC) and leader-only. Followers transparently forward to the leader.</p>
+<p>Every <code>/admin/api/patch/*</code> route runs on the admin worker pool
+(<code>chango.master.admin.worker.threads</code>), not on the HTTP event loop. An upload
+writes a 10 MB+ tarball and a chango self-patch waits minutes for the follower
+masters; on the event loop that blocked every other connection assigned to the
+same loop, so catalog listings on a leader that was up the whole time timed out
+during a patch. A self-patch holds one worker thread while it waits.</p>
+<p>A component patch whose target node manager is not registered reports that host
+as <code>nm-not-found</code> with the reason, rather than a bare status that reads like a
+mistyped node id.</p>
 <h3 id="upload">Upload</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/login<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
@@ -1743,6 +1773,14 @@ none — Trino refuses to start with
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">     </span><span class="s2">&quot;</span><span class="nv">$BASE</span><span class="s2">/admin/api/patch/history?component=ontul&amp;clusterId=ontul-main&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.
 </code></pre></div>
 <p>Returns the list of patches whose <code>.bak/</code> is still present on the cluster — applied in newest-first order, one row per <code>(patchId, host)</code>. The admin UI uses this to drive the PatchHistoryCard on each component page.</p>
+<p>For <code>component=chango</code> the rows have the same shape as for a component —
+<code>{patchId, instanceId, nodeId, createdAt}</code> plus <code>version</code>, <code>type</code>, <code>notes</code>,
+<code>builtAt</code>, <code>uploadedAt</code> — with <code>instanceId</code> set to <code>chango control plane</code> and
+one row per host the patch reached. Those come from <code>appliedPatchMeta</code>, a record
+of <code>{appliedAt, hosts[]}</code> per patch kept next to the apply order. A patch applied
+before that record existed shows a single row with no host and no time, and the
+console prints <code>—</code> there rather than <em>Invalid Date</em> or 1970. Rolling a patch
+back drops its record too.</p>
 <h2 id="on-disk-layout">On-disk layout</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>&lt;install_dir&gt;/data/master/patches/
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    &lt;patchId&gt;.tgz                ← the raw uploaded tarball
@@ -1785,7 +1823,11 @@ none — Trino refuses to start with
 <li><strong>Apply modal</strong> — pick a cluster (autopopulated from the existing instances of the patch's component), pick <code>rolling</code> or <code>parallel</code>, confirm. The modal streams the leader's response and surfaces per-host status as it lands. Above the restart choice it shows the selected cluster's <strong>installed version</strong> and <strong>patch level</strong>, with every recorded patch id, and warns when this patch would be a downgrade or crosses a major version.</li>
 </ul>
 <h3 id="patch-history-card-on-each-component-page">Patch History card on each component page</h3>
-<p>Every component's detail page (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium) shows a <code>PatchHistoryCard</code> in the right-hand panel listing the patches applied to the current cluster — one row per patch with <strong>Rollback</strong> buttons (<code>lastBackup</code> or "rollback to this specific patch").</p>
+<p>Every component's detail page (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium) shows a <code>PatchHistoryCard</code> in the right-hand panel listing the patches applied to the current cluster — one row per patch with <strong>Rollback to last backup</strong> (header) and <strong>Rollback to this</strong> (per row).</p>
+<p>Both rollback buttons open a confirmation, <strong>Roll back patch</strong>, that names the
+target cluster and which backup it restores and says it cannot be undone from
+there; the confirm button reads <strong>Roll back</strong>. For chango itself the target is
+every master and node manager. They used to run on a single click.</p>
 <h3 id="non-admin-readonly">Non-admin readonly</h3>
 <p>Non-admin users (members of any group that does <strong>not</strong> hold the <code>AdministratorAccess</code> policy) see the Patches page in read-only mode — the Library is visible, but <strong>Upload</strong>, <strong>Apply</strong>, <strong>Rollback</strong> buttons are hidden, and the dropzone is disabled. The backend enforces the same gate.</p>
 <h2 id="patch-level-and-what-a-scale-out-does-with-it">Patch level, and what a scale-out does with it</h2>
@@ -1895,7 +1937,103 @@ costs a few hundred KB. Omitting one costs the control plane.</p>
 <li>Follower masters next.</li>
 <li>Leader self last.</li>
 </ol>
-<p>On every target host the master forks a <code>setsid</code>-detached helper that does <code>sleep 3 &amp;&amp; download &amp;&amp; backup .bak/&lt;patchId&gt;/{lib,admin-ui}.tgz &amp;&amp; overlay &amp;&amp; stop-master.sh / stop-node-manager.sh &amp;&amp; start-…sh</code>. The helper preserves <code>CHANGO_MASTER_KEY</code>, <code>JAVA_HOME</code>, and the original <code>-Dchango.*</code> system properties from the running process's <code>/proc/&lt;pid&gt;/cmdline</code>.</p>
+<p>On every target host the master forks a <code>setsid</code>-detached helper that does <code>sleep 3 &amp;&amp; download &amp;&amp; backup .bak/&lt;patchId&gt;/{lib,admin-ui}.tgz &amp;&amp; overlay &amp;&amp; stop-master.sh / stop-node-manager.sh &amp;&amp; start-…sh</code>. The helper carries <strong>every <code>CHANGO_*</code> variable</strong> and <code>JAVA_HOME</code> of the running process, plus its original <code>-Dchango.*</code> system properties from <code>/proc/&lt;pid&gt;/cmdline</code>, and passes the list as <code>CHANGO_CARRY_ENV</code> so the start script re-exports the same set across the <code>sudo -u chango</code> boundary. It used to carry only <code>CHANGO_MASTER_KEY</code> and <code>JAVA_HOME</code>; a node manager started with <code>CHANGO_ZK_SERVERLIST</code> then came back with <code>chango.zk.serverList is not configured</code> and exited, while the patch reported the host as patched.</p>
+<h3 id="what-restarts-and-in-what-order">What restarts, and in what order</h3>
+<table>
+<thead>
+<tr>
+<th>Patch <code>type</code></th>
+<th>What the helper does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ui</code></td>
+<td>Overlays <code>admin-ui/</code> and stops nothing. The master reads the admin UI from disk on every request, so the new bundle is served as soon as the files are written.</td>
+</tr>
+<tr>
+<td><code>jar</code>, <code>both</code></td>
+<td>Overlay, then stop and start the role on that host.</td>
+</tr>
+</tbody>
+</table>
+<p>For <code>jar</code> / <code>both</code> the fan-out is:</p>
+<ol>
+<li><strong>Node managers</strong>, all of them. The helper waits up to 60 s for the node
+   manager's pid file and process to be back before it writes <code>DONE</code>; if it is
+   not back, the helper fails (<code>.self-patch-failed</code>, exit 1) and says the jars
+   are in place but the service is down, with the previous install under
+   <code>.bak/&lt;patchId&gt;/</code>.</li>
+<li><strong>Follower masters, one at a time.</strong> After sending to a follower the leader
+   waits until that follower has <strong>re-registered in ZooKeeper</strong> (a new
+   registration znode, not the old one still standing) <strong>and reports ready</strong>,
+   up to <code>chango.master.selfpatch.follower.wait.ms</code> (default <code>180000</code>, in
+   <code>conf/chango.properties</code>). A follower on a host that also runs a node
+   manager queues behind that node manager's helper on the host lock, so the
+   wait has to cover both restarts. It used to be a fixed 8 s, which on such a
+   host ran out before the follower had even stopped — and the leader then
+   restarted in the same second, leaving no master to answer.</li>
+<li><strong>The leader</strong>, last.</li>
+</ol>
+<p>If a follower does not come back within the wait, the leader is <strong>not</strong>
+restarted — restarting it too would leave no master. It keeps the previous
+version and the response says so:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">{</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">&quot;patchId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;chango-3.0.0-…&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nt">&quot;component&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;chango&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;self-patch-leader-held&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">  </span><span class="nt">&quot;restarts&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">  </span><span class="nt">&quot;hosts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nm-host1-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nm&quot;</span><span class="p">,</span><span class="w">          </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ack&quot;</span><span class="p">},</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nm-host2-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nm&quot;</span><span class="p">,</span><span class="w">          </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ack&quot;</span><span class="p">},</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;master-host2-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;follower&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ack&quot;</span><span class="p">},</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;nodeId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;master-host1-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;leader-self&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;held&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">     </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;follower master master-host2-… did not come back within 180s, so this leader was not restarted — restarting it too would leave no master. It keeps the previous version. Check that follower&#39;s self-patch log, then apply again.&quot;</span><span class="p">}</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="p">}</span>
+</code></pre></div>
+<p>A normal run answers <code>"status": "self-patch-scheduled"</code>. Per-host statuses are
+<code>ack</code>, <code>failed</code>, <code>transport-error</code>, <code>held</code>, and <code>unreachable</code> — the last for a
+host that carries component instances but is not in the node registry (its
+ZooKeeper session is gone). That row says how many instances on it keep the
+previous version: restart its node manager and apply again. Before, such a host
+was simply absent from the list and the result looked complete.</p>
+<p>While the leader restarts itself there is a window of a few seconds in which
+leadership moves and admin API calls can be refused; the sticky-leader hint
+(below) brings leadership back to the same node.</p>
+<p>The leader's own step is started <strong>inside the leader process</strong>, not sent to
+itself over the internal protocol. That request used to time out on the
+leader's own port: the helper never ran, the leader stayed on the old jars, and
+— because a node manager on the same host had already overlaid the shared
+<code>lib/</code> — the jar checksums still matched the patch. Judge a self-patch by each
+host's <code>self-patch-&lt;patchId&gt;.log</code> (a <code>DONE</code> line for <strong>every role</strong> on that host,
+<code>role=master</code> included on the leader host) and by the master process start
+time, not by jar checksums.</p>
+<p><strong>The Patches screen survives its own master restarting.</strong> When the master
+serving the screen restarts mid-apply, the browser loses the connection; the
+screen then shows <em>Control plane restarting — confirming the result…</em> and reads
+<code>/admin/api/patch/level</code> and the patch history until a record newer than the
+click appears (up to five minutes), instead of reporting a network error for a
+patch that went through. Applying the same patch again is confirmed the same
+way.</p>
+<div class="admonition warning">
+<p class="admonition-title">A fix to the orchestration itself takes effect from the next patch</p>
+<p>The fan-out and the helper script are run by the code that is <strong>already
+running</strong> when you click Apply. A patch that changes how self-patching
+works — the order, the wait, what the helper carries — is delivered by the
+old orchestration, and its own behaviour first shows on the patch after it.</p>
+</div>
+<p>On a host that runs both a master and a node manager the helper runs twice,
+once per role, serialised by a host lock. The tarball is downloaded <strong>once per
+host</strong>: the first role caches it under <code>/opt/chango/.patch-cache/&lt;patchId&gt;.tgz</code>
+and the second re-checks it with <code>gzip -t</code> and uses it, so it does not depend
+on the master that serves <code>/raw</code> still being up. When a download is needed it
+is retried for longer than one leader restart (<code>curl --retry 10 --retry-delay 3
+--retry-all-errors --retry-connrefused</code>; without <code>--retry-all-errors</code> curl does
+not retry exit 18, a truncated transfer). Before this, the node manager's
+restart on a shared host overlapped the leader's own restart, the master role's
+download was cut off, and that master went on serving pre-patch code while the
+apply said <code>ack</code>.</p>
 <p>The download is retried, size-checked and <code>gzip -t</code>'d before anything is
 stopped, and the helper's <code>fail()</code> is defined before the first thing that calls
 it. All three exist because of one incident: the leader was being restarted as
@@ -1909,10 +2047,10 @@ in several places — looking for a backup, probing for nginx — and would abor
 the first of them.</p>
 <p>Because the leader writes a <code>master-leader-preferred:&lt;expiresAt&gt;</code> hint to ZooKeeper just before its graceful stop, the <strong>sticky-leader</strong> mechanism (see <a href="../sticky-leader/">Sticky Leader Election</a>) reclaims leadership for the same nodeId once the helper finishes the restart — no leadership toggle, no double KMS / IAM init.</p>
 <h3 id="rolling-a-self-patch-back">Rolling a self-patch back</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;component&quot;:&quot;chango&quot;,&quot;clusterId&quot;:&quot;chango&quot;,&quot;to&quot;:&quot;lastBackup&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/rollback
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;component&quot;:&quot;chango&quot;,&quot;clusterId&quot;:&quot;chango&quot;,&quot;to&quot;:&quot;lastBackup&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/patch/rollback
 </code></pre></div>
 <p>Same route as any other rollback, and the same 3-phase fan-out in the same
 order — node managers, then follower masters one at a time so quorum survives,
@@ -1954,8 +2092,14 @@ has been swapped. That ack is not evidence. Check four things:</p>
 <li>the behaviour you patched actually changed.</li>
 </ol>
 <p>A helper that fails after the ack leaves <code>/opt/chango/.self-patch-failed</code> and a
-log under <code>/var/log/chango/self-patch-&lt;patchId&gt;.log</code> — read those before
-concluding a patch "did nothing".</p>
+log under <code>&lt;chango log dir&gt;/self-patch-&lt;patchId&gt;.log</code> — read those before
+concluding a patch "did nothing". The master also reads the marker <strong>on every
+start</strong> and logs it at <code>ERROR</code> — <code>A self-patch failed on this host and was never
+applied. This process may be running code older than the jars on disk …</code> —
+until a later successful patch of that role removes it. Re-apply from
+<strong>Settings → Patches</strong>, or roll back; the previous install is under
+<code>/opt/chango/.bak/&lt;patchId&gt;</code>.</p>
+<p>For a <code>ui</code> patch, check (1) and (4) only: nothing restarts.</p>
 
 
 

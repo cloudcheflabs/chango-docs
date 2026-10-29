@@ -753,6 +753,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -922,7 +936,7 @@
   
     <li class="md-nav__item">
       <a href="../../features/config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1202,6 +1216,13 @@
         <li class="md-nav__item">
   <a href="#sizing-guidance" class="md-nav__link">
     Sizing guidance
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#remote-jmx-is-off-on-the-kafka-family" class="md-nav__link">
+    Remote JMX is off on the Kafka family
   </a>
   
 </li>
@@ -1542,11 +1563,16 @@ on the launcher's default.</p>
   subtracts metaspace, network and managed memory and derives the heap. Setting
   <code>1536m</code> on a TaskManager produced <code>-Xmx436207608</code> (≈416 MB). That is correct,
   not a bug.</li>
+<li><strong>The heap you give at install is the process size Flink starts with.</strong> It
+  used to lose to the packaged default <code>memory.process.size</code> (1728m /
+  1600m), so whatever heap was entered at install, every TaskManager ran the
+  default. Check with <code>grep process.size conf/config.yaml</code> on the instance, not
+  only the console's record.</li>
 <li><strong>The env path is a chango record, so it can be written while the instance is
   stopped.</strong> That is deliberate: the case that matters is a heap too large for
-  the host, where the process is already dead — and writing a config <em>file</em>
-  requires a RUNNING instance. chango writes the variable first for exactly this
-  reason.</li>
+  the host, where the process is already dead. Config <em>files</em> can now be
+  written on a stopped or failed instance as well (only <code>STARTING</code>/<code>STOPPING</code>
+  is refused — see <a href="../../features/config-runtime-only/">Config Change Gate</a>).</li>
 </ul>
 <h3 id="roles-that-can-be-tuned">Roles that can be tuned</h3>
 <p>Every role chango runs as a long-lived JVM accepts a <code>JvmConfig</code>. Two were
@@ -1598,7 +1624,7 @@ instance's actual <code>-Xmx</code> against the others rather than against the U
 <li>Set <code>heapMin</code> / <code>heapMax</code>, add any <code>extra</code> flags, Save.</li>
 <li><strong>Restart</strong> the affected instances. Chango rewrites the config file on save but does not bounce the process for you; a rolling restart, role by role, keeps the cluster serving.</li>
 </ol>
-<p>The cluster must be <code>RUNNING</code> for the edit to be accepted — see <a href="../../features/config-runtime-only/">Config Runtime-Only Policy</a> for why chango refuses to stage configuration against a stopped cluster.</p>
+<p>The edit is refused only while an instance is <code>STARTING</code> or <code>STOPPING</code>; a stopped or failed cluster accepts it and reads it at the next start — see <a href="../../features/config-runtime-only/">Config Change Gate</a>.</p>
 <h2 id="verifying-on-the-host">Verifying on the host</h2>
 <p>Read the rendered file:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Trino</span>
@@ -1674,6 +1700,30 @@ Filtering on the command name removes the whole class.</p>
 </tbody>
 </table>
 <p>Reserve headroom for the OS page cache on every host. Component processes that do bulk I/O (Kafka, ShannonStore, anything reading Parquet) get more from free page cache than from a larger heap.</p>
+<h2 id="remote-jmx-is-off-on-the-kafka-family">Remote JMX is off on the Kafka family</h2>
+<p>Kafka's launcher, <code>kafka-run-class.sh</code>, fills an empty <code>KAFKA_JMX_OPTS</code> with
+<code>-Dcom.sun.management.jmxremote</code> and authentication and SSL <strong>off</strong>, and without
+a <code>jmxremote.port</code> the JVM opens its RMI registry on a random high port, on every
+interface. A 3-node install had six such listeners — broker, ZooKeeper, Connect
+and Schema Registry processes — that nobody asked for: unauthenticated remote
+management, and ports the <a href="../../features/port-allocator/">Port Allocator</a> cannot
+see (one sat two numbers outside the UI Proxy band; on a busier host it lands
+inside somebody's band and that component "will not start" with no holder
+named).</p>
+<p>chango now sets the launcher's JMX variable to a single space in the <strong>instance
+environment</strong> of every Kafka-family role — <code>KAFKA_JMX_OPTS</code> for the broker,
+ZooKeeper and Connect, <code>SCHEMA_REGISTRY_JMX_OPTS</code> for the Schema Registry
+(standalone or co-located). A space, not an empty string: the launchers test
+<code>[ -z "$…_JMX_OPTS" ]</code>, and an empty value brings the default back. The
+environment rather than <code>kafka-env.sh</code>, because the Confluent registry package
+has no <code>config/</code> directory and reads a different variable anyway. <strong>Apply &amp;
+Restart</strong> rewrites every role, so a cluster installed earlier is closed on its
+next restart; until then it keeps its random ports (the numbers change on each
+restart, which is easy to misread as "closed").</p>
+<p>This closes a default; it does not decide monitoring. To expose JMX, add
+<code>-Dcom.sun.management.jmxremote.port=&lt;port&gt;</code> — with the authentication flags
+that belong with it — to that role's JVM <strong>extra</strong> options. The port is then a
+value someone chose, and it shows in the console.</p>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <ul>
 <li><strong>Component <code>FAILED</code> right after start, log shows an OOM or heap-configuration error.</strong> Compare the heap in the rendered file against the node's RAM and, for Trino, against the heap floor above.</li>
@@ -1684,7 +1734,7 @@ Filtering on the command name removes the whole class.</p>
 <h2 id="related">Related</h2>
 <ul>
 <li><a href="../component-operations/">Component Operations</a> — the install / configure request shape these blocks live in.</li>
-<li><a href="../../features/config-runtime-only/">Config Runtime-Only Policy</a> — why the cluster must be running to accept a config change.</li>
+<li><a href="../../features/config-runtime-only/">Config Change Gate</a> — which instance states accept a config change, and why.</li>
 <li><a href="../cluster-operations/">Cluster Operations</a> — rolling restarts and scale-out.</li>
 </ul>
 

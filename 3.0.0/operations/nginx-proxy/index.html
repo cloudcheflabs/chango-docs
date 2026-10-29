@@ -753,6 +753,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -922,7 +936,7 @@
   
     <li class="md-nav__item">
       <a href="../../features/config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1476,7 +1490,8 @@
 <p>For a supported component, open the cluster page in the admin UI and click <strong>Nginx Proxy</strong>. The panel shows:</p>
 <ul>
 <li>A dropdown of node managers — pick one to host the nginx instance. If the NM does not have nginx installed yet chango installs it via <code>dnf install nginx</code> the first time you Apply.</li>
-<li>The list of cluster instances behind the proxy (checkboxes — usually you check all).</li>
+<li>The list of cluster instances behind the proxy (checkboxes). When no proxy is applied yet, every endpoint is <strong>pre-selected</strong> — putting all of them behind the proxy is the intended setup; uncheck the ones you want to leave out.</li>
+<li>The submit button says what it will do: <strong>Apply Proxy (n)</strong> with <em>n</em> endpoints selected; <strong>Remove Proxy</strong> when nothing is selected and a proxy is applied; <strong>Pick at least one endpoint</strong> (disabled) when nothing is selected and no proxy exists. A drawer opened to <em>create</em> a proxy never offers to remove one.</li>
 <li>A <em>Current Proxy URL</em> banner once the proxy is live, with the full <code>http://&lt;host&gt;:&lt;port&gt;</code> (per surface, for multi-surface components).</li>
 </ul>
 <p>Apply writes the nginx config under <code>/etc/nginx/conf.d/chango_&lt;component&gt;_&lt;clusterId&gt;.conf</code> (and <code>/etc/nginx/stream.d/...</code> for stream-block surfaces like NeoRunBase pgwire), enables and reloads nginx, and remembers the chosen host + listen port in the cluster's settings.</p>
@@ -1504,7 +1519,7 @@
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># → gateway.public.endpoint=https://10.0.0.13:19240</span>
 </code></pre></div>
 <h2 id="removing-the-proxy">Removing the proxy</h2>
-<p>Open the same Nginx panel and Apply with zero instances checked, or click <em>Remove Proxy</em>. Chango removes the <code>chango_&lt;component&gt;_&lt;clusterId&gt;.conf</code> file and reloads nginx. The chosen host's nginx daemon stays installed (it may be in use by another component's proxy on the same host).</p>
+<p>Open the same Nginx panel, uncheck every instance and click <em>Remove Proxy</em>. An empty selection is only a removal when a proxy is applied; with no proxy in place the button is disabled, and the Trino Gateway API refuses the empty request (see <a href="../../features/gateway-routing/#the-client-surface-nginx-and-it-is-always-tls">Trino Gateway Routing</a>). Chango removes the <code>chango_&lt;component&gt;_&lt;clusterId&gt;.conf</code> file and reloads nginx. The chosen host's nginx daemon stays installed (it may be in use by another component's proxy on the same host).</p>
 <h2 id="multi-surface-components">Multi-surface components</h2>
 <p>Some components front more than one surface from the same nginx. ShannonStore is the canonical example — one nginx listen port, three locations (<code>/</code> → S3 API, <code>/admin</code> → admin UI, <code>/metrics</code> → metrics scrape). The Current Proxy URL banner lists all three URLs.</p>
 <p>NeoRunBase splits across <code>http {}</code> (admin REST) and <code>stream {}</code> (pgwire) — two listen ports. Both surfaces are part of the same Apply, and chango writes the stream-block snippet under <code>/etc/nginx/stream.d/</code>.</p>

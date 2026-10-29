@@ -753,6 +753,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -922,7 +936,7 @@
   
     <li class="md-nav__item">
       <a href="../../features/config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1193,8 +1207,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#config-endpoint-requires-running" class="md-nav__link">
-    Config endpoint requires RUNNING
+  <a href="#config-endpoint-and-instance-state" class="md-nav__link">
+    Config endpoint and instance state
   </a>
   
 </li>
@@ -1526,6 +1540,14 @@
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>-E<span class="w"> </span>/opt/chango/bin/start-node-manager.sh<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>-Dchango.zk.serverList<span class="o">=</span>&lt;zk-quorum&gt;
 </code></pre></div>
+<p><code>start-node-manager.sh</code> refuses to start without a ZooKeeper address from the
+environment, <code>-Dchango.zk.serverList</code> or <code>conf/chango.properties</code>. A
+<code>localhost:2181</code> (or this host's own name) in the properties file is accepted
+when something is actually listening on that port on this host — chango puts a
+ZooKeeper on every control-plane node, so that is the normal case. It used to be
+refused unconditionally, which is how a self-patch that restarted a node manager
+without <code>CHANGO_ZK_SERVERLIST</code> left the host with no node manager. (The script
+lives in <code>bin/</code>, which patches do not carry; it arrives with a new bundle.)</p>
 <p>The pid file is <code>/opt/chango/bin/node-manager.pid</code>. Stop:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-node-manager.sh
 </code></pre></div>
@@ -1550,6 +1572,15 @@ and recovery is two steps in this order.</p>
 </code></pre></div>
 <p>Order matters. Something started before what it depends on comes up and dies
 seconds later, and its status reads RUNNING for a while first.</p>
+<p><code>restart.yml</code> is <code>stop.yml</code> followed by <code>start.yml</code>, and it checks the master
+key <strong>before</strong> stopping anything. When you pass <code>-e master_key_path=…</code>, that
+path is read <strong>on each master host</strong>, and a path that exists only on the
+control node used to fail on the other masters after the stop had already run —
+both masters went down and only the one holding the file came back, with
+<code>failed=1</code> as the only trace in the recap. Now, if any master cannot read the
+file, the playbook stops with nothing stopped and suggests the default path the
+install writes on every master host, <code>-e master_key_path=/opt/chango/conf/master.key</code>.
+Without <code>-e</code>, <code>start.yml</code> prompts for the key as before.</p>
 <div class="admonition warning">
 <p class="admonition-title"><code>RUNNING</code> right after a reboot can be a stale record</p>
 <p>The node managers re-report instance state after they start, and for a short
@@ -1719,9 +1750,8 @@ copied from another environment will have the wrong addresses:</p>
 <p>Until then, requests return <code>503</code> with a JSON body identifying which precondition is unmet. The admin UI shows a "cluster starting" splash.</p>
 <p>The readiness gate timeout is <code>chango.cluster.readiness.timeout.ms</code> (default 120 000). On master startup, the master logs <code>Cluster ready</code> once the gate opens; if it stays closed past the timeout the master exits with a non-zero status. You will see it in <code>/var/log/chango/master.log</code> and the pid file goes stale — re-run <code>bin/start-master.sh</code> after fixing the underlying issue.</p>
 <p>See <a href="../../features/cluster-readiness/">Cluster Readiness</a> for the full flow (leader / non-leader paths, every ZK znode, per-master ready flag) and <a href="../../features/leader-forward/">Leader Forwarding</a> for how follower masters relay mutating admin traffic to the leader once readiness opens.</p>
-<h2 id="config-endpoint-requires-running">Config endpoint requires RUNNING</h2>
-<p><code>POST /admin/api/&lt;comp&gt;/&lt;id&gt;/config</code> (and any file-write endpoint on a component instance) <strong>requires the instance to be RUNNING</strong>. A request against a STOPPED instance returns <code>400 Bad Request</code> with <code>"instance 'X' is STOPPED — config changes require RUNNING; start the instance first."</code>.</p>
-<p>This keeps "admin API state" and "on-disk state" lockstep — components whose <code>start-*.sh</code> re-derives content from chango master settings would otherwise overwrite the just-edited file. Start the instance, apply the config, restart for the change to take effect. See <a href="../../features/config-runtime-only/">Config Runtime-Only Policy</a>.</p>
+<h2 id="config-endpoint-and-instance-state">Config endpoint and instance state</h2>
+<p><code>POST /admin/api/&lt;comp&gt;/&lt;id&gt;/config</code> (and any file-write endpoint on a component instance) is refused only while the instance is <code>STARTING</code> or <code>STOPPING</code>, or when its node manager cannot be reached — both <code>400 Bad Request</code>. <code>RUNNING</code>, <code>STOPPED</code>, <code>ERROR</code> and <code>INSTALLED</code> instances accept it; a stopped process reads the new file at its next start. That is what lets a cluster whose configuration broke its own startup be repaired from <strong>Configure</strong> instead of reinstalled. See <a href="../../features/config-runtime-only/">Config Change Gate</a>.</p>
 <p>For values you need from the very first start (heap size, custom properties), use the install-time <code>properties</code> map + per-role JVM config — not the config endpoint.</p>
 
 

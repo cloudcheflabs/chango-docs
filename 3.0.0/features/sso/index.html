@@ -871,6 +871,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -1040,7 +1054,7 @@
   
     <li class="md-nav__item">
       <a href="../config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1503,7 +1517,8 @@ errors. Set <code>chango.sso.allow.unmapped.groups=true</code> to allow it anywa
 <p>Everything below can be set in the console under <strong>Settings → SSO</strong>, which stores it
 in the replicated metadata store and applies it on every master with no restart. The
 properties file is still read for anything left unset, so a cluster configured by
-file keeps working untouched.</p>
+file keeps working untouched. The page is admin-only to change: a non-admin sees the current settings
+with every input and toggle disabled, not only the save button.</p>
 <p>Local passwords keep working while SSO is on. Enabling it cannot lock you out.</p>
 <h3 id="openid-connect">OpenID Connect</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="na">chango.sso.oidc.enabled</span><span class="o">=</span><span class="s">true</span>

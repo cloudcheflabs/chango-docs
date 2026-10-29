@@ -1,0 +1,1890 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/trust-store/">
+      
+      
+        <link rel="prev" href="../product-master-keys/">
+      
+      
+        <link rel="next" href="../port-allocator/">
+      
+      <link rel="icon" href="../../images/logo/chango-logo.png">
+      <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
+    
+    
+      
+        <title>Trust Store (private CA) - Chango</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.eebd395e.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ecc896b0.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#trust-store" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Chango" class="md-header__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/logo/chango-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Chango
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Trust Store (private CA)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+            
+              <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+              </label>
+            
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+            
+              <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+              </label>
+            
+          
+        </form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="../.." class="md-tabs__link">
+      Home
+    </a>
+  </li>
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../architecture/architecture/" class="md-tabs__link">
+        Architecture
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../installation/" class="md-tabs__link">
+        Installation
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../control-plane/" class="md-tabs__link md-tabs__link--active">
+        Features
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../components/catalog/" class="md-tabs__link">
+        Components
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../operations/cluster-operations/" class="md-tabs__link">
+        Operations
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../tutorials/" class="md-tabs__link">
+        Tutorials
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Chango" class="md-nav__button md-logo" aria-label="Chango" data-md-component="logo">
+      
+  <img src="../../images/logo/chango-logo.png" alt="logo">
+
+    </a>
+    Chango
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          Architecture
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          Architecture
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/architecture/" class="md-nav__link">
+        Chango Architecture
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/component-lifecycle/" class="md-nav__link">
+        Component Lifecycle
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/internal-protocol/" class="md-nav__link">
+        Internal Protocol
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Installation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Installation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/node-preparation/" class="md-nav__link">
+        Node Preparation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/manual/" class="md-nav__link">
+        Manual Install
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/automated/" class="md-nav__link">
+        Automated Install (Ansible)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/bill-of-materials/" class="md-nav__link">
+        Checksums & Bill of Materials
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/getting-started/" class="md-nav__link">
+        Getting Started
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          Features
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          Features
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control-plane/" class="md-nav__link">
+        Control Plane
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../topology/" class="md-nav__link">
+        Cluster Topology
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sticky-leader/" class="md-nav__link">
+        Sticky Leader Election
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../leader-forward/" class="md-nav__link">
+        Leader Forwarding
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster-readiness/" class="md-nav__link">
+        Cluster Readiness
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../iam/" class="md-nav__link">
+        Identity & Access Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sso/" class="md-nav__link">
+        Single Sign-On (OIDC/SAML/LDAP)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lineage-audit/" class="md-nav__link">
+        Data Lineage & Audit
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../role-based-access/" class="md-nav__link">
+        Role-Based Access (Stage 1)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-password-recovery/" class="md-nav__link">
+        Admin Password Recovery
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kms/" class="md-nav__link">
+        Encryption & Key Management
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../product-master-keys/" class="md-nav__link">
+        Product Master Keys
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Trust Store (private CA)
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Trust Store (private CA)
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#control-plane-settings-trust-store" class="md-nav__link">
+    Control plane — Settings → Trust Store
+  </a>
+  
+    <nav class="md-nav" aria-label="Control plane — Settings → Trust Store">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#no-restart" class="md-nav__link">
+    No restart
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rest" class="md-nav__link">
+    REST
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-trust-store-tab" class="md-nav__link">
+    Component Trust Store tab
+  </a>
+  
+    <nav class="md-nav" aria-label="Component Trust Store tab">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-lands-on-each-node" class="md-nav__link">
+    What lands on each node
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-response-tells-you-what-to-configure" class="md-nav__link">
+    The response tells you what to configure
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#listing-scale-out-and-delete" class="md-nav__link">
+    Listing, scale-out and delete
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotating-a-ca" class="md-nav__link">
+    Rotating a CA
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    Troubleshooting
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../port-allocator/" class="md-nav__link">
+        Port Allocator
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hosts-sync/" class="md-nav__link">
+        Hosts Sync
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ui-proxy/" class="md-nav__link">
+        UI Proxy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gateway-routing/" class="md-nav__link">
+        Trino Gateway Routing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kafka-connect/" class="md-nav__link">
+        Kafka Connect & Topics
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schema-registry/" class="md-nav__link">
+        Schema Registry
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../monitoring/" class="md-nav__link">
+        Monitoring & Metrics
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging/" class="md-nav__link">
+        Logging
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup/" class="md-nav__link">
+        Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../postgres-backup/" class="md-nav__link">
+        PostgreSQL Backup & Restore
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../patch-system/" class="md-nav__link">
+        Patch System
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../license/" class="md-nav__link">
+        License Manager
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config-runtime-only/" class="md-nav__link">
+        Config Change Gate
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          Components
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_5">
+          <span class="md-nav__icon md-icon"></span>
+          Components
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/catalog/" class="md-nav__link">
+        Catalog
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/versions/" class="md-nav__link">
+        Versions
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          Operations
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          Operations
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/cluster-operations/" class="md-nav__link">
+        Cluster Operations
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/component-operations/" class="md-nav__link">
+        Component Operations
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/nginx-proxy/" class="md-nav__link">
+        Nginx Reverse Proxy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/configuration/" class="md-nav__link">
+        Configuration Reference
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/jvm-tuning/" class="md-nav__link">
+        JVM & Heap Tuning
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/upgrade/" class="md-nav__link">
+        Upgrade
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          Tutorials
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_7">
+          <span class="md-nav__icon md-icon"></span>
+          Tutorials
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-0-foundation/" class="md-nav__link">
+        Phase 0 — Foundation Install
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-1-trino-iceberg-rbac/" class="md-nav__link">
+        Phase 1 — Trino + Iceberg + RBAC
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-2-spark-iceberg/" class="md-nav__link">
+        Phase 2 — Spark + Iceberg
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-2b-spark-via-livy/" class="md-nav__link">
+        Phase 2b — Spark via Livy REST
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-3-kiok-spark/" class="md-nav__link">
+        Phase 3 — kiok DAG (SSH to Spark master)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-3b-kiok-via-livy/" class="md-nav__link">
+        Phase 3b — kiok DAG via Livy REST
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-4-iceberg-maintenance/" class="md-nav__link">
+        Phase 4 — Iceberg table maintenance
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-5-kafka-flink-iceberg/" class="md-nav__link">
+        Phase 5 — Kafka + Flink + Iceberg streaming
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-6-kiok-livy-spark-iceberg-polaris/" class="md-nav__link">
+        Phase 6 — kiok native livy task + Polaris
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phase-7-kiok-dag-trino-ontul-via-gateway/" class="md-nav__link">
+        Phase 7 — kiok DAG (trino-gw + ontul)
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="trust-store">Trust Store</h1>
+<p>When object storage or a query surface is served over HTTPS with a certificate
+issued by a private (corporate) CA, everything that talks to it has to trust
+that CA. Something that does not fails with <code>PKIX path building failed</code> — a
+message that reads like a wrong address or a wrong credential, not like a
+missing certificate.</p>
+<p>chango distributes trusted certificates from one place, at two levels:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Who calls the HTTPS endpoint</th>
+<th>Where to register</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Control plane</strong></td>
+<td>chango itself — the PostgreSQL backup upload, its own backup and the backup pre-flight check, the Spark event-log prefix it creates at install</td>
+<td><strong>Settings → Trust Store</strong>, <code>/admin/api/truststore</code></td>
+</tr>
+<tr>
+<td><strong>Component</strong></td>
+<td>an engine — Polaris, Trino, Trino Gateway, Spark, Flink, Ontul, kiok</td>
+<td>the component's <strong>Trust Store</strong> tab, <code>/admin/api/&lt;comp&gt;/&lt;clusterId&gt;/truststore</code></td>
+</tr>
+</tbody>
+</table>
+<p>The two are separate on purpose. Registering a CA for a component used to be
+the only option, and the control plane trusted it only by accident — when that
+component happened to run on the same JDK as the master, the certificate landed
+in that JDK's <code>cacerts</code> and the master inherited it. On a host where every
+component runs on a different JDK, the master's own calls failed with PKIX, and
+the failure surfaced as a warning in one place (the event-log prefix) and as a
+backup error with somebody else's name on it in another.</p>
+<div class="admonition tip">
+<p class="admonition-title">Register the CA, not the server certificate</p>
+<p>A server (leaf) certificate works today and breaks the day it is renewed.
+Both screens flag a non-CA certificate as <code>CA 아님</code> (<em>not a CA</em>). Chain-verifying
+clients — Python, <code>curl</code>, <code>mc</code> — reject a leaf-only file outright, with
+<code>CERTIFICATE_VERIFY_FAILED</code> and nothing that points at the cause.</p>
+</div>
+<h2 id="control-plane-settings-trust-store">Control plane — Settings → Trust Store</h2>
+<p>Sidebar → <strong>Settings → Trust Store</strong>. The page lists the registered certificates
+and, for admins, a registration form.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>파일 (<em>file</em>)</td>
+<td>The file name, with a <code>CA 아님</code> badge when the certificate is not a CA</td>
+</tr>
+<tr>
+<td>주체 (<em>subject</em>)</td>
+<td>The certificate's subject DN</td>
+</tr>
+<tr>
+<td>만료 (<em>expiry</em>)</td>
+<td><code>notAfter</code> as a local date and time, plus days left. Within 30 days it is shown in red</td>
+</tr>
+<tr>
+<td>이 마스터 (<em>this master</em>)</td>
+<td><code>적용 중</code> (<em>active</em>) when the file is present in this master's trust directory, <code>파일 없음</code> (<em>file missing</em>) when the record has it and this host does not</td>
+</tr>
+<tr>
+<td>등록 (<em>registered</em>)</td>
+<td>When it was registered</td>
+</tr>
+</tbody>
+</table>
+<p>The <strong>이 마스터</strong> column is the one to read. It compares the cluster record
+with the files this master actually composed into its TLS trust. When they
+disagree, <em>this</em> master does not trust the certificate even though the record
+says it is registered — so its backups to that endpoint fail while the other
+master's succeed.</p>
+<p>To register, paste the PEM into <strong>인증서 (PEM)</strong>, optionally give a
+<strong>파일 이름</strong> (<em>file name</em>; blank means <code>chango-trust.pem</code>), and click
+<strong>Register</strong>. The button reads <em>Paste a certificate first</em> until there is
+something to register. Registering under an existing name overwrites it — that
+is how you renew a certificate.</p>
+<p>Delete is the trash icon on the row (admins only) and goes through a
+confirmation: from that moment, the control plane's calls to a server whose
+certificate this CA issued fail with <code>PKIX path building failed</code>, and the backup
+is where that shows first. Run a backup after deleting to confirm.</p>
+<p>Non-admins see the list and nothing else — no form, no delete.</p>
+<h3 id="no-restart">No restart</h3>
+<p>The master's S3 client does not read a JVM trust store. It builds its TLS
+context from the JDK's default CAs <strong>plus</strong> every <code>.pem</code> / <code>.crt</code> file in the
+trust directory (<code>/etc/chango/certs</code> by default, overridable with the
+<code>chango.trust.dir</code> system property), and it re-reads that directory whenever a
+file in it changes. So:</p>
+<ul>
+<li>a registration is in effect on the <strong>next call</strong>, with no master restart;</li>
+<li>the public CAs are never lost — the registered certificate is <em>added</em> to the
+  JDK defaults, not substituted for them;</li>
+<li>a file may hold a chain; every certificate block in it is trusted.</li>
+</ul>
+<p>Importing into the JDK's <code>cacerts</code> instead would need every master restarted,
+and restarting masters is a hazard of its own.</p>
+<h3 id="rest">REST</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># list</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>curl<span class="w"> </span>-s<span class="w"> </span><span class="nv">$BASE</span>/admin/api/truststore<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;certificates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span><span class="nt">&quot;fileName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;corp-root-ca.pem&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">      </span><span class="nt">&quot;installedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1761735600000</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">      </span><span class="nt">&quot;subject&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CN=Corp Root CA,O=Example&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">      </span><span class="nt">&quot;issuer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CN=Corp Root CA,O=Example&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">      </span><span class="nt">&quot;notAfter&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2108556302000</span><span class="p">,</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">      </span><span class="nt">&quot;daysLeft&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4012</span><span class="p">,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">      </span><span class="nt">&quot;isCa&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">      </span><span class="nt">&quot;sha256&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;…&quot;</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="nt">&quot;activeOnThisMaster&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;corp-root-ca.pem&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="nt">&quot;directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/etc/chango/certs&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">  </span><span class="nt">&quot;appliesWithoutRestart&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>notAfter</code> and <code>installedAt</code> are epoch milliseconds. A record whose PEM cannot
+be parsed carries <code>parseError</code> instead of the certificate fields.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># register (admin, leader)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/truststore<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>jq<span class="w"> </span>-n<span class="w"> </span>--arg<span class="w"> </span>pem<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>cat<span class="w"> </span>corp-root-ca.pem<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="s1">&#39;{certificate:$pem, fileName:&quot;corp-root-ca.pem&quot;}&#39;</span><span class="k">)</span><span class="s2">&quot;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1">#   → {&quot;fileName&quot;:&quot;corp-root-ca.pem&quot;,&quot;path&quot;:&quot;/etc/chango/certs/corp-root-ca.pem&quot;,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1">#      &quot;nodes&quot;:[&quot;nm-host1-…&quot;,&quot;nm-host2-…&quot;,&quot;nm-host3-…&quot;],</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1">#      &quot;configKeys&quot;:{…}, &quot;appliesWithoutRestart&quot;:true}</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># or take the certificate a Trino Gateway TLS surface serves</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/truststore<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;gatewayClusterId&quot;:&quot;tg-1&quot;}&#39;</span><span class="w">          </span><span class="c1"># fileName defaults to tg-1.pem</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="c1"># delete (admin, leader)</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BASE</span><span class="s2">/admin/api/truststore?fileName=corp-root-ca.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="c1">#   → {&quot;fileName&quot;:&quot;corp-root-ca.pem&quot;,&quot;nodes&quot;:[…],&quot;appliesWithoutRestart&quot;:true}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>certificate</code></td>
+<td>A PEM block. Anything without <code>-----BEGIN CERTIFICATE-----</code> is refused with <code>400</code> — an empty or malformed trust file would cost the public CAs too, and the only symptom would be PKIX</td>
+</tr>
+<tr>
+<td><code>fileName</code></td>
+<td>A plain file name, no <code>/</code> or <code>..</code>. <code>.pem</code> is appended when it ends in neither <code>.pem</code> nor <code>.crt</code></td>
+</tr>
+<tr>
+<td><code>gatewayClusterId</code></td>
+<td>Instead of <code>certificate</code>: read the certificate a Trino Gateway nginx surface serves. Refused with <code>gateway '&lt;id&gt;' has no TLS certificate — apply its nginx surface first</code> when the surface does not exist yet. This pins the leaf — see the tip above</td>
+</tr>
+</tbody>
+</table>
+<p>The target is <strong>every registered node manager</strong>, not a list you pass — a master
+host also runs a node manager, so the masters are covered. The certificates are
+recorded on the control plane's own record so the list survives a master
+restart and a leader change.</p>
+<p><code>GET</code> is open to any signed-in user; <code>POST</code> and <code>DELETE</code> are admin-only and
+leader-only (a follower forwards them). All three run on the admin worker pool,
+not the HTTP event loop, because a registration waits on every node manager.</p>
+<div class="admonition note">
+<p class="admonition-title">A node manager added later</p>
+<p>The control-plane registration is pushed to the node managers registered at
+the time of the call. A host that joins afterwards does not receive it —
+unlike component certificates, which a scale-out replays. Register the same
+file name again after adding a node manager; it overwrites in place.</p>
+</div>
+<h2 id="component-trust-store-tab">Component Trust Store tab</h2>
+<p>Polaris, Trino, Trino Gateway, Spark, Flink and Ontul share a <strong>Trust Store</strong> tab in the
+Configure drawer; kiok has its own. Two ways to supply the certificate:</p>
+<ul>
+<li><strong>인증서 붙여넣기</strong> (<em>paste a certificate</em>) — paste your CA's PEM.</li>
+<li><strong>쿼리 창구에서 읽어오기</strong> (<em>read it from the query surface</em>) — pick a Trino
+  Gateway; chango reads the certificate that gateway's TLS surface is serving.
+  The tab says what this does: it pins the certificate served today. When that
+  certificate is renewed, run it again — or paste your <strong>CA</strong> certificate
+  instead, which survives renewals and is what chain-verifying clients need.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/&lt;comp&gt;/&lt;clusterId&gt;/truststore<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;certificate&quot;:&quot;-----BEGIN CERTIFICATE-----…&quot;,&quot;fileName&quot;:&quot;corp-ca.pem&quot;}&#39;</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>curl<span class="w"> </span>-s<span class="w">    </span><span class="s2">&quot;</span><span class="nv">$BASE</span><span class="s2">/admin/api/&lt;comp&gt;/&lt;clusterId&gt;/truststore&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BASE</span><span class="s2">/admin/api/&lt;comp&gt;/&lt;clusterId&gt;/truststore?fileName=corp-ca.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span>
+</code></pre></div>
+<p><code>&lt;comp&gt;</code> is <code>polaris</code>, <code>trino</code>, <code>trino-gateway</code>, <code>spark</code>, <code>flink</code> or <code>ontul</code>. kiok has
+its own route, <code>POST /admin/api/kiok/&lt;clusterId&gt;/truststore</code>, with the same
+body (<code>certificate</code> + <code>fileName</code>, or <code>gatewayClusterId</code>); it has no <code>GET</code> or
+<code>DELETE</code>, and its answer carries <code>taskConfigKeys</code> — the lines a DAG task needs.</p>
+<div class="admonition note">
+<p class="admonition-title">Register the catalog server too</p>
+<p>Polaris writes table metadata to object storage itself — creating a table
+through its REST API, or committing on an engine's behalf, is Polaris
+opening the <code>https://</code> connection, on its own JDK (25). Registering the CA
+only on the query engine can look sufficient when that engine happens to
+share Polaris's JDK; it is not. Register it on the Polaris cluster as well,
+and check by creating a table through Polaris's REST API before any engine
+is involved.</p>
+</div>
+<p><strong>Registering the same <code>fileName</code> again</strong> replaces the certificate on every
+node, including the JDK <code>cacerts</code> entry of the same alias — use it to roll a
+renewed CA. Deleting asks for confirmation in the tab, then removes the PEM
+and the PKCS12 under <code>/etc/chango/certs/</code> on every node of the cluster.</p>
+<div class="admonition warning">
+<p class="admonition-title">Deleting does not withdraw the trust</p>
+<p>The <code>cacerts</code> alias (<code>chango-&lt;name&gt;</code>) and the OS trust anchor stay — they
+are per JDK and per host, not per cluster, so another component on the same
+JDK may rely on the same entry. An engine therefore keeps trusting the CA
+after a delete and a restart. They are removed when the node manager is
+removed from that host (<code>remove-nodemanager.yml</code>). To withdraw a CA from a
+host that stays in service, remove the alias with <code>keytool -delete</code> from the
+engine's JDK <code>cacerts</code> and the anchor from <code>/etc/pki/ca-trust/source/anchors</code>
+followed by <code>update-ca-trust extract</code>, then restart the engines.</p>
+</div>
+<h3 id="what-lands-on-each-node">What lands on each node</h3>
+<p>The certificate goes to <strong>every node that runs an instance of the cluster</strong>, at
+the same path: <code>/etc/chango/certs/&lt;fileName&gt;</code>. The directory is world-readable
+and deliberately not under <code>/opt/chango/conf</code>, which is <code>750</code> on master hosts
+because it holds the master key — a product JVM could not read a certificate
+there and would fall back to an empty trust store on some nodes only.</p>
+<p>What else is built depends on how the engine reads TLS trust:</p>
+<table>
+<thead>
+<tr>
+<th>Engine</th>
+<th>What it reads</th>
+<th>What chango does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>kiok DAG tasks</td>
+<td>The PEM, directly — the task's TLS settings accept PEM/JKS/PKCS12 and add the certificate to the default CAs</td>
+<td>PEM</td>
+</tr>
+<tr>
+<td>Every JVM engine — Polaris, Trino, Trino Gateway, Spark (and its drivers and executors), Flink (and its tasks), Ontul, kiok masters</td>
+<td><strong>Its own JDK's <code>cacerts</code></strong>, which a JVM uses when no <code>javax.net.ssl.trustStore</code> is set</td>
+<td>Imports the certificate into <strong>that engine's JDK <code>cacerts</code></strong> and the OS trust anchors (<code>/etc/pki/ca-trust/source/anchors</code>, then <code>update-ca-trust extract</code>); also builds a PKCS12 (a copy of that <code>cacerts</code> plus your certificate) next to the PEM for anyone who wants an explicit <code>-Djavax.net.ssl.trustStore</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>No JVM option is needed.</strong> On the verification cluster not one running engine
+JVM carries <code>-Djavax.net.ssl.trustStore</code>; every one trusts the private CA
+through its JDK's <code>cacerts</code>. That is also why the example jobs submit to Spark
+and Flink with no <code>-D</code> option and still read and write an <code>https://</code> endpoint:
+executors, Spark drivers (client mode on a cluster node, or cluster mode on a
+worker) and Flink tasks all run on the engine's JDK. A JVM on a developer's
+machine is the one case that needs an explicit trust store.</p>
+<p>The PKCS12 is a copy of <code>cacerts</code> because a store holding only your CA would make
+the JVM lose every public CA, with the same PKIX message as before — pointing at
+the certificate you just added rather than the ones that disappeared. The JDK
+is the one the engine runs on (Trino 25, Spark 11, the others 17); a store built
+from another JDK's <code>cacerts</code> is not what that engine reads, and other JDKs on
+the host are left alone so one component's registration does not widen what
+another trusts.</p>
+<p>The <code>cacerts</code> and OS-anchor import exists because of Trino. Its S3 client goes
+through the AWS SDK's Netty transport, which runs on BoringSSL
+(<code>netty-tcnative</code>, shipped inside the engine's plugins) and never consults
+<code>javax.net.ssl.trustStore</code>. With the option set and the store verified by
+<code>keytool</code>, every query still failed with
+<code>SSLHandshakeException: General OpenSslEngine problem</code>. The OS anchors serve the
+same purpose for OpenSSL clients on the host — <code>mc</code>, <code>curl</code>, Python. The alias
+is removed before it is imported, so re-registering a name replaces it.</p>
+<h3 id="the-response-tells-you-what-to-configure">The response tells you what to configure</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;clusterId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;spark-1&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;componentType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;spark&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;fileName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;corp-ca.pem&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/etc/chango/certs/corp-ca.pem&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">&quot;nodes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;nm-host1-…&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;nm-host2-…&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">&quot;trustStorePath&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/etc/chango/certs/corp-ca.p12&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="nt">&quot;trustStorePassword&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;changeit&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="nt">&quot;configKeys&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="nt">&quot;Master · Worker · History · Livy JVM 의 추가 옵션&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;-Djavax.net.ssl.trustStore=/etc/chango/certs/corp-ca.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="nt">&quot;spark-defaults.conf (드라이버)&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;spark.driver.extraJavaOptions -Djavax.net.ssl.trustStore=…&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="nt">&quot;spark-defaults.conf (익스큐터)&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;spark.executor.extraJavaOptions -Djavax.net.ssl.trustStore=…&quot;</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>configKeys</code> holds lines to paste, keyed by where they go, because a mistyped
+key is ignored silently and comes back only as PKIX. For the JVM engines these
+lines are <strong>optional</strong> — the <code>cacerts</code> import already covers them; use them only
+to pin a JVM to an explicit store. Never put a developer-machine path into
+<code>spark.executor.extraJavaOptions</code>: executors run on the workers, where that file
+does not exist, and an executor pointed at a missing store trusts nothing. For <strong>Trino</strong> the first
+entry is <code>필요한 조작</code> (<em>action needed</em>): none — the registration already put the
+certificate in the JDK trust store and the OS anchors, and a cluster restart
+picks it up. The JVM option is listed after it as optional, for JSSE paths such
+as a catalog REST endpoint over TLS. For <strong>kiok</strong> the lines are the per-task
+<code>trino.ssl.trustStore</code> / <code>ontul.ssl.trustStore</code> / <code>livy.ssl.trustStore</code> keys
+and the common <code>ssl.trustStore</code>. <code>trustStoreError</code> appears when the PEM landed
+but the PKCS12 could not be built.</p>
+<div class="admonition warning">
+<p class="admonition-title">Registered is not the same as trusted by a running JVM</p>
+<p>A JVM reads <code>cacerts</code> once, at startup. After a component registration the
+engine needs <strong>a restart</strong> before it trusts the new CA — no JVM option is
+required. Until then the symptoms do not name the certificate: Flink jobs
+stay <code>RUNNING</code> with no exception while every checkpoint fails with <code>PKIX</code>
+(an Iceberg sink commits on checkpoints, so the table stays empty), and
+Trino queries fail with <code>General OpenSslEngine problem</code>. Confirm with a real
+read and write against the HTTPS endpoint from the engine — not by looking at
+the file. The control plane is the exception: it reads the directory per call.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">One JDK per registration</p>
+<p>The import goes into the JDK <strong>that component</strong> runs on (Spark 11; Trino and
+Polaris 25; the others 17). Other JDKs on the host are left alone, so register
+the CA on every component that talks to the endpoint — registering it on
+Spark alone leaves Trino on the same host refusing it. Replacing a JDK (for
+example with a new bundle) drops the import; register again.</p>
+</div>
+<h3 id="listing-scale-out-and-delete">Listing, scale-out and delete</h3>
+<p><code>GET</code> returns an array of <code>{fileName, installedAt, subject, issuer, notAfter,
+daysLeft, isCa, sha256}</code> — the fingerprint is what tells you whether a
+re-registration under the same name actually replaced the certificate. The tab
+shows it as <strong>지문 (SHA-256)</strong>.</p>
+<p>Each registration through <code>/&lt;comp&gt;/&lt;clusterId&gt;/truststore</code> is recorded on the
+cluster (<code>trustCertificates</code> in its settings; certificates are public, so not
+encrypted). A <strong>scale-out</strong> of Trino, Trino Gateway, Spark, Flink or Ontul
+reinstalls the recorded certificates on the new node. kiok's route does not
+record what it distributes, so after scaling kiok out, register again. A replay failure does not fail the scale-out — the master log
+names the node and the certificate that did not land. Without the replay, a new
+node is RUNNING and only the work scheduled onto it fails with PKIX, which reads
+as an intermittent network fault.</p>
+<p><code>DELETE</code> removes the PEM (and the PKCS12) from every node of the cluster and
+forgets the record. The response lists <code>removed</code> nodes and <code>failed</code> ones; when
+any node failed it carries a <code>warning</code> — work scheduled to that node keeps
+trusting the certificate. It does not remove the alias from the JDK <code>cacerts</code> or
+the OS anchors.</p>
+<h2 id="rotating-a-ca">Rotating a CA</h2>
+<p>If only the server certificate changes and the issuing CA stays, nothing needs to
+happen — that is the reason to trust the CA. If the <strong>issuing CA</strong> changes, the
+order matters:</p>
+<ol>
+<li>Register the new CA (control plane and every component that reads the
+   endpoint) under a <strong>new</strong> file name, keeping the old one.</li>
+<li>Restart the engines so their JVMs pick it up. The control plane needs no
+   restart.</li>
+<li>Switch the endpoint to the certificate issued by the new CA.</li>
+<li>Confirm with real reads and writes, then delete the old CA's file.</li>
+</ol>
+<p>Reversing steps 1–2 and 3 makes every engine fail at once.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backup or PostgreSQL backup fails with <code>PKIX path building failed</code></td>
+<td>The control plane does not trust the CA — register it on <strong>Settings → Trust Store</strong>. Registering on a component does not reach the control plane</td>
+</tr>
+<tr>
+<td>Spark install refused with <code>could not create the event log prefix …</code></td>
+<td>The same — the control plane creates that prefix itself, before any job; the message lists the private-CA trust as one of the causes</td>
+</tr>
+<tr>
+<td><strong>이 마스터</strong> shows <code>파일 없음</code> on one master</td>
+<td>That master lacks the file; register the same name again</td>
+</tr>
+<tr>
+<td>Trino queries fail with <code>General OpenSslEngine problem</code> after a registration</td>
+<td>The cluster was not restarted since the certificate was imported into its JDK <code>cacerts</code></td>
+</tr>
+<tr>
+<td>Python / <code>curl</code> fail with <code>CERTIFICATE_VERIFY_FAILED</code>, Java works</td>
+<td>A leaf was registered (<code>CA 아님</code>). Java accepts a leaf as a trust anchor; chain-verifying clients do not</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+            Back to top
+          </button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      © <script>document.write(new Date().getFullYear())</script> Cloud Chef Labs, Inc. All rights reserved. <a href="mailto:admin@cloudchef-labs.com">admin@cloudchef-labs.com</a>
+
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy", "header.autohide"], "search": "../../assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "3.0.0", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.220ee61c.min.js"></script>
+      
+    
+  </body>
+</html>

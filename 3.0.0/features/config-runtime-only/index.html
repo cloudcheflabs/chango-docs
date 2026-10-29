@@ -21,7 +21,7 @@
     
     
       
-        <title>Config Runtime-Only Policy - Chango</title>
+        <title>Config Change Gate - Chango</title>
       
     
     
@@ -75,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#config-runtime-only-policy" class="md-skip">
+        <a href="#config-change-gate" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Config Runtime-Only Policy
+              Config Change Gate
             
           </span>
         </div>
@@ -755,6 +755,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -933,12 +947,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Config Runtime-Only Policy
+          Config Change Gate
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
       
         
@@ -957,8 +971,8 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#why" class="md-nav__link">
-    Why
+  <a href="#why-only-the-transitional-states" class="md-nav__link">
+    Why only the transitional states
   </a>
   
 </li>
@@ -966,13 +980,6 @@
         <li class="md-nav__item">
   <a href="#what-is-gated" class="md-nav__link">
     What is gated
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-you-do-instead" class="md-nav__link">
-    What you do instead
   </a>
   
 </li>
@@ -1385,55 +1392,66 @@
                   
 
 
-<h1 id="config-runtime-only-policy">Config Runtime-Only Policy</h1>
-<p>Every chango-managed component exposes a <code>POST /admin/api/&lt;component&gt;/&lt;instanceId&gt;/config</code> endpoint that writes a configuration file (or merges into one) under the instance's install dir on the live host. The endpoint <strong>requires the target instance to be RUNNING</strong>. Hitting it against a STOPPED instance returns <code>400 Bad Request</code>:</p>
+<h1 id="config-change-gate">Config Change Gate</h1>
+<p>Every chango-managed component exposes a <code>POST /admin/api/&lt;component&gt;/&lt;instanceId&gt;/config</code> endpoint that writes a configuration file (or merges into one) under the instance's install dir on its host. The admin UI's <strong>Configure → Apply &amp; Restart</strong> goes through the same path.</p>
+<p>The endpoint refuses exactly two situations, both with <code>400 Bad Request</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">400</span> <span class="ne">Bad Request</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">{</span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="s2">&quot;instance &#39;ontul-main-master&#39; is STOPPED — config changes require RUNNING; start the instance first.&quot;</span><span class="p">}</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>{&quot;error&quot;:&quot;instance &#39;flink-1-jobmanager-1&#39; is STARTING — wait until it has finished starting or stopping, then repeat the request. Cluster-wide settings in the same request (the log directory, for example) were already applied and do not need repeating.&quot;}
 </code></pre></div>
-<p>This is policy, not a limitation — chango deliberately refuses to mutate files on a stopped instance.</p>
-<h2 id="why">Why</h2>
-<p>The admin REST API and the on-disk install dir need to be in lockstep about what the next process start will read. Two failure modes the policy prevents:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">400</span> <span class="ne">Bad Request</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>{&quot;error&quot;:&quot;instance &#39;flink-1-taskmanager-2&#39; — its node manager nm-cp-3_chango_private-19998 is not reachable, so its config files cannot be written: …&quot;}
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Instance status</th>
+<th>Config write</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RUNNING</code></td>
+<td>accepted — restart for the process to read it (Apply &amp; Restart does this)</td>
+</tr>
+<tr>
+<td><code>STOPPED</code>, <code>ERROR</code>, <code>INSTALLED</code></td>
+<td><strong>accepted</strong> — the next start reads the new file</td>
+</tr>
+<tr>
+<td><code>STARTING</code>, <code>STOPPING</code></td>
+<td>refused — wait and repeat</td>
+</tr>
+<tr>
+<td>node manager unreachable</td>
+<td>refused — nothing can write the file</td>
+</tr>
+</tbody>
+</table>
+<h2 id="why-only-the-transitional-states">Why only the transitional states</h2>
+<p>A stopped process reads its files the next time it starts, so writing to a <code>STOPPED</code> or <code>ERROR</code> instance cannot make the API's "success" disagree with what the process runs. A write <em>during</em> a start or stop can: whether the process read the old file or the new one is unknowable. That is the only window the gate closes.</p>
+<p>Earlier releases accepted config only on <code>RUNNING</code> instances. That turned out to be a dead end: an instance whose configuration broke its own startup was in <code>ERROR</code>, could not be fixed until it ran, and could not run until it was fixed. The only way out was to delete and reinstall the cluster — losing jobs and state on a production system. With the current gate the recovery is the ordinary one:</p>
 <ol>
-<li><strong>Silent drift on next start.</strong> A daemon whose <code>start-*.sh</code> re-derives content from chango master cluster settings (e.g. Postgres writing <code>postgresql.conf</code> from sweep state, ShannonStore writing <code>server.conf</code> from the leader's metadata copy, Trino writing <code>config.properties</code> from the install request) would overwrite the just-edited file the moment it starts. The config endpoint would have returned <code>200</code> ten minutes earlier; the running process never sees the change. Restricting config to RUNNING means the change lands while the daemon is alive, and the next stop / start round-trips through the same file the operator just edited.</li>
-<li><strong>Inventory desync.</strong> Some component services keep the latest applied config in the metadata RocksDB so a follower master can serve the same view a freshly-restarted instance would. Editing the on-disk file when the chango-side state machine says "STOPPED" leaves those two copies divergent — and an admin UI that says "you can edit" but a component that says "we're not running" is a footgun.</li>
+<li>a bad value (for example Flink <code>taskmanager.memory.network.fraction=5</code>) is applied → the TaskManagers fail to start, the cluster shows <code>ERROR</code> / <code>DEGRADED</code></li>
+<li><strong>Configure</strong> → correct the value (<code>0.1</code>) → <strong>Apply &amp; Restart</strong></li>
+<li>the cluster returns to <code>RUNNING</code> and the workers re-register with their master</li>
 </ol>
-<p>The policy is enforced centrally in <code>ComponentService.requireRunningForConfigChange()</code> — every component handler (<code>handleOntul</code>, <code>handleKiok</code>, <code>handleTrino</code>, …) routes its config write through it.</p>
+<p>The gate is enforced centrally in <code>ComponentService.requireRunningForConfigChange()</code> (the name is historical) — every component handler routes its config writes through it.</p>
 <h2 id="what-is-gated">What is gated</h2>
-<p>The runtime-only gate applies to <strong>post-install config mutation</strong>:</p>
 <ul>
 <li><code>POST /admin/api/&lt;comp&gt;/&lt;id&gt;/config</code> — apply a properties map to a properties file.</li>
 <li><code>POST /admin/api/&lt;comp&gt;/&lt;id&gt;/file</code> (where exposed) — write a multi-line file.</li>
 </ul>
 <p>It does <strong>not</strong> apply to:</p>
 <ul>
-<li><code>DELETE /admin/api/&lt;comp&gt;/&lt;id&gt;/file</code> — file deletion is a cleanup that's safe on STOPPED instances.</li>
-<li>The install request body itself (<code>POST /admin/api/&lt;comp&gt;</code>) — install always lands while the instance is not RUNNING yet; the gate would defeat install.</li>
+<li><code>DELETE /admin/api/&lt;comp&gt;/&lt;id&gt;/file</code> — file deletion.</li>
+<li>The install request body itself (<code>POST /admin/api/&lt;comp&gt;</code>) — install-time properties land before the first start.</li>
 <li>Read-only routes (<code>GET /admin/api/&lt;comp&gt;/&lt;id&gt;/...</code>) — reads work in any state.</li>
 </ul>
-<h2 id="what-you-do-instead">What you do instead</h2>
-<p>Start the instance, then edit. The flow is the same for every component:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 1. Start (or restart) the instance</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/ontul/ontul-main-master/start
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># 2. Wait for RUNNING (the instance shows status=RUNNING in the topology view)</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 3. Apply the config change</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">     </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;file&quot;:&quot;conf/ontul-master.properties&quot;,&quot;properties&quot;:{&quot;…&quot;:&quot;…&quot;}}&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/ontul/ontul-main-master/config
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># 4. Restart for the change to take effect</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">     </span><span class="nv">$BASE</span>/admin/api/ontul/ontul-main-master/restart
-</code></pre></div>
-<p>The admin UI's Configure panels enforce the same flow — the <strong>Save</strong> button is disabled (with a tooltip "instance is STOPPED — start it first") while the instance's live status is not RUNNING.</p>
 <h2 id="install-time-properties-jvm">Install-time properties + JVM</h2>
 <p>If you need a configuration value baked in from the very first start — heap size, custom <code>ontul.master.…</code> property, custom <code>trino-extra.config.properties</code> line — set it at <strong>install</strong> time. Every component's CreatePanel (Install / Properties / JVM tabs) accepts a per-role JVM config block + a <code>properties</code> map that lands on disk <strong>before</strong> the first <code>start-*.sh</code> is called. See <a href="../../operations/component-operations/">Component Operations</a> for the install-request shape.</p>
-<p>The runtime-only policy is for <strong>post-install</strong> drift; install-time config is the right surface for first-start values.</p>
+<p>The gate covers <strong>post-install</strong> changes; install-time config is the right surface for first-start values.</p>
 <p>For heap specifically — including chango's node-proportional Trino default and how an explicit <code>-Xmx</code> override is merged onto the packaged flags — see <a href="../../operations/jvm-tuning/">JVM &amp; Heap Tuning</a>.</p>
 
 

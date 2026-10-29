@@ -753,6 +753,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -922,7 +936,7 @@
   
     <li class="md-nav__item">
       <a href="../../features/config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1119,6 +1133,13 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#ontul-authz-leave-a-field-blank-to-keep-it" class="md-nav__link">
+    Ontul Authz — leave a field blank to keep it
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#s3-credentials-are-their-own-tab" class="md-nav__link">
     S3 credentials are their own tab
   </a>
@@ -1145,8 +1166,36 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#new-instances-start-on-their-own" class="md-nav__link">
+    New instances start on their own
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trino-catalogs-are-verified-against-the-coordinator" class="md-nav__link">
+    Trino catalogs are verified against the coordinator
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#polaris-catalogs-carry-the-engine-grants" class="md-nav__link">
+    Polaris catalogs carry the engine grants
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zookeeper-that-ships-with-a-component" class="md-nav__link">
+    ZooKeeper that ships with a component
+  </a>
   
 </li>
       
@@ -1474,7 +1523,7 @@
 </tr>
 <tr>
 <td><code>GET    /admin/api/&lt;comp&gt;/&lt;clusterId&gt;</code></td>
-<td>Cluster details (settings + per-instance pid / status)</td>
+<td>Cluster details (settings + per-instance pid / status). The cluster <code>status</code> is <strong>derived from its instances</strong> — <code>RUNNING</code> when all are running, <code>STOPPED</code> when none is, <code>DEGRADED</code> in between (<code>PROVISIONING</code> passes through) — not the stored value, which only moves on install / start / stop and stayed <code>RUNNING</code> after a host reboot killed every process</td>
 </tr>
 <tr>
 <td><code>POST   /admin/api/&lt;comp&gt;/&lt;clusterId&gt;/start</code></td>
@@ -1518,7 +1567,7 @@
 </tr>
 <tr>
 <td><code>DELETE /admin/api/&lt;comp&gt;/&lt;clusterId&gt;</code></td>
-<td>Stop + delete every instance + remove install dirs</td>
+<td>Stop + delete every instance + remove install dirs. <code>?purgeData=true</code> also removes the data directories the component keeps outside its install dir</td>
 </tr>
 </tbody>
 </table>
@@ -1535,18 +1584,28 @@
 <li><strong><code>properties</code></strong> — <code>Map&lt;String,String&gt;</code> of overrides applied to the component's main config file at install time. Keys not present here fall back to the packaged default (the same defaults the <code>install-defaults</code> endpoint surfaces). Per-instance keys (ports, discovery URI, node id) are owned by the provisioner and cannot be overridden here.</li>
 <li><strong>Per-role <code>JvmConfig</code></strong> — <code>{heapMin, heapMax, extra[]}</code> blocks keyed by role: <code>coordinatorJvm</code>/<code>workerJvm</code> for Trino, <code>masterJvm</code>/<code>workerJvm</code> for Ontul, <code>apiJvm</code>/<code>dataJvm</code> for ShannonStore, <code>serverJvm</code> for Polaris, <code>gatewayJvm</code> for Trino Gateway, etc. Each block is optional; missing fields keep the packaged JVM defaults. <code>extra[]</code> carries additional <code>-X…</code> / <code>-D…</code> flags appended verbatim to the JVM command line.</li>
 </ul>
-<p>Optional integrations are auto-discovered. For Trino, Spark, and Flink, supplying just an <code>ontulAuthzToken</code> is enough — chango finds the first running Ontul cluster and wires its admin port as the authz endpoint. For Polaris and the Trino resource-group manager, supplying a <code>pgInstanceId</code> (chango-installed PostgreSQL) is enough — chango fills host / port / superuser from its own records.</p>
+<p>Optional integrations are auto-discovered. For Trino, Spark, and Flink, <strong>no token is needed</strong>: when the install does not carry <code>ontulAuthzToken</code>, chango uses the service token (OTOK) it minted for the first RUNNING Ontul cluster — the same resolution the Trino Gateway already used — and wires that cluster's admin port as the authz endpoint. An explicit <code>ontulAuthzToken</code> still wins, for a deployment that issues a dedicated principal. If no token can be found at all the install is refused with <code>no IAM service token available for the authz endpoint … chango issues one itself a few tens of seconds after the IAM engine starts — check that the IAM engine is RUNNING and retry</code>; right after an Ontul start that is the normal window, not a missing setup step. (It used to say <code>ontulAuthzToken is required … Generate one via ontul: POST /admin/iam/keys</code>, i.e. mint a second principal for a secret chango already held — and once the cluster JSON stopped returning secrets, the documented way to read the token returned nothing.) For Polaris and the Trino resource-group manager, supplying a <code>pgInstanceId</code> (chango-installed PostgreSQL) is enough — chango fills host / port / superuser from its own records.</p>
+<p>Some combinations are refused at install rather than accepted and left to fail at start:</p>
+<ul>
+<li><strong>Trino</strong> with <code>exchangeManagerEnabled: true</code> and an empty <code>exchangeBaseDirectory</code> — Trino will not start with an empty <code>exchange.base-directories</code> while the S3 keys are present, every coordinator and worker reads that file, and the cluster used to install, report RUNNING, then turn STOPPED with no stated reason. The refusal gives an example (<code>"s3://query-exchange/trino"</code>) and notes the field is <code>exchangeBaseDirectory</code>, not <code>exchangeBaseDirs</code>.</li>
+<li><strong>Spark</strong> with an event-log location whose prefix chango cannot create: <code>could not create the event log prefix &lt;uri&gt;: …</code>. Without the prefix the history server refuses to start and every job dies in the driver with <code>No such file or directory</code> — minutes after an install that answered 200. The message lists the causes to check — endpoint, credentials, and for an HTTPS endpoint with a private-CA certificate, whether <strong>the control plane</strong> trusts that CA (it creates the prefix itself; see <a href="../../features/trust-store/">Trust Store</a>) — and the <code>mc cp /dev/null &lt;alias&gt;/&lt;bucket&gt;/&lt;prefix&gt;</code> command to create it by hand.</li>
+</ul>
+<p><strong>Flink</strong> ships <code>state.checkpoints.dir</code> and <code>state.savepoints.dir</code> <strong>commented out</strong> in <code>config.yaml</code>, with the <code>s3a://</code> form and the S3 credential keys next to them. They used to be written as empty strings with checkpointing on, and Flink parses an empty value as a path — <code>Can not create a Path from an empty string</code> — so every job that checkpoints failed at submission with <code>HTTP 400 Could not execute application</code>. With the keys absent Flink keeps checkpoints on the JobManager, which does not survive the node; set an <code>s3a://</code> location before production.</p>
 <p>The admin UI Create panel is the same shape as Configure: tabs for <em>Install</em>, the main <code>*.properties</code> file, and <em>JVM</em> per role, prefilled from <code>install-defaults</code>. Operators can ship a fully tuned cluster on first install without a follow-up Configure pass.</p>
 <h2 id="start-stop-restart">Start / stop / restart</h2>
 <p>All three are idempotent. Calling <code>start</code> on an already-RUNNING cluster is a no-op (per-instance). Calling <code>restart</code> walks the cluster in <code>START_ORDER</code> reverse for the stop pass, then in <code>START_ORDER</code> forward for the start pass — Trino: workers stop first, coordinator stops last, coordinator starts first, workers start last.</p>
 <h2 id="configure">Configure</h2>
 <p>Most components have a Configure panel in the admin UI with multiple tabs:</p>
 <ul>
-<li><strong>Properties</strong> — operator-tunable keys in the component's main config file (e.g. Trino's <code>config.properties</code>). Per-instance keys (<code>http-server.http.port</code>, <code>discovery.uri</code>) are filtered out — those are owned by the provisioner.</li>
+<li><strong>Properties</strong> — operator-tunable keys in the component's main config file (e.g. Trino's <code>config.properties</code>). Per-instance keys (<code>http-server.http.port</code>, <code>discovery.uri</code>) are filtered out — those are owned by the provisioner. The table lists the keys of the product's shipped example file, which is only part of what the product reads (Kafka reads hundreds of keys, its example file names about 20), so under the table <strong>Add a key that is not listed</strong> takes any key and value — <code>default.replication.factor</code>, <code>taskmanager.numberOfTaskSlots</code>, <code>query.max-run-time</code>. A name already in the table edits that row instead. Key names are not validated: the key space belongs to the product and moves with its version, and a typo reaches the product and is answered in the product's own words. The same table is used in the Create drawer.</li>
 <li><strong>JVM</strong> — per-role JVM tuning (<code>heapMin</code>, <code>heapMax</code>, extra <code>-X</code> flags).</li>
 <li><strong>Component-specific tabs</strong> — Trino has <em>Exchange Manager</em>, <em>Resource Group DB</em>, <em>Ontul Authz</em>; Spark has <em>Ontul Authz</em>, <em>S3 Credentials</em>, <em>Job Log Storage</em>; Polaris has <em>S3 Credentials</em>; NeoRunBase has <em>PG Connection</em>. Each tab updates a narrowly-scoped slice of the cluster's config without touching the others.</li>
 </ul>
 <p>Apply triggers a config re-render on every instance and a full cluster restart. Trino's exchange-manager tab instead rewrites <code>etc/exchange-manager.properties</code> on every instance.</p>
+<p>When a key already exists in a file, the rewrite replaces that line in place, whatever its separator — <code>=</code>, <code>:</code>, a space or a tab — and keeps the original separator and indentation; a key that is absent is appended as <code>key=value</code>. Spark's <code>spark-defaults.conf</code> is space-separated, and an update used to look only for <code>=</code>, miss the line, and append a second one — <code>spark.chango.authz.ontul.token  OTOK-old</code> above <code>spark.chango.authz.ontul.token=OTOK-new</code>, one more on every token rotation. Files that already carry such duplicates get the new value on every copy.</p>
+<h3 id="ontul-authz-leave-a-field-blank-to-keep-it">Ontul Authz — leave a field blank to keep it</h3>
+<p>The <strong>Ontul Authz</strong> tab (Trino, Spark, Flink; the Trino Gateway's equivalent is <strong>IAM Service Token</strong>) takes an endpoint and a token, and <strong>Update Ontul Authz &amp; Restart</strong> needs only one of them: a blank field keeps the stored value, as the placeholders say. Spark and Flink prefill the stored endpoint like Trino. The server refuses only when a field is blank <strong>and</strong> nothing is stored to keep. It used to refuse a blank endpoint and overwrite the token with a blank one — which broke authorization silently — and the Spark and Flink buttons stayed disabled until both fields were filled.</p>
+<p>After an Ontul cluster is re-created, chango issues a new service token and logs, by name, every cluster still holding the old one (<code>ontul cluster &lt;id&gt; has a NEW admin OTOK — these clusters still hold the previous one …</code>), including Trino Gateways. Update each from this tab. See <a href="../../features/iam/#when-the-iam-engine-is-re-created">IAM</a>.</p>
 <h3 id="s3-credentials-are-their-own-tab">S3 credentials are their own tab</h3>
 <p>On <strong>Spark</strong> these are the cluster-wide default for every <code>s3a://</code> access the nodes make — rendered into <code>conf/core-site.xml</code> with <code>fs.s3a.aws.credentials.provider</code> pinned to <code>SimpleAWSCredentialsProvider</code>, so they cover the history server's event logs <em>and</em> a cluster-mode driver fetching its uberjar. A job that sets its own credentials still overrides them.</p>
 <p>They used to be reachable only through <em>Job Log Storage</em>, which meant a cluster running no history server had no way to rotate its S3 key at all. <em>Job Log Storage</em> now carries only the event-log directory and depends on the credentials above.</p>
@@ -1555,6 +1614,15 @@
 <h2 id="scale">Scale</h2>
 <p>Add an instance by listing its target NM. The provisioner allocates fresh ports, installs the package, and starts the new instance, joining it to the existing cluster (worker → existing master URL, broker → existing kafka cluster, …). Removing an instance walks the inverse path.</p>
 <p>Components that require an odd quorum (ZooKeeper, NeoRunBase ZK) refuse a scale request that would leave the cluster with an even count.</p>
+<p>A new instance is numbered <strong>after the highest number in use</strong>, not after the
+count. With <code>worker-1</code> and <code>worker-2</code>, scaling in <code>worker-1</code> and then out again
+used to hand out <code>worker-2</code> a second time and fail with <code>component instance
+already exists: trino-1-worker-2</code> — permanently, until every worker was removed.
+For ZooKeeper the number is also the ensemble <code>myid</code>, and for Kafka the
+<code>broker.id</code>, where a duplicate fails silently rather than loudly. The stored
+<code>&lt;role&gt;Count</code> settings are recounted from the instances after a scale rather
+than predicted, so a scale that failed halfway does not record the count it
+intended.</p>
 <h3 id="what-a-new-instance-inherits">What a new instance inherits</h3>
 <p>A scale-out does not just install the package. Between installing and
 starting, the provisioner seeds the new instance with everything the cluster
@@ -1588,17 +1656,61 @@ directory across instances:</p>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>basename<span class="w"> </span><span class="nv">$d</span><span class="k">)</span><span class="s2">: </span><span class="k">$(</span>ls<span class="w"> </span><span class="nv">$d</span>/etc/catalog<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="k">)</span><span class="s2">&quot;</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">done</span>
 </code></pre></div>
+<h3 id="new-instances-start-on-their-own">New instances start on their own</h3>
+<p>A scale-out starts what it installed, in the component's role order, after the
+instances are seeded. It used to leave them <code>INSTALLED</code>: the console showed the
+new Spark worker or Flink TaskManager in the list and the cluster as
+<code>DEGRADED</code>, and the master UI (<code>/json</code> for Spark, <code>/taskmanagers</code> for Flink)
+never showed it. Check the master UI, not only the console, after a scale-out.</p>
+<h2 id="trino-catalogs-are-verified-against-the-coordinator">Trino catalogs are verified against the coordinator</h2>
+<p>Adding or changing a catalog (<code>POST /admin/api/trino/&lt;clusterId&gt;/catalogs</code>, or
+the Catalogs screen) restarts the cluster and then reads the coordinator's
+<code>server.log</code> for that start. If Trino refused to start — an unknown property,
+a missing connector setting — chango puts the previous catalog file back,
+restarts again, and answers <code>400</code> with Trino's own sentence:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Trino refused to start with catalog &#39;bad&#39;: &lt;Trino&#39;s error line&gt; — the change was rolled back and the
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cluster restarted with the previous catalogs. Fix the properties and &lt;add|update&gt; again.
+</code></pre></div>
+<p>Before this, the catalog was saved, the coordinator stayed down, and the screen
+reported success.</p>
+<h2 id="polaris-catalogs-carry-the-engine-grants">Polaris catalogs carry the engine grants</h2>
+<p>When chango creates a Polaris catalog, or saves its properties, it makes sure
+the catalog's <code>catalog_admin</code> role holds <code>TABLE_WRITE_DATA</code> and
+<code>TABLE_READ_DATA</code> in addition to the management privileges. Without them every
+query engine could create and write tables, but <code>DROP TABLE</code> and the engines'
+commit metrics report were refused with <code>403</code> — the coordinator logged
+<code>Failed to report metrics</code> on every write. The grant is idempotent; saving an
+existing catalog once repairs one created by an older build.</p>
+<h2 id="zookeeper-that-ships-with-a-component">ZooKeeper that ships with a component</h2>
+<p>Kafka, ShannonStore, ItdaStream, Mium, kiok, NeoRunBase and Ontul each run a
+ZooKeeper that chango starts, and chango writes its <code>zoo.cfg</code> from the start
+command. That file now carries
+<code>4lw.commands.whitelist=srvr,conf,ruok,stat,mntr</code> — read-only four-letter words,
+not <code>*</code>, which would also open <code>kill</code> and <code>stmk</code>. From ZooKeeper 3.5 the default
+whitelist is <code>srvr</code> alone, so the products' topology probe — which sends <code>conf</code>
+to read each server's id and <code>server.N</code> lines and warns about a duplicated
+<code>myid</code> — got its connection dropped, treated the answer as "cannot tell", and
+that warning could never fire on a chango-installed ZooKeeper. (chango's own
+control-plane ZooKeeper is rendered by ansible with <code>*</code> and was not affected.)</p>
+<p>The start command is stored at install and replayed on every start, so a fix to
+it would otherwise reach only new installs and scale-outs. Starting a cluster now
+rebuilds its ZooKeeper members' start command from the current code, reusing the
+stored <code>myid</code> and ports, so the existing ensemble line is kept and only what the
+current code adds is added. A rebuild that fails is logged and does not block
+the start. The change applies when that ZooKeeper restarts.</p>
 <h2 id="logs">Logs</h2>
 <p>Every component page has a Logs panel per instance — the master streams a tail over the internal NIO protocol from the NM hosting the instance. See <a href="../../features/logging/">Logging</a> for the file locations and the REST endpoint.</p>
 <h2 id="nginx">Nginx</h2>
 <p>Several components (ShannonStore, Ontul, NeoRunBase, Polaris, Itdastream Schema Registry, Kafka Schema Registry, Mium, kiok, UI Proxy) ship a per-cluster nginx reverse proxy you can opt into from the admin UI. See <a href="../nginx-proxy/">Nginx Reverse Proxy</a>.</p>
 <p>Spark / Trino / Flink intentionally do <strong>not</strong> ship a per-cluster nginx — their UIs are exposed through the UI Proxy instead, with Ontul-based authentication.</p>
 <h2 id="deleting">Deleting</h2>
-<p>Delete is destructive — the component's install dir and any chango-owned data dir is removed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/trino/trino-prod
+<p>Delete is destructive — the component's install dir is removed:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nv">$BASE</span>/admin/api/trino/trino-prod
 </code></pre></div>
-<p>Component data <strong>outside</strong> the install dir (Iceberg files on S3, NeoRunBase data dirs, Kafka log segments) is <strong>not</strong> removed — chango does not own data-plane state. Clean that up at the data-plane layer if you need a full reset.</p>
+<p>Directories the component declares <strong>outside</strong> its install dir — a product's RocksDB, its key store, embedded ZooKeeper snapshots, topic data — are removed only when asked: <code>DELETE …?purgeData=true</code>, or in the console the delete confirmation's <strong>Also purge data directories outside the install path</strong> toggle (off by default; 14 component pages). Leave it off and those directories stay: a reinstall on the same paths inherits state encrypted with a master key that no longer exists, and nothing reports an error. Before the toggle existed the console never sent <code>purgeData</code>, so an operator working only in the UI could not remove that data at all.</p>
+<p>Data that is not on the component's hosts (Iceberg files on S3) is never removed — chango does not own data-plane state.</p>
+<p><strong>Polaris re-created under the same id.</strong> chango creates a PostgreSQL login role per catalog cluster (<code>polaris_&lt;cluster&gt;</code>) and records a fresh random password each time. If the role already exists — a deleted cluster re-created under the same id — chango now sets the role's password to the new value (<code>ALTER ROLE</code>) instead of keeping the old role and failing with <code>Could not pre-check Polaris PG state … password authentication failed for user "polaris_&lt;cluster&gt;"</code>. A metastore schema left in the database is still refused, with the <code>DROP SCHEMA</code> command in the message, because Polaris bootstraps a metastore only once.</p>
 <p>The deleted clusterId is free to reuse immediately.</p>
 
 

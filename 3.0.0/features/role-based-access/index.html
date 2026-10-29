@@ -789,8 +789,22 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#5-settings-responses-that-used-to-carry-secrets" class="md-nav__link">
+    5. Settings responses that used to carry secrets
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changing-your-own-password" class="md-nav__link">
+    Changing your own password
+  </a>
   
 </li>
       
@@ -867,6 +881,20 @@
     <li class="md-nav__item">
       <a href="../product-master-keys/" class="md-nav__link">
         Product Master Keys
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
       </a>
     </li>
   
@@ -1048,7 +1076,7 @@
   
     <li class="md-nav__item">
       <a href="../config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1465,6 +1493,7 @@
 <li>View backup history (not the destination credentials).</li>
 <li>View the patch library (not upload / apply / rollback).</li>
 <li>Read IAM users / groups / policies (not access keys, not user passwords).</li>
+<li>Change <strong>their own</strong> password — from the key icon (<em>Change password</em>) in the console header. See <a href="#changing-your-own-password">below</a>.</li>
 </ul>
 <h2 id="what-non-admins-cannot-do">What non-admins cannot do</h2>
 <p>Two gates close on the backend:</p>
@@ -1582,15 +1611,61 @@ are hidden. The write-back is where this kind of masking usually goes wrong, so
 value — saving the mask would put <code>********</code> in the catalog file and the catalog
 would stop reaching its storage at the next restart, far from the edit. A mask
 sent for a property that has no stored value is refused rather than saved empty.</p>
+<h3 id="5-settings-responses-that-used-to-carry-secrets">5. Settings responses that used to carry secrets</h3>
+<p>The same "strip, report <code>&lt;key&gt;Present</code>" rule now also covers three responses
+that bypassed it:</p>
+<ul>
+<li><code>GET /admin/api/spark/&lt;id&gt;/config</code> returned the cluster settings whole —
+  including <code>ontulAuthzToken</code> (the IAM engine service token) and the S3 secret
+  keys, in plain text. Secrets are now omitted and flagged <code>&lt;key&gt;Present</code>. Access
+  key ids (<code>s3AccessKey</code>, <code>eventLogS3AccessKey</code>, …) stay visible, as they do in
+  the cluster JSON. Sending an empty value back means <em>keep the stored one</em>, so
+  the Configure drawer still saves.</li>
+<li><code>GET /admin/api/components</code> and the single-instance read serialised each
+  instance's <code>env</code>, which for PostgreSQL holds the superuser password. Values of
+  env keys ending in <code>PASSWORD</code>, <code>SECRET</code>, <code>SECRET_KEY</code>, <code>ACCESS_KEY</code>, <code>_TOKEN</code>
+  or <code>MASTER_KEY</code> now come back as <code>***</code>; the keys stay, so the console can still
+  tell that one is set. The credential download route still returns the real
+  value.</li>
+<li>Polaris's server-wide S3 settings no longer return the secret key; they return
+  <code>s3SecretKeySet</code> (<code>true</code>/<code>false</code>). The <strong>S3 Credentials</strong> tab shows the field as
+  a password input, <em>set — leave empty to keep</em> or <em>not set</em>.</li>
+</ul>
+<p>Polaris's per-catalog principal secret — the credential Trino, Spark and Flink
+use against a catalog — is downloadable one at a time:
+<code>GET /admin/api/credentials/download?component=polaris&amp;clusterId=&lt;id&gt;&amp;field=catalogPrincipalClientSecret.&lt;catalog&gt;</code>.
+The catalog list carries <code>principalClientId</code> and <code>principalSecretPresent</code>, and
+the <strong>Iceberg Catalogs</strong> panel shows the id with a download button on each row.</p>
+<h2 id="changing-your-own-password">Changing your own password</h2>
 <p><code>auth/*</code> (login, refresh, session, logout, change-password) stays open — that's how a user reaches the admin UI in the first place. <code>change-password</code> runs <code>requireLeader()</code> internally; a non-admin rotating their own password works fine.</p>
+<p>Every signed-in user, admin or not, has a <strong>Change password</strong> button (key icon)
+in the console header next to <strong>Sign out</strong>, in both the main layout and the
+Settings layout. It opens the same dialog as the first-login gate — <strong>Current
+Password</strong>, <strong>New Password</strong>, <strong>Confirm New Password</strong> — and changes the password
+of the user who is signed in. The new password must be at least 6 characters and
+differ from the current one.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$BASE</span>/admin/api/auth/change-password<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;oldPassword&quot;:&quot;&lt;current&gt;&quot;,&quot;newPassword&quot;:&quot;&lt;new&gt;&quot;}&#39;</span>
+</code></pre></div>
+<p>Until this button existed the only entry point was <strong>Change Admin Password</strong> on
+the KMS screen, which a non-admin sees as <em>Access Restricted</em> — the backend
+allowed the change and the console offered no way to it.</p>
 <h2 id="admin-ui-behaviour">Admin UI behaviour</h2>
 <p><code>useAuth()</code> exposes an <code>isAdmin</code> flag derived from the login response (<code>/admin/api/auth/login</code> returns <code>{accessToken, isAdmin}</code>). The non-admin UI:</p>
 <ul>
-<li>Shows a yellow read-only banner at the top of every page: "You are signed in as a non-admin user. Mutations and secret reveals are hidden."</li>
+<li>Shows a yellow banner at the top of every page: "Read-only mode — without admin rights, changes, actions and secret lookups are disabled."</li>
 <li>Hides every mutating button — <strong>Install</strong>, <strong>Start</strong>, <strong>Stop</strong>, <strong>Restart</strong>, <strong>Scale</strong>, <strong>Configure</strong>, <strong>Delete</strong>, <strong>Apply</strong>, <strong>Upload</strong>, <strong>Backup Now</strong>, <strong>Generate access key</strong>, <strong>Add user / group / policy</strong>, <strong>Attach policy</strong>, …</li>
 <li>Hides every secret-reveal button — <strong>Show password</strong>, <strong>Show admin password</strong>, <strong>Download access key</strong>, <strong>Show catalog connection</strong>.</li>
 <li>Disables the patches dropzone and the IAM "Create user / group / policy" entry points.</li>
+<li>Disables the inputs on the <strong>SSO</strong> page, not only its save button — a form you can edit but not save leaves you changing values without knowing why nothing sticks.</li>
 </ul>
+<p>The row actions are where this slips: Trino's resource-group <strong>Delete</strong> and
+Trino Gateway's backend <strong>Delete</strong> were outside the admin-only wrapper while the
+<strong>Edit</strong> next to them was inside, so a non-admin saw buttons the backend then
+refused with <code>403</code>. Both are hidden now. Every icon-only button also carries an
+accessible name (<code>aria-label</code> / <code>title</code>) — of the 98 that had none, 38 were
+deletes.</p>
 <p>This is consistent across all 14 component pages (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium, Postgres, Polaris, Kafka, Schema Registry, Trino, Trino Gateway, Spark, Flink, UI Proxy), plus the IAM page, the Backup page, the Topology page, and the Settings → Patches page. Read paths are untouched — every status, every metric, every list works the same as for an admin.</p>
 <p>The UI is the convenience layer; the backend gates above are the authoritative ones. An attacker who builds a custom HTTP client and bypasses the UI still hits the 403.</p>
 <h2 id="why-secret-reveal-is-on-the-same-gate-as-mutation">Why secret-reveal is on the same gate as mutation</h2>
@@ -1602,7 +1677,12 @@ sent for a property that has no stored value is refused rather than saved empty.
 <li>Adds <code>alice</code> to <code>admin-group</code>.</li>
 <li>Logs in as <code>alice</code> from then on; uses the original <code>admin</code> only as a break-glass account.</li>
 </ol>
-<p>Non-admin users are typically service principals — kiok DAGs, ansible runners, CI scripts — that only need to read cluster status. Issue them an access key from IAM (admin-only), and call the API with the bearer token derived from that key.</p>
+<p>Non-admin console users are <strong>read-only observers</strong>: they sign in with a
+password (or through <a href="../sso/">SSO</a>) to look at topology, status, metrics and
+history, and they can change their own password. chango deliberately offers no
+self-service access keys — a non-admin cannot issue, list or download keys, and
+the admin REST API authenticates with the bearer token from
+<code>POST /admin/api/auth/login</code>, not with an access key.</p>
 <h2 id="stage-2-planned">Stage-2 (planned)</h2>
 <p>Stage-2 replaces the blanket admin / non-admin split with per-route <code>canPerform(user, action, resource)</code>:</p>
 <ul>

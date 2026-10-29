@@ -872,6 +872,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -1041,7 +1055,7 @@
   
     <li class="md-nav__item">
       <a href="../config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1489,6 +1503,16 @@
 </ul>
 <p>To encrypt a payload chango generates a DEK, encrypts with it (AES-256-GCM, random 96-bit IV), wraps the DEK under the ACTIVE KEK version, and stores <code>version ‖ iv ‖ wrappedDek ‖ ciphertext</code> together. To decrypt it reads the KEK version out of the envelope, resolves that exact version, unwraps the DEK, and decrypts.</p>
 <p>Because the envelope names its KEK <strong>version</strong>, rotating a KEK never invalidates existing ciphertext.</p>
+<p>A reader that is handed bytes which are <strong>not</strong> an envelope — a plaintext
+snapshot written before encryption, for example — must reject them so its
+plaintext fallback can take over. The first four bytes are read as the length of
+the wrapped DEK, and the four bytes <code>{"us</code> of a JSON snapshot read as
+2,065,973,619: decryption used to allocate a ~2 GB array from that, raising
+<code>OutOfMemoryError</code> instead of an exception, which passed every <code>catch
+(Exception)</code> fallback and killed the process during startup — only on a small
+heap, since a large one survived the allocation. The length is now checked
+against the bytes that are actually there (leaving room for the IV and tag)
+before anything is allocated, and a mismatch is rejected as <code>not an envelope</code>.</p>
 <h2 id="algorithms">Algorithms</h2>
 <table>
 <thead>

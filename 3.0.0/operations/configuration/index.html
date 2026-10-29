@@ -753,6 +753,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -922,7 +936,7 @@
   
     <li class="md-nav__item">
       <a href="../../features/config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1512,7 +1526,7 @@
 
 <h1 id="configuration-reference">Configuration Reference</h1>
 <p>Every setting chango reads from <code>chango.properties</code>, with its default and what changing it does.</p>
-<p>Some settings are deliberately <strong>not</strong> here — the S3 backup destination, the gateway topology, per-component settings. Those live in the replicated metadata store and are edited from the admin UI, so that a value is the same on every master and survives a reinstall. See <a href="../../features/config-runtime-only/">Config Runtime-Only Policy</a> for where the line falls and why.</p>
+<p>Some settings are deliberately <strong>not</strong> here — the S3 backup destination, the gateway topology, per-component settings. Those live in the replicated metadata store and are edited from the admin UI, so that a value is the same on every master and survives a reinstall. See <a href="../../features/config-runtime-only/">Config Change Gate</a> for where the line falls and why.</p>
 <h2 id="resolution-order">Resolution order</h2>
 <p>Highest priority first:</p>
 <ol>
@@ -1635,7 +1649,12 @@
 <tr>
 <td><code>chango.master.admin.worker.threads</code></td>
 <td><code>8</code></td>
-<td>Pool for blocking admin handlers (component install / start / stop), kept off the Netty event loop so package I/O does not stall other requests</td>
+<td>Pool for blocking admin handlers — component install / start / stop, patch upload / apply, backup, trust store — kept off the Netty event loop so package I/O, NIO fan-out and object-storage calls do not stall other requests. A chango self-patch holds one thread while it waits for the follower masters</td>
+</tr>
+<tr>
+<td><code>chango.master.selfpatch.follower.wait.ms</code></td>
+<td><code>180000</code></td>
+<td>How long a chango self-patch waits for each follower master to re-register in ZooKeeper and report ready before it moves on. A follower that does not come back in time stops the run: the <strong>leader is not restarted</strong> and the result reports it as <code>held</code>. A follower on a host that also runs a node manager waits for that node manager's patch first, so allow for both restarts. <code>ui</code> patches restart nothing and do not wait. See <a href="../../features/patch-system/#what-restarts-and-in-what-order">Patch System</a></td>
 </tr>
 <tr>
 <td><code>chango.master.admin.ui.static.path</code></td>

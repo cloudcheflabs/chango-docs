@@ -755,6 +755,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -1054,7 +1068,7 @@
   
     <li class="md-nav__item">
       <a href="../config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1540,6 +1554,12 @@
 </tbody>
 </table>
 <p>A free-text <strong>Add extra upstreams (advanced)</strong> box remains for endpoints chango does not manage.</p>
+<p>The discovered rows start <strong>unchecked</strong>. Until the form is complete, <strong>Create
+Cluster</strong> stays disabled and the line under it says what is missing — for
+example <code>Cannot create yet — missing at least one upstream checked (8 found, none
+selected), at least one proxy node.</code> (an empty <strong>Ontul URL</strong> is listed too). The
+count matters: "none were found" and "some were found and none picked" call for
+different actions.</p>
 <h3 id="running-clusters-register-themselves">Running clusters register themselves</h3>
 <p>Picking from the list is only the convenient path. The leader also pushes every running Spark, Trino and Flink UI into each proxy cluster's <em>managed upstream</em> slot on its reconcile tick, so installing a component after the proxy makes its UI appear without anyone editing the proxy — and scaling or deleting that component updates or empties the slot the same way.</p>
 <p>The combined set (what you picked + what registered itself) is written to every instance's <code>ui-proxy.properties</code>, and the proxy instances are <strong>restarted one at a time</strong> when it changes. They read that file once, at startup; writing it and stopping there would leave the routing table correct on disk and the running proxy still answering 404 for the UI just installed.</p>

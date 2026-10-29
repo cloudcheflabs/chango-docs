@@ -879,6 +879,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -1048,7 +1062,7 @@
   
     <li class="md-nav__item">
       <a href="../config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1639,7 +1653,7 @@
 </tbody>
 </table>
 <p>Setting it to <code>false</code> disables <strong>both</strong> audit and lineage for that engine. It does not affect the authorization check itself — access control keeps working exactly as before.</p>
-<p>Editing the Trino key is a normal <a href="../../operations/component-operations/">component configuration</a> change: open the cluster, <strong>Configure</strong>, edit <code>access-control.properties</code>, and restart the coordinator. Because chango's <a href="../config-runtime-only/">Config Runtime-Only Policy</a> applies, the cluster must be <code>RUNNING</code> for the edit to be accepted.</p>
+<p>Editing the Trino key is a normal <a href="../../operations/component-operations/">component configuration</a> change: open the cluster, <strong>Configure</strong>, edit <code>access-control.properties</code>, and restart the coordinator. The edit is refused only while the coordinator is starting or stopping — see <a href="../config-runtime-only/">Config Change Gate</a>.</p>
 <h2 id="verifying-on-a-live-cluster">Verifying on a live cluster</h2>
 <ol>
 <li>

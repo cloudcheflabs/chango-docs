@@ -646,6 +646,19 @@
     Admin HTTP server
   </a>
   
+    <nav class="md-nav" aria-label="Admin HTTP server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unknown-request-fields-are-reported-not-rejected" class="md-nav__link">
+    Unknown request fields are reported, not rejected
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -845,6 +858,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -1014,7 +1041,7 @@
   
     <li class="md-nav__item">
       <a href="../config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1443,7 +1470,30 @@
 </tr>
 </tbody>
 </table>
-<p>ZooKeeper holds <strong>ephemeral</strong> topology — who is alive right now — under <code>/chango/nodes/{masters,node-managers}/&lt;nodeId&gt;</code>. Persistent state never lives in ZooKeeper.</p>
+<p>ZooKeeper holds <strong>ephemeral</strong> topology — who is alive right now — under <code>/chango/nodes/{masters,node-managers}/&lt;nodeId&gt;</code>.</p>
+<p>An ephemeral znode belongs to a ZooKeeper session, and a session can expire
+while the process lives on — a long GC pause, a short network cut, memory
+pressure; the default session timeout is 30 s. Curator reconnects, but the new
+session has no ephemeral node, so the node used to stay <strong>missing from the
+registry for the rest of its life</strong> while it kept running. Everything the leader
+does to the rest of the cluster — component dispatch, patch fan-out, cluster
+sync, <code>/etc/hosts</code> sync, the topology screen — walks that registry and skips an
+absent node without an error. A node manager in that state answered component
+calls with <code>400 no registered node manager with id: …</code> although all its
+instances were RUNNING.</p>
+<p>Each master and node manager now checks on every reconnect whether its own node
+exists and re-creates it with the registration it remembers, logging
+<code>Re-registered … — the previous ZooKeeper session expired …</code>. The ready flag is
+restored as it was, so a node that was not ready before stays outside the
+cluster until it is.</p>
+<p>Alongside the ephemeral node, each node manager writes its address to a
+<strong>persistent</strong> <code>node-addresses/&lt;nodeId&gt;</code> znode. When a node manager is briefly
+absent — restarting during a patch, for instance — calls that only need its
+address use the last known one instead of putting the node id where a host name
+belongs (<code>http://nm-host3-19998:19320</code> was refused as <code>unsupported URI</code>, and a
+catalog listing or a Flink job lookup failed with a message that did not point
+at the restart). Installs and scale-outs still require the node to be
+registered.</p>
 <h2 id="leader-election">Leader election</h2>
 <p>When more than one chango master is running, exactly one is elected leader. Only the leader:</p>
 <ul>
@@ -1475,7 +1525,33 @@ nobody can log into that product; recovery needs the product's own CLI
 <li><code>GET/POST /admin/api/…</code> — REST API surface.</li>
 <li><code>GET  /admin/api/auth/{login,refresh}</code> — only routes that do not require a Bearer token.</li>
 </ul>
-<p>Long-running admin operations (component install, cluster start, NIO log tail) run on a dedicated worker thread pool (<code>chango.master.admin.worker.threads</code>, default 8) so package I/O does not stall other admin-API requests on the Netty event loop.</p>
+<p>Long-running admin operations — component install / start / stop, NIO log tail, patch upload and apply, backup, trust-store changes — run on a dedicated worker thread pool (<code>chango.master.admin.worker.threads</code>, default 8) so package I/O, fan-out to every node manager and object-storage calls do not stall other admin-API requests on the Netty event loop.</p>
+<h3 id="unknown-request-fields-are-reported-not-rejected">Unknown request fields are reported, not rejected</h3>
+<p>A request body bound to a typed request whose fields include a name the endpoint
+does not know is <strong>accepted</strong> — the field is dropped — and a successful JSON
+object response carries the names it dropped:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;clusterId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;trino-1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;…&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;…&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">&quot;ignoredFields&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;exchangeBaseDirs&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">&quot;ignoredFieldsNote&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;These request fields are not part of this endpoint and were discarded. A misspelled field is silently dropped, so a value you meant to set may be missing — check the names against the endpoint&#39;s request fields.&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>Before this, a misspelled field vanished and the call answered <code>200</code> with
+nothing to say so — <code>exchangeBaseDirs</code> for <code>exchangeBaseDirectory</code> installed a
+Trino whose coordinator and workers never started, <code>endpoints</code> for
+<code>gatewayInstanceIds</code> removed a proxy instead of applying it, <code>registryNodes</code> for
+<code>schemaRegistryNodes</code> never installed the registry. Rejecting with <code>400</code> would
+be stricter, but the browser bundle and the server are patched separately, so a
+newer console sending a field an older server does not know is a normal
+combination. The field is added only to <code>2xx</code> object responses — not to arrays
+(listings) and not to errors — so a client that does not look for it sees the
+same body as before. Treat a non-empty <code>ignoredFields</code> as a failed request.</p>
+<p>Two endpoints that take free-form key maps report the same thing their own way:
+<code>POST /admin/api/postgres/backup-config</code> answers <code>ignored</code> + <code>hint</code> (see
+<a href="../postgres-backup/#configuration">PostgreSQL Backup</a>).</p>
+<p>A login with <code>username</code> or <code>password</code> missing answers <code>400 username and password
+are required</code> — it used to be a <code>500</code>.</p>
 <h2 id="cluster-readiness-gate">Cluster readiness gate</h2>
 <p>On startup the master refuses admin REST traffic until:</p>
 <ul>

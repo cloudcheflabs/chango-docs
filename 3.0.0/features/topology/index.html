@@ -858,6 +858,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -1027,7 +1041,7 @@
   
     <li class="md-nav__item">
       <a href="../config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1504,7 +1518,7 @@
 <h2 id="adding-removing-hosts">Adding / removing hosts</h2>
 <ul>
 <li><strong>Adding</strong> a node manager — prepare the host, add it to the inventory, re-run the install playbook with <code>--limit &lt;new-host&gt;</code>. The new NM registers in ZooKeeper, the leader picks it up, and component install panels in the admin UI start offering it as a target.</li>
-<li><strong>Removing</strong> a node manager — stop <code>chango-nodemanager.service</code> on that host. Its ephemeral znode disappears; the leader removes it from the live registry. Component instances still listed against that nodeId stay in metadata; before reusing the same nodeId on a different host, delete or move those instances first.</li>
+<li><strong>Removing</strong> a node manager — stop the node manager on that host. Its ephemeral znode disappears; the leader removes it from the live registry. (A node manager whose ZooKeeper <em>session</em> merely expired is not removed: it re-registers on reconnect — see <a href="../control-plane/#what-the-control-plane-knows">Control Plane</a>.) Component instances still listed against that nodeId stay in metadata; before reusing the same nodeId on a different host, delete or move those instances first.</li>
 <li><strong>Adding</strong> a master — start a new master process with a fresh <code>nodeId</code> against the same ZooKeeper. It joins the leader election. The existing leader keeps leadership (sticky leader).</li>
 <li><strong>Removing</strong> a master — stop <code>chango-master.service</code>. If it was the leader, the other masters elect a new leader within a second.</li>
 </ul>

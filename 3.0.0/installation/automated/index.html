@@ -678,6 +678,26 @@
     Adding a node manager later — add-nodemanager.yml
   </a>
   
+    <nav class="md-nav" aria-label="Adding a node manager later — add-nodemanager.yml">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#host-names-are-node-fqdns" class="md-nav__link">
+    Host names are node FQDNs
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#removing-a-node-manager-remove-nodemanageryml" class="md-nav__link">
+    Removing a node manager — remove-nodemanager.yml
+  </a>
+  
 </li>
       
         <li class="md-nav__item">
@@ -940,6 +960,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../../features/trust-store/" class="md-nav__link">
+        Trust Store (private CA)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../features/port-allocator/" class="md-nav__link">
         Port Allocator
       </a>
@@ -1109,7 +1143,7 @@
   
     <li class="md-nav__item">
       <a href="../../features/config-runtime-only/" class="md-nav__link">
-        Config Runtime-Only Policy
+        Config Change Gate
       </a>
     </li>
   
@@ -1512,7 +1546,7 @@
 <p>This page brings up a chango cluster with the ansible playbooks shipped in the bundle. Use it for any multi-host install you intend to keep running. Scaling the cluster out later (adding a master or a node manager) also uses ansible — <code>add-master.yml</code> and <code>add-nodemanager.yml</code>.</p>
 <p>The end state is identical to the <a href="../manual/">manual install</a>: masters running on the chosen master hosts, a bundled ZooKeeper quorum on the chosen ZK hosts (master and ZK groups may overlap but no longer have to), a node manager on every host that runs component workloads, no systemd units, the cluster master key held only in operator-controlled secret storage.</p>
 <h2 id="what-ansible-does-and-what-it-does-not">What ansible does — and what it does not</h2>
-<p>Chango uses ansible <strong>only for these three actions</strong>:</p>
+<p>The bundle ships these playbooks:</p>
 <table>
 <thead>
 <tr>
@@ -1533,9 +1567,21 @@
 <td><code>add-nodemanager.yml</code></td>
 <td>Add a node manager to an existing cluster.</td>
 </tr>
+<tr>
+<td><code>remove-nodemanager.yml</code></td>
+<td>Remove a node manager (<code>--limit &lt;host&gt;</code> is required).</td>
+</tr>
+<tr>
+<td><code>start.yml</code> / <code>stop.yml</code> / <code>restart.yml</code></td>
+<td>Start (ZooKeeper → master → node manager) or stop (the reverse) the chango processes on every host — not the managed components. See <a href="../../operations/cluster-operations/">Cluster Operations</a>.</td>
+</tr>
+<tr>
+<td><code>uninstall.yml</code></td>
+<td>Stop chango and remove it from every host — see <a href="#uninstall-uninstallyml">Uninstall</a>.</td>
+</tr>
 </tbody>
 </table>
-<p>Stop / restart / upgrade are <strong>not</strong> ansible's job. After any of the three playbooks above finishes, ansible is out of the picture and the operator runs <code>/opt/chango/bin/*.sh</code> directly on each host. See <a href="../../operations/cluster-operations/">Cluster Operations</a>.</p>
+<p>Upgrades are not ansible's job — see <a href="../../operations/upgrade/">Upgrade</a> and the <a href="../../features/patch-system/">Patch System</a>.</p>
 <p>The bundle deliberately ships no systemd units and no <code>/etc/sysconfig/chango</code> file. The cluster master key never lands on disk under chango's control — at first install ansible stages a one-time copy at <code>/opt/chango/.master-key-bootstrap</code> on the master host, prints its path in the play recap, and expects the operator to move that value into a secret manager and delete the file.</p>
 <h2 id="topology-default-2-masters-3-zk-3-nms">Topology (default — 2 masters + 3 ZK + 3 NMs)</h2>
 <p>The 3.0.0 default install layout is HA-from-day-one: <strong>2 chango masters + 3-node ZooKeeper quorum + 3 node managers</strong> on three hosts. Master and ZK groups are independent — master count is decoupled from ZK count so the quorum sizing is not driven by HA-master sizing.</p>
@@ -1587,7 +1633,7 @@
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>   ▼  ansible-playbook -i inventory.yml install.yml
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>install   masters + ZK quorum + node managers, all first-booted
 </code></pre></div>
-<p>Why two tarballs: node managers only need the chango runtime (the master ships component binaries to them over the internal NIO protocol at component-install time), while the master also carries the JDKs and the component packages that ansible installs and that the master later distributes. <code>build-with-comps.sh</code> produces both and stages each one into the matching ansible role's <code>files/</code> directory, so <code>install.yml</code> finds them with no manual copying.</p>
+<p>Why two tarballs: node managers only need the chango runtime (the master ships component binaries to them over the internal NIO protocol at component-install time), while the master also carries the JDKs and the component packages that ansible installs and that the master later distributes. <code>build-with-comps.sh</code> produces both. The lean tarball is packed inside the package, in the node-manager role's <code>files/</code> directory; the with-comps tarball stays <strong>next to</strong> the unpacked package in the bundle directory — a tarball cannot contain itself, and nesting the previous build there only added 5.5 GB of unread copy to the media and to every master's disk. <code>install.yml</code> looks in both places (the role's <code>files/</code> and the bundle directory two levels above <code>ansible/</code>), so there is no manual copying.</p>
 <h2 id="1-download-the-lean-release-and-build-the-bundle">1. Download the lean release and build the bundle</h2>
 <p>Do this on a machine <strong>with internet access</strong> — typically the future master host, or a staging box if the cluster is air-gapped. Download the lean release tarball from the cloudcheflabs distribution (no git, no registry login):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-L<span class="w"> </span>-O<span class="w"> </span>https://github.com/cloudcheflabs/chango-pack/releases/download/chango-archive/chango-3.0.0.tar.gz
@@ -1608,7 +1654,12 @@
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>chango-bundle-3.0.0.tar.gz           # the directory above, tarred, for air-gapped transfer
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>chango-bundle-3.0.0.tar.gz.sha256    # its digest — outside the archive on purpose
 </code></pre></div>
-<p>Both tarballs already have the JDK and component binaries staged into their <code>ansible/roles/*/files/</code> directories, so the playbook ships them to every host without any extra <code>cp</code>.</p>
+<p>Leave the media as it unpacks — the two tarballs and <code>chango-bundle-3.0.0.tar.gz</code> side by side is the layout <code>install.yml</code> expects. The bundle discovery stops instead of guessing in two cases:</p>
+<ul>
+<li><strong>nothing found</strong> — it names the two places it looked (<code>roles/&lt;role&gt;/files</code> and the bundle directory); run ansible from inside the unpacked media;</li>
+<li><strong>more than one file matches and their contents differ</strong> — it lists every full path with its <code>sha1</code>. The same file found in both places is normal and passes; two <em>different builds</em> under the same name (an earlier delivery left one directory up is the common case) used to be resolved by silently picking one. Remove the one you do not mean to install.</li>
+</ul>
+<p>The lean pattern <code>chango-*.tar.gz</code> does not match <code>chango-with-comps-*.tar.gz</code> or the media tarball <code>chango-bundle-*.tar.gz</code> sitting beside it.</p>
 <p>The checksums and the two bills of materials are what a customer's import-approval process asks for. Verify the media before opening it:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sha256sum<span class="w"> </span>-c<span class="w"> </span>chango-bundle-3.0.0.tar.gz.sha256
 </code></pre></div>
@@ -1781,18 +1832,120 @@
 <a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>add-nodemanager.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;new-nm-host&gt;
 </code></pre></div>
 <p>Same prompt behavior as <code>add-master.yml</code>. The playbook installs <code>node-prep</code> + Java 17/25 + chango on the new host and runs first-boot start with the master key in env only. The NM registers itself in ZooKeeper and shows up in the admin UI within seconds.</p>
-<h2 id="uninstall-uninstallyml">Uninstall — <code>uninstall.yml</code></h2>
-<p><code>uninstall.yml</code> only cleans disk; it does <strong>not</strong> drive lifecycle. Stop every chango process yourself first (ansible no longer manages running processes), then run the playbook to remove the install / data / log directories on every host.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># 1. On each host, stop the processes (as the chango user):</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-master.sh<span class="w">          </span><span class="c1"># master hosts</span>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-zk.sh<span class="w">              </span><span class="c1"># ZK hosts</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>sudo<span class="w"> </span>-u<span class="w"> </span>chango<span class="w"> </span>/opt/chango/bin/stop-node-manager.sh<span class="w">    </span><span class="c1"># NM hosts</span>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="c1"># confirm with `ps -ef | grep chango` that nothing is left running.</span>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="c1"># 2. From the controller, wipe the directories cluster-wide:</span>
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>uninstall.yml
+<h3 id="host-names-are-node-fqdns">Host names are node FQDNs</h3>
+<p>Name every host in the inventory by the node's own FQDN — the value of
+<code>hostname -f</code> on that node (<code>cp-4.chango.private</code>, not <code>cp-4</code>). Two things
+depend on it:</p>
+<ul>
+<li><code>--limit</code> matches <strong>inventory names only</strong>. <code>--limit cp-4</code> against an
+  inventory that says <code>cp-4.chango.private</code> matches nothing.</li>
+<li>The node manager's id is derived from the host name:
+  <code>nm-&lt;hostname with every character other than letters, digits, '_' and '-' turned into '_'&gt;-&lt;internal port&gt;</code>,
+  e.g. <code>nm-cp-4_chango_private-19998</code>. <code>remove-nodemanager.yml</code> uses the same
+  rule to find what the master has on that host.</li>
+</ul>
+<h2 id="removing-a-node-manager-remove-nodemanageryml">Removing a node manager — <code>remove-nodemanager.yml</code></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CHANGO_ADMIN_PASSWORD</span><span class="o">=</span>&lt;console<span class="w"> </span>admin<span class="w"> </span>password&gt;<span class="w">   </span><span class="c1"># read by the playbook; keeps it out of shell history</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>remove-nodemanager.yml<span class="w"> </span>--limit<span class="w"> </span>&lt;nm-host-fqdn&gt;
 </code></pre></div>
-<p>This removes <code>chango_install_dir</code> (<code>/opt/chango</code> — which contains chango's own RocksDB stores under <code>data/</code>), <code>chango_data_dir</code> (<code>/var/lib/chango</code>, the bundled ZooKeeper's data dir), and <code>chango_log_dir</code> (<code>/var/log/chango</code>) on every host. The JDKs under <code>/opt</code> and the <code>chango</code> OS user are left in place — remove them by hand if you want a full teardown.</p>
+<p>Before it touches the host, the playbook logs in to the master and asks which
+component instances live on that node. It <strong>stops</strong> — and removes nothing —
+when:</p>
+<table>
+<thead>
+<tr>
+<th>Stops because</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--limit</code> was not given</td>
+<td>name the host; without it the whole group would be removed</td>
+</tr>
+<tr>
+<td>it could not log in or read the node and component lists</td>
+<td>start the master, check the password, rerun</td>
+</tr>
+<tr>
+<td>instances are still on the host (they are listed in the message)</td>
+<td>scale them in from the console, then rerun</td>
+</tr>
+</tbody>
+</table>
+<p>Removing a host while instances remain on it used to succeed: the master kept
+those instances in its records, and they never answered again (a Spark worker
+listed but doing nothing). <code>-e force=true</code> skips the checks; use it only when
+the master is gone for good.</p>
+<p>After the checks it stops the node manager and removes, on a host that runs a
+node manager only:</p>
+<ul>
+<li>the chango install directory and <code>/etc/sudoers.d/chango</code> — the root rights the node manager had</li>
+<li><code>/etc/chango/certs/</code> — the certificates Trust Store registrations placed there</li>
+<li>the OS trust anchors <code>chango-*.pem</code> (followed by <code>update-ca-trust extract</code>)</li>
+<li>the <code>chango-*</code> aliases in every <code>/opt/openlogic-openjdk-*</code> JDK <code>cacerts</code></li>
+<li>chango's nginx drop-ins (<code>/etc/nginx/conf.d/chango_*.conf</code>)</li>
+</ul>
+<p>Logs are kept. Before these were added, a removed host kept root rights for the
+<code>chango</code> user and kept trusting the private CA.</p>
+<h2 id="uninstall-uninstallyml">Uninstall — <code>uninstall.yml</code></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;bundle&gt;/chango-3.0.0/ansible<span class="w">          </span><span class="c1"># the copy in the delivered bundle — not /opt/chango/ansible</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>uninstall.yml
+</code></pre></div>
+<p><code>uninstall.yml</code> first runs <code>stop.yml</code> itself, so you do not stop processes by
+hand. Delete the managed components first (from the console or
+<code>DELETE /admin/api/&lt;comp&gt;/&lt;id&gt;</code>, with <code>purgeData=true</code> if their data should go
+too) — the playbook does not touch component install directories.</p>
+<table>
+<thead>
+<tr>
+<th>Removed</th>
+<th>Not removed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chango_install_dir</code> (<code>/opt/chango</code>, with chango's RocksDB stores under <code>data/</code>) on every host</td>
+<td>Component install directories — delete the components first</td>
+</tr>
+<tr>
+<td><code>chango_log_dir</code>, and the legacy <code>/var/log/chango</code> when the log dir was moved</td>
+<td>Log directories the components wrote</td>
+</tr>
+<tr>
+<td>ZooKeeper's data dir (<code>chango_zk_data_dir</code>) and transaction-log dir (<code>chango_zk_data_log_dir</code>) on every <code>chango_zookeepers</code> host</td>
+<td>Data in object storage</td>
+</tr>
+<tr>
+<td>chango's nginx drop-ins (<code>/etc/nginx/conf.d/chango_*.conf</code>, then <code>nginx -s reload</code>) and <code>/etc/sudoers.d/chango</code></td>
+<td>The JDKs under <code>/opt</code> and the <code>chango</code> OS user</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition danger">
+<p class="admonition-title">The master key file goes with the install directory</p>
+<p>Archives made by <a href="../../features/backup/">Backup</a> open only with the cluster
+master key. Make sure you hold it elsewhere before uninstalling.</p>
+</div>
+<p>Three things changed, each because a teardown left state the next install
+inherited:</p>
+<ul>
+<li><strong>It refuses to run from inside the directory it deletes.</strong> The installed
+  tree carries a copy of <code>ansible/</code>, and running from there deleted the
+  playbook's own working directory: the control node died with
+  <code>FileNotFoundError</code>, the play stopped, and the log directory, nginx and
+  sudoers drop-ins were left on <strong>every</strong> host while the install directory was
+  already gone. The playbook now checks its location before touching anything
+  and tells you to run the bundle's copy.</li>
+<li><strong>ZooKeeper data is removed</strong>, on the <code>chango_zookeepers</code> group — which was
+  not targeted at all before, so a ZooKeeper host that is not a master was
+  skipped entirely. Left behind, the snapshot, transaction log, <code>myid</code> and
+  epochs gave the next install the old znode tree — registrations of components
+  that no longer exist, old patch levels — encrypted with a master key that had
+  just been deleted, so it could be neither read nor cleaned. The transaction-log
+  directory is removed separately, since it usually sits on its own disk.</li>
+<li><strong>Every path is validated</strong> before it is deleted; a value of <code>/</code> is refused.</li>
+</ul>
 <h2 id="next">Next</h2>
 <ul>
 <li><a href="../getting-started/">Getting Started</a> — first login + first managed component.</li>
