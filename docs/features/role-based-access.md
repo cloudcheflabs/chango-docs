@@ -23,6 +23,7 @@ Every authenticated `GET` that does **not** return a secret. Concretely:
 - View backup history (not the destination credentials).
 - View the patch library (not upload / apply / rollback).
 - Read IAM users / groups / policies (not access keys, not user passwords).
+- Change **their own** password — from the key icon (*Change password*) in the console header. See [below](#changing-your-own-password).
 
 ## What non-admins cannot do
 
@@ -132,16 +133,70 @@ value — saving the mask would put `********` in the catalog file and the catal
 would stop reaching its storage at the next restart, far from the edit. A mask
 sent for a property that has no stored value is refused rather than saved empty.
 
+### 5. Settings responses that used to carry secrets
+
+The same "strip, report `<key>Present`" rule now also covers three responses
+that bypassed it:
+
+- `GET /admin/api/spark/<id>/config` returned the cluster settings whole —
+  including `ontulAuthzToken` (the IAM engine service token) and the S3 secret
+  keys, in plain text. Secrets are now omitted and flagged `<key>Present`. Access
+  key ids (`s3AccessKey`, `eventLogS3AccessKey`, …) stay visible, as they do in
+  the cluster JSON. Sending an empty value back means *keep the stored one*, so
+  the Configure drawer still saves.
+- `GET /admin/api/components` and the single-instance read serialised each
+  instance's `env`, which for PostgreSQL holds the superuser password. Values of
+  env keys ending in `PASSWORD`, `SECRET`, `SECRET_KEY`, `ACCESS_KEY`, `_TOKEN`
+  or `MASTER_KEY` now come back as `***`; the keys stay, so the console can still
+  tell that one is set. The credential download route still returns the real
+  value.
+- Polaris's server-wide S3 settings no longer return the secret key; they return
+  `s3SecretKeySet` (`true`/`false`). The **S3 Credentials** tab shows the field as
+  a password input, *set — leave empty to keep* or *not set*.
+
+Polaris's per-catalog principal secret — the credential Trino, Spark and Flink
+use against a catalog — is downloadable one at a time:
+`GET /admin/api/credentials/download?component=polaris&clusterId=<id>&field=catalogPrincipalClientSecret.<catalog>`.
+The catalog list carries `principalClientId` and `principalSecretPresent`, and
+the **Iceberg Catalogs** panel shows the id with a download button on each row.
+
+## Changing your own password
+
 `auth/*` (login, refresh, session, logout, change-password) stays open — that's how a user reaches the admin UI in the first place. `change-password` runs `requireLeader()` internally; a non-admin rotating their own password works fine.
+
+Every signed-in user, admin or not, has a **Change password** button (key icon)
+in the console header next to **Sign out**, in both the main layout and the
+Settings layout. It opens the same dialog as the first-login gate — **Current
+Password**, **New Password**, **Confirm New Password** — and changes the password
+of the user who is signed in. The new password must be at least 6 characters and
+differ from the current one.
+
+```bash
+curl -s -X POST $BASE/admin/api/auth/change-password \
+  -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+  -d '{"oldPassword":"<current>","newPassword":"<new>"}'
+```
+
+Until this button existed the only entry point was **Change Admin Password** on
+the KMS screen, which a non-admin sees as *Access Restricted* — the backend
+allowed the change and the console offered no way to it.
 
 ## Admin UI behaviour
 
 `useAuth()` exposes an `isAdmin` flag derived from the login response (`/admin/api/auth/login` returns `{accessToken, isAdmin}`). The non-admin UI:
 
-- Shows a yellow read-only banner at the top of every page: "You are signed in as a non-admin user. Mutations and secret reveals are hidden."
+- Shows a yellow banner at the top of every page: "Read-only mode — without admin rights, changes, actions and secret lookups are disabled."
 - Hides every mutating button — **Install**, **Start**, **Stop**, **Restart**, **Scale**, **Configure**, **Delete**, **Apply**, **Upload**, **Backup Now**, **Generate access key**, **Add user / group / policy**, **Attach policy**, …
 - Hides every secret-reveal button — **Show password**, **Show admin password**, **Download access key**, **Show catalog connection**.
 - Disables the patches dropzone and the IAM "Create user / group / policy" entry points.
+- Disables the inputs on the **SSO** page, not only its save button — a form you can edit but not save leaves you changing values without knowing why nothing sticks.
+
+The row actions are where this slips: Trino's resource-group **Delete** and
+Trino Gateway's backend **Delete** were outside the admin-only wrapper while the
+**Edit** next to them was inside, so a non-admin saw buttons the backend then
+refused with `403`. Both are hidden now. Every icon-only button also carries an
+accessible name (`aria-label` / `title`) — of the 98 that had none, 38 were
+deletes.
 
 This is consistent across all 14 component pages (Ontul, kiok, ShannonStore, NeoRunBase, ItdaStream, Mium, Postgres, Polaris, Kafka, Schema Registry, Trino, Trino Gateway, Spark, Flink, UI Proxy), plus the IAM page, the Backup page, the Topology page, and the Settings → Patches page. Read paths are untouched — every status, every metric, every list works the same as for an admin.
 
@@ -159,7 +214,12 @@ The default `admin` user is the only admin out of the box. After the first passw
 2. Adds `alice` to `admin-group`.
 3. Logs in as `alice` from then on; uses the original `admin` only as a break-glass account.
 
-Non-admin users are typically service principals — kiok DAGs, ansible runners, CI scripts — that only need to read cluster status. Issue them an access key from IAM (admin-only), and call the API with the bearer token derived from that key.
+Non-admin console users are **read-only observers**: they sign in with a
+password (or through [SSO](sso.md)) to look at topology, status, metrics and
+history, and they can change their own password. chango deliberately offers no
+self-service access keys — a non-admin cannot issue, list or download keys, and
+the admin REST API authenticates with the bearer token from
+`POST /admin/api/auth/login`, not with an access key.
 
 ## Stage-2 (planned)
 

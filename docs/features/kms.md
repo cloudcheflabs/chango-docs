@@ -26,6 +26,17 @@ To encrypt a payload chango generates a DEK, encrypts with it (AES-256-GCM, rand
 
 Because the envelope names its KEK **version**, rotating a KEK never invalidates existing ciphertext.
 
+A reader that is handed bytes which are **not** an envelope — a plaintext
+snapshot written before encryption, for example — must reject them so its
+plaintext fallback can take over. The first four bytes are read as the length of
+the wrapped DEK, and the four bytes `{"us` of a JSON snapshot read as
+2,065,973,619: decryption used to allocate a ~2 GB array from that, raising
+`OutOfMemoryError` instead of an exception, which passed every `catch
+(Exception)` fallback and killed the process during startup — only on a small
+heap, since a large one survived the allocation. The length is now checked
+against the bytes that are actually there (leaving room for the IV and tag)
+before anything is allocated, and a mismatch is rejected as `not an envelope`.
+
 ## Algorithms
 
 | Operation | Algorithm |

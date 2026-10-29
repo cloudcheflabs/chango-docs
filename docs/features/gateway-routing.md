@@ -241,6 +241,22 @@ curl -sS -X POST $BASE/admin/api/trino-gateway/<clusterId>/nginx \
 #   nginxApplied  host-a:8680,host-b:8680     ← should list every gateway
 ```
 
+An empty `gatewayInstanceIds` means **remove the proxy**, which is what the
+console's *Remove Proxy* sends. Two requests that would have been read that way
+by mistake are refused with `400` instead:
+
+- `gatewayInstanceIds` empty (or missing — a misspelled field such as
+  `endpoints` is dropped) while no proxy is applied: `gatewayInstanceIds is
+  empty and no proxy is applied, so there is nothing to apply and nothing to
+  remove …`, followed by the gateway instance ids of this cluster;
+- ids were sent but none of them is a gateway instance of this cluster:
+  `none of the requested gateway instances were recognised: [...]`, with the
+  same list.
+
+Both used to answer `200` with the cluster JSON and leave `conf.d` empty — the
+gateway then had no TLS front, and since Trino's JDBC driver refuses Basic
+credentials over plain HTTP, nothing authenticated could reach it.
+
 `listenPort: 0` auto-allocates from a dedicated band. A port given explicitly is
 honoured only after it is confirmed free — nginx binding silently fails
 otherwise, which leaves a surface that reports success and refuses connections.
@@ -350,6 +366,11 @@ to copy or paste. Pass a `certificate` (PEM) instead to install a **corporate
 CA** — a JVM does not know that CA either, so it fails exactly like a
 self-signed one, except one CA certificate covers every server certificate it
 issues and survives their reissue.
+
+The same distribution exists for the engines themselves (Trino, Trino Gateway,
+Spark, Flink, Ontul) and for the control plane's own calls — see
+[Trust Store](trust-store.md). Reading the certificate off the gateway pins the
+leaf it serves today; the tab says so, and a renewal means running it again.
 
 `taskConfigKeys` is the line to paste, per task type. The prefix differs
 (`trino.` / `ontul.` / `livy.` / none for `http`) and a wrong prefix is

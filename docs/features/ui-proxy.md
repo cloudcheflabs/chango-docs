@@ -50,6 +50,13 @@ The Create UI Proxy panel does not ask you to type URLs. Chango already knows ev
 
 A free-text **Add extra upstreams (advanced)** box remains for endpoints chango does not manage.
 
+The discovered rows start **unchecked**. Until the form is complete, **Create
+Cluster** stays disabled and the line under it says what is missing — for
+example `Cannot create yet — missing at least one upstream checked (8 found, none
+selected), at least one proxy node.` (an empty **Ontul URL** is listed too). The
+count matters: "none were found" and "some were found and none picked" call for
+different actions.
+
 ### Running clusters register themselves
 
 Picking from the list is only the convenient path. The leader also pushes every running Spark, Trino and Flink UI into each proxy cluster's *managed upstream* slot on its reconcile tick, so installing a component after the proxy makes its UI appear without anyone editing the proxy — and scaling or deleting that component updates or empties the slot the same way.

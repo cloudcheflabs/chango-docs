@@ -100,7 +100,7 @@ Reporting is **on by default** on all three engines. The chango installer sets n
 
 Setting it to `false` disables **both** audit and lineage for that engine. It does not affect the authorization check itself — access control keeps working exactly as before.
 
-Editing the Trino key is a normal [component configuration](../operations/component-operations.md) change: open the cluster, **Configure**, edit `access-control.properties`, and restart the coordinator. Because chango's [Config Runtime-Only Policy](config-runtime-only.md) applies, the cluster must be `RUNNING` for the edit to be accepted.
+Editing the Trino key is a normal [component configuration](../operations/component-operations.md) change: open the cluster, **Configure**, edit `access-control.properties`, and restart the coordinator. The edit is refused only while the coordinator is starting or stopping — see [Config Change Gate](config-runtime-only.md).
 
 ## Verifying on a live cluster
 

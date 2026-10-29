@@ -52,6 +52,15 @@ sudo -u chango -E /opt/chango/bin/start-node-manager.sh \
     -Dchango.zk.serverList=<zk-quorum>
 ```
 
+`start-node-manager.sh` refuses to start without a ZooKeeper address from the
+environment, `-Dchango.zk.serverList` or `conf/chango.properties`. A
+`localhost:2181` (or this host's own name) in the properties file is accepted
+when something is actually listening on that port on this host — chango puts a
+ZooKeeper on every control-plane node, so that is the normal case. It used to be
+refused unconditionally, which is how a self-patch that restarted a node manager
+without `CHANGO_ZK_SERVERLIST` left the host with no node manager. (The script
+lives in `bin/`, which patches do not carry; it arrives with a new bundle.)
+
 The pid file is `/opt/chango/bin/node-manager.pid`. Stop:
 
 ```bash
@@ -85,6 +94,16 @@ done
 
 Order matters. Something started before what it depends on comes up and dies
 seconds later, and its status reads RUNNING for a while first.
+
+`restart.yml` is `stop.yml` followed by `start.yml`, and it checks the master
+key **before** stopping anything. When you pass `-e master_key_path=…`, that
+path is read **on each master host**, and a path that exists only on the
+control node used to fail on the other masters after the stop had already run —
+both masters went down and only the one holding the file came back, with
+`failed=1` as the only trace in the recap. Now, if any master cannot read the
+file, the playbook stops with nothing stopped and suggests the default path the
+install writes on every master host, `-e master_key_path=/opt/chango/conf/master.key`.
+Without `-e`, `start.yml` prompts for the key as before.
 
 !!! warning "`RUNNING` right after a reboot can be a stale record"
     The node managers re-report instance state after they start, and for a short
@@ -302,10 +321,8 @@ The readiness gate timeout is `chango.cluster.readiness.timeout.ms` (default 120
 
 See [Cluster Readiness](../features/cluster-readiness.md) for the full flow (leader / non-leader paths, every ZK znode, per-master ready flag) and [Leader Forwarding](../features/leader-forward.md) for how follower masters relay mutating admin traffic to the leader once readiness opens.
 
-## Config endpoint requires RUNNING
+## Config endpoint and instance state
 
-`POST /admin/api/<comp>/<id>/config` (and any file-write endpoint on a component instance) **requires the instance to be RUNNING**. A request against a STOPPED instance returns `400 Bad Request` with `"instance 'X' is STOPPED — config changes require RUNNING; start the instance first."`.
-
-This keeps "admin API state" and "on-disk state" lockstep — components whose `start-*.sh` re-derives content from chango master settings would otherwise overwrite the just-edited file. Start the instance, apply the config, restart for the change to take effect. See [Config Runtime-Only Policy](../features/config-runtime-only.md).
+`POST /admin/api/<comp>/<id>/config` (and any file-write endpoint on a component instance) is refused only while the instance is `STARTING` or `STOPPING`, or when its node manager cannot be reached — both `400 Bad Request`. `RUNNING`, `STOPPED`, `ERROR` and `INSTALLED` instances accept it; a stopped process reads the new file at its next start. That is what lets a cluster whose configuration broke its own startup be repaired from **Configure** instead of reinstalled. See [Config Change Gate](../features/config-runtime-only.md).
 
 For values you need from the very first start (heap size, custom properties), use the install-time `properties` map + per-role JVM config — not the config endpoint.

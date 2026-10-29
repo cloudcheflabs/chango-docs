@@ -57,6 +57,7 @@ nav:
       - "Admin Password Recovery": features/admin-password-recovery.md
       - "Encryption & Key Management": features/kms.md
       - "Product Master Keys": features/product-master-keys.md
+      - "Trust Store (private CA)": features/trust-store.md
       - "Port Allocator": features/port-allocator.md
       - "Hosts Sync": features/hosts-sync.md
       - "UI Proxy": features/ui-proxy.md
@@ -69,7 +70,7 @@ nav:
       - "PostgreSQL Backup & Restore": features/postgres-backup.md
       - "Patch System": features/patch-system.md
       - "License Manager": features/license.md
-      - "Config Runtime-Only Policy": features/config-runtime-only.md
+      - "Config Change Gate": features/config-runtime-only.md
   - "Components":
       - "Catalog": components/catalog.md
       - "Versions": components/versions.md
