@@ -392,6 +392,15 @@ node manager only:
 Logs are kept. Before these were added, a removed host kept root rights for the
 `chango` user and kept trusting the private CA.
 
+On a host that **also runs a master or a chango ZooKeeper**, the install
+directory is not the node manager's alone — ZooKeeper's `zoo.cfg` and start
+script and the master's `lib/` and `conf/` live in it. There the playbook keeps
+`/opt/chango` and removes only the node manager's share: `data/nm`,
+`data/components` and `bin/node-manager.pid`; sudoers and trust stay too,
+because the master or ZooKeeper still uses them. An earlier version removed the
+whole directory regardless, which left that ZooKeeper or master unable to start
+at its next restart.
+
 What else stays on the host — none of it grants access or runs anything, and
 removing it is left to the operator because other software may share it:
 
@@ -423,13 +432,14 @@ too) — the playbook does not touch component install directories.
 | `chango_install_dir` (`/opt/chango`, with chango's RocksDB stores under `data/`) on every host | Component install directories — delete the components first |
 | `chango_log_dir`, and the legacy `/var/log/chango` when the log dir was moved | Log directories the components wrote |
 | ZooKeeper's data dir (`chango_zk_data_dir`) and transaction-log dir (`chango_zk_data_log_dir`) on every `chango_zookeepers` host | Data in object storage |
-| chango's nginx drop-ins (`/etc/nginx/conf.d/chango_*.conf`, then `nginx -s reload`) and `/etc/sudoers.d/chango` | The JDKs under `/opt` and the `chango` OS user |
+| chango's nginx drop-ins (`/etc/nginx/conf.d/chango_*.conf`, then `nginx -s reload`) and `/etc/sudoers.d/chango` — on node-manager-only hosts too | The JDKs under `/opt` and the `chango` OS user |
+| The trust chango placed: `/etc/chango/certs/`, the OS anchors `chango-*.pem` (then `update-ca-trust extract`), the `chango-*` aliases in the chango JDKs' `cacerts` | |
 
 !!! danger "The master key file goes with the install directory"
     Archives made by [Backup](../features/backup.md) open only with the cluster
     master key. Make sure you hold it elsewhere before uninstalling.
 
-Three things changed, each because a teardown left state the next install
+Four things changed, each because a teardown left state the next install
 inherited:
 
 - **It refuses to run from inside the directory it deletes.** The installed
@@ -447,6 +457,12 @@ inherited:
   just been deleted, so it could be neither read nor cleaned. The transaction-log
   directory is removed separately, since it usually sits on its own disk.
 - **Every path is validated** before it is deleted; a value of `/` is refused.
+- **The trust chango placed is withdrawn, and sudoers goes on every host.** The
+  master trusts every PEM in `/etc/chango/certs`, so a reinstall on the same
+  hosts trusted a CA nobody had registered — the Trust Store page was empty
+  while uploads to the private-CA store succeeded. And the sudoers drop-in was
+  removed only on master hosts, leaving `NOPASSWD:ALL` for `chango` on
+  node-manager-only hosts.
 
 ## Next
 
