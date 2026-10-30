@@ -195,7 +195,7 @@ Those fail the job. Role-level noise does not, because it does not decide whethe
 |---|---|---|
 | `GET` | `/admin/api/postgres/backup-config` | Prefix, cron, retention, and whether the shared S3 destination is usable |
 | `POST` | `/admin/api/postgres/backup-config` | Merge-update of the three runtime keys |
-| `GET` | `/admin/api/postgres/<id>/backups` | Archives for this instance, newest first |
+| `GET` | `/admin/api/postgres/<id>/backups` | Archives for this instance, newest first. With `?limit=&offset=`, one page: `{items,total,offset,limit}` (limit ≤ 200) |
 | `POST` | `/admin/api/postgres/<id>/backup` | Start a backup; answers with the job record |
 | `POST` | `/admin/api/postgres/<id>/restore` | Start a restore — `{ objectKey, expectSha256? }` |
 | `GET` | `/admin/api/postgres/<id>/backup-jobs` | This instance's jobs, newest first |
@@ -220,6 +220,17 @@ A job record:
 ```
 
 `status` is `RUNNING`, `COMPLETED` or `FAILED`. A restore record additionally carries `nonFatalErrors`.
+
+### Listing archives a page at a time
+
+An hourly schedule with a 30-day retention keeps about 720 archives per instance. The console shows them ten at a time — the range (`1–10 of 742`) and **Prev / Next** sit under the Archives table, and a finished backup returns the view to the first page so the new archive is visible. The API does the same when asked:
+
+```bash
+curl -s "$A/postgres/pg-main/backups?limit=10&offset=0" -H "Authorization: Bearer $T"
+# {"items":[{"objectKey":"…","sizeBytes":1416,"lastModified":"…"}, …],"total":742,"offset":0,"limit":10}
+```
+
+`limit` is clamped to 1–200; an `offset` past the end gives an empty `items` with the real `total`. Without either parameter the answer is the whole list as a plain array, as before. Retention is what keeps the list short — the listing only pages it.
 
 ### Example — back up and wait
 
