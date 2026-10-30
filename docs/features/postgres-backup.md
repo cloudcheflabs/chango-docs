@@ -124,6 +124,13 @@ Two details make the schedule behave under load:
 
 If one instance fails, the others still run. A single unreachable database is not a reason to skip the rest of the fleet.
 
+A scheduled backup is a **job like a manual one**: it appears in *Recent operations* with a `CRON` tag
+(`"trigger":"cron"` in `backup-jobs`), and a failure shows there as `FAILED` with its reason. It also obeys
+the one-operation-per-instance rule — if a restore is running on an instance when the schedule fires,
+that instance's scheduled backup is skipped (and logged) rather than dumped mid-restore. Before this,
+the scheduler called the dump directly: scheduled runs never appeared in the job list, so a failing
+schedule was only an error line in the leader's log.
+
 ## Retention
 
 `backup.postgres.retention.days` deletes archives older than the window, **after** a successful backup — so a failed run can never be what deletes the last good archive.
@@ -175,7 +182,7 @@ The replay connects to `template1` instead, the database `pg_dumpall` recreates 
 
 A dumpall replay still reports errors that genuinely do not matter — dropping the role it is connected as, a role that already exists. `psql` runs without `ON_ERROR_STOP` so one of those cannot abort the whole restore, and the **count is returned and displayed**.
 
-`4 non-fatal` next to a completed restore is normal. What is *not* left to a count any more are the errors that mean nothing was restored:
+`4 non-fatal` next to a completed restore is normal — hover over it to see which statements they were (the first five are returned as `nonFatalSamples`; a typical pair is `ERROR:  current user cannot be dropped` and `ERROR:  role "postgres" already exists`). What is *not* left to a count any more are the errors that mean nothing was restored:
 
 | Error | Means |
 |---|---|
@@ -219,7 +226,7 @@ A job record:
 }
 ```
 
-`status` is `RUNNING`, `COMPLETED` or `FAILED`. A restore record additionally carries `nonFatalErrors`.
+`status` is `RUNNING`, `COMPLETED` or `FAILED`; `trigger` is `manual` or `cron`. A restore record additionally carries `nonFatalErrors` and `nonFatalSamples` (up to five of those lines).
 
 ### Listing archives a page at a time
 

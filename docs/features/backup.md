@@ -196,6 +196,25 @@ same on a follower as on the leader. Recording never hides the outcome: a failed
 backup has run yet. A scheduled run reports here — if the cron is set and this
 stays empty, the schedule is not firing.* Before this table, a failed scheduled
 run was one `WARN` line in the log of whichever master was leader that night.
+The table shows 10 runs per page.
+
+### Archives in the bucket
+
+The run history keeps the last 50 attempts; the bucket keeps every archive retention has not
+deleted — with `backup.retention.days` at its default `0`, an hourly cron writes 720 a month. The
+archives themselves are listed live from the store, newest first, one page at a time:
+
+```bash
+curl -s -H "Authorization: Bearer $TOK" "$BASE/admin/api/backup/archives?limit=10&offset=0"
+# {"items":[{"backupId":"20261031T030000-1f2e3d4c",
+#            "objectKey":"chango-backups/20261031T030000-1f2e3d4c.tar.gz",
+#            "sizeBytes":1777090,"lastModified":"2026-10-31T03:00:01Z"}, …],
+#  "total":214,"offset":0,"limit":10}
+```
+
+`limit` defaults to 10 and is capped at 200; a non-numeric value answers `400`, and a destination
+that is not configured yet answers `409`. **Settings → Backup** shows the same list as **Archives in
+the bucket** with *Prev* / *Next* — the place to pick the object key for `chango-cli backup restore`.
 
 ### HTTPS with a private CA
 
