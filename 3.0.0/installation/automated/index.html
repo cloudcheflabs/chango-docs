@@ -1888,6 +1888,14 @@ node manager only:</p>
 </ul>
 <p>Logs are kept. Before these were added, a removed host kept root rights for the
 <code>chango</code> user and kept trusting the private CA.</p>
+<p>On a host that <strong>also runs a master or a chango ZooKeeper</strong>, the install
+directory is not the node manager's alone — ZooKeeper's <code>zoo.cfg</code> and start
+script and the master's <code>lib/</code> and <code>conf/</code> live in it. There the playbook keeps
+<code>/opt/chango</code> and removes only the node manager's share: <code>data/nm</code>,
+<code>data/components</code> and <code>bin/node-manager.pid</code>; sudoers and trust stay too,
+because the master or ZooKeeper still uses them. An earlier version removed the
+whole directory regardless, which left that ZooKeeper or master unable to start
+at its next restart.</p>
 <p>What else stays on the host — none of it grants access or runs anything, and
 removing it is left to the operator because other software may share it:</p>
 <table>
@@ -1951,8 +1959,12 @@ too) — the playbook does not touch component install directories.</p>
 <td>Data in object storage</td>
 </tr>
 <tr>
-<td>chango's nginx drop-ins (<code>/etc/nginx/conf.d/chango_*.conf</code>, then <code>nginx -s reload</code>) and <code>/etc/sudoers.d/chango</code></td>
+<td>chango's nginx drop-ins (<code>/etc/nginx/conf.d/chango_*.conf</code>, then <code>nginx -s reload</code>) and <code>/etc/sudoers.d/chango</code> — on node-manager-only hosts too</td>
 <td>The JDKs under <code>/opt</code> and the <code>chango</code> OS user</td>
+</tr>
+<tr>
+<td>The trust chango placed: <code>/etc/chango/certs/</code>, the OS anchors <code>chango-*.pem</code> (then <code>update-ca-trust extract</code>), the <code>chango-*</code> aliases in the chango JDKs' <code>cacerts</code></td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -1961,7 +1973,7 @@ too) — the playbook does not touch component install directories.</p>
 <p>Archives made by <a href="../../features/backup/">Backup</a> open only with the cluster
 master key. Make sure you hold it elsewhere before uninstalling.</p>
 </div>
-<p>Three things changed, each because a teardown left state the next install
+<p>Four things changed, each because a teardown left state the next install
 inherited:</p>
 <ul>
 <li><strong>It refuses to run from inside the directory it deletes.</strong> The installed
@@ -1979,6 +1991,12 @@ inherited:</p>
   just been deleted, so it could be neither read nor cleaned. The transaction-log
   directory is removed separately, since it usually sits on its own disk.</li>
 <li><strong>Every path is validated</strong> before it is deleted; a value of <code>/</code> is refused.</li>
+<li><strong>The trust chango placed is withdrawn, and sudoers goes on every host.</strong> The
+  master trusts every PEM in <code>/etc/chango/certs</code>, so a reinstall on the same
+  hosts trusted a CA nobody had registered — the Trust Store page was empty
+  while uploads to the private-CA store succeeded. And the sudoers drop-in was
+  removed only on master hosts, leaving <code>NOPASSWD:ALL</code> for <code>chango</code> on
+  node-manager-only hosts.</li>
 </ul>
 <h2 id="next">Next</h2>
 <ul>
