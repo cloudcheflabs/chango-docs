@@ -134,12 +134,18 @@ The check exists to catch a broken extraction, not to insist on the whole catalo
 
 ## Where the SBOM comes from
 
-`./package.sh` runs the CycloneDX gradle task in the same invocation that builds the jars, so the SBOM can never describe a different build than the one being packaged. It lands in the release at `sbom/` and is copied into the bundle from there.
+`./package.sh` builds the jars first, then runs the CycloneDX gradle task on its own with `--rerun`, and refuses to package if the SHA-1 the SBOM records for chango's own jars does not match the jars in `lib/`. It lands in the release at `sbom/` and is copied into the bundle from there.
+
+Two things the SBOM is, and one it is not:
+
+- **It lists the runtime classpath only.** Build-only dependencies — the Spark, Flink and Hadoop APIs the authorization plugins compile against, test libraries — are not shipped and are not listed. Earlier 3.0.0 bundles listed every configuration (382 entries), which made libraries that were never in the package, such as log4j 1.2 and Jetty 9.4, look as if they were.
+- **It is regenerated on every package.** Earlier 3.0.0 bundles could carry an SBOM gradle had considered up to date — the task's inputs are the dependency configurations, not chango's own jars — so its hashes for chango's jars matched no jar in the bundle. The hash check above is what prevents that now.
+- **It covers chango's own jars, not the products in `components/`.** Spark, Trino, Ontul and the rest are listed at the product level in `component-inventory`; the libraries inside each product are that product's, and its own release notes and advisories are the place to look.
 
 Regenerating it by hand:
 
 ```bash
-./gradlew cyclonedxBom
+./gradlew cyclonedxBom --rerun
 # build/reports/bom.json, build/reports/bom.xml
 ```
 

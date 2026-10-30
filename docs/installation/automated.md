@@ -392,6 +392,20 @@ node manager only:
 Logs are kept. Before these were added, a removed host kept root rights for the
 `chango` user and kept trusting the private CA.
 
+What else stays on the host — none of it grants access or runs anything, and
+removing it is left to the operator because other software may share it:
+
+| Stays | Why |
+|---|---|
+| the JDKs under `/opt/openlogic-openjdk-*` | other software on the host may use them |
+| the OS users `chango` and the component users (`spark`, `flink`, …) — no sudo rights, no processes | removing a user also decides what happens to files it owns |
+| `/etc/security/limits.d/chango.conf`, `/etc/sysctl.d/99-chango.conf` (file limits, reserved port band) | host tuning, harmless without the platform |
+| empty `/opt/components` and `/etc/chango` | |
+| the log directory (`chango_log_dir`) | kept on purpose, for after-the-fact review |
+
+Re-running `add-nodemanager.yml` on such a host works — it was verified by
+adding, removing, re-adding and removing the same node again.
+
 ## Uninstall — `uninstall.yml`
 
 ```bash
