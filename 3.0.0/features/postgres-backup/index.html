@@ -1654,6 +1654,12 @@ separate from the save that had just succeeded.</p>
 <li>Only the leader dispatches. Followers keep the schedule armed — the expression lives in replicated config — so a new leader picks up the very next window rather than waiting for a restart.</li>
 </ul>
 <p>If one instance fails, the others still run. A single unreachable database is not a reason to skip the rest of the fleet.</p>
+<p>A scheduled backup is a <strong>job like a manual one</strong>: it appears in <em>Recent operations</em> with a <code>CRON</code> tag
+(<code>"trigger":"cron"</code> in <code>backup-jobs</code>), and a failure shows there as <code>FAILED</code> with its reason. It also obeys
+the one-operation-per-instance rule — if a restore is running on an instance when the schedule fires,
+that instance's scheduled backup is skipped (and logged) rather than dumped mid-restore. Before this,
+the scheduler called the dump directly: scheduled runs never appeared in the job list, so a failing
+schedule was only an error line in the leader's log.</p>
 <h2 id="retention">Retention</h2>
 <p><code>backup.postgres.retention.days</code> deletes archives older than the window, <strong>after</strong> a successful backup — so a failed run can never be what deletes the last good archive.</p>
 <p>An object whose endpoint reports no <code>LastModified</code> is left alone rather than guessed at. Deleting a backup on missing metadata is not recoverable.</p>
@@ -1684,7 +1690,7 @@ separate from the save that had just succeeded.</p>
 <p>The replay connects to <code>template1</code> instead, the database <code>pg_dumpall</code> recreates first. The dump's own <code>DROP</code>/<code>CREATE</code> for <code>template1</code> are filtered out of the stream, because that one statement would fail for the same reason and produce the same error text as a genuinely blocked database — which made a <em>correct</em> restore report <code>FAILED</code>.</p>
 <h3 id="non-fatal-errors">Non-fatal errors</h3>
 <p>A dumpall replay still reports errors that genuinely do not matter — dropping the role it is connected as, a role that already exists. <code>psql</code> runs without <code>ON_ERROR_STOP</code> so one of those cannot abort the whole restore, and the <strong>count is returned and displayed</strong>.</p>
-<p><code>4 non-fatal</code> next to a completed restore is normal. What is <em>not</em> left to a count any more are the errors that mean nothing was restored:</p>
+<p><code>4 non-fatal</code> next to a completed restore is normal — hover over it to see which statements they were (the first five are returned as <code>nonFatalSamples</code>; a typical pair is <code>ERROR:  current user cannot be dropped</code> and <code>ERROR:  role "postgres" already exists</code>). What is <em>not</em> left to a count any more are the errors that mean nothing was restored:</p>
 <table>
 <thead>
 <tr>
@@ -1772,7 +1778,7 @@ separate from the save that had just succeeded.</p>
 <a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span><span class="nt">&quot;durationMs&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3104</span>
 <a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="p">}</span>
 </code></pre></div>
-<p><code>status</code> is <code>RUNNING</code>, <code>COMPLETED</code> or <code>FAILED</code>. A restore record additionally carries <code>nonFatalErrors</code>.</p>
+<p><code>status</code> is <code>RUNNING</code>, <code>COMPLETED</code> or <code>FAILED</code>; <code>trigger</code> is <code>manual</code> or <code>cron</code>. A restore record additionally carries <code>nonFatalErrors</code> and <code>nonFatalSamples</code> (up to five of those lines).</p>
 <h3 id="listing-archives-a-page-at-a-time">Listing archives a page at a time</h3>
 <p>An hourly schedule with a 30-day retention keeps about 720 archives per instance. The console shows them ten at a time — the range (<code>1–10 of 742</code>) and <strong>Prev / Next</strong> sit under the Archives table, and a finished backup returns the view to the first page so the new archive is visible. The API does the same when asked:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl<span class="w"> </span>-s<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$A</span><span class="s2">/postgres/pg-main/backups?limit=10&amp;offset=0&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$T</span><span class="s2">&quot;</span>
