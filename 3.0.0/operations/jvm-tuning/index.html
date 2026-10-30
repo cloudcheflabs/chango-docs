@@ -1548,6 +1548,10 @@ on the launcher's default.</p>
 <td><code>CHANGO_UI_PROXY_OPTS</code></td>
 </tr>
 <tr>
+<td>Polaris</td>
+<td><code>POLARIS_JAVA_OPTS</code> — the same variable carries the <code>-D</code> server settings, so every rewrite (Configure, S3 credentials, scale-out) writes the heap with them</td>
+</tr>
+<tr>
 <td>Flink</td>
 <td><code>&lt;role&gt;.memory.process.size</code> in <code>config.yaml</code> — Flink <em>derives</em> <code>-Xmx</code> from it</td>
 </tr>
@@ -1563,6 +1567,12 @@ on the launcher's default.</p>
   subtracts metaspace, network and managed memory and derives the heap. Setting
   <code>1536m</code> on a TaskManager produced <code>-Xmx436207608</code> (≈416 MB). That is correct,
   not a bug.</li>
+<li><strong>Polaris: check the running JVM, not the screen.</strong> One variable carries both
+  the server settings and the heap, and the S3-credentials path used to rebuild
+  it without the heap — after one <strong>Configure → Apply &amp; Restart</strong> both servers
+  ran with the JVM default (a quarter of host memory) and logged to the install
+  directory, while the console still showed the install-time <code>768m</code>. Confirm
+  with <code>jcmd &lt;pid&gt; VM.flags | tr ' ' '\n' | grep MaxHeapSize</code>.</li>
 <li><strong>The heap you give at install is the process size Flink starts with.</strong> It
   used to lose to the packaged default <code>memory.process.size</code> (1728m /
   1600m), so whatever heap was entered at install, every TaskManager ran the

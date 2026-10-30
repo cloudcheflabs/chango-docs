@@ -1514,6 +1514,21 @@ nobody can log into that product; recovery needs the product's own CLI
 (<code>bin/*-cli.sh iam:reset-password</code>) followed by
 <code>POST /&lt;component&gt;/&lt;id&gt;/credentials</code> to register the new value.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">A rotation whose answer was lost is still recovered</p>
+<p>The new password is recorded as <code>adminPasswordPending</code> <strong>before</strong> it is sent.
+If the product applies the change but the answer never arrives — the product
+restarting at that moment, which is exactly what a Trust Store <strong>Apply &amp;
+Restart</strong> right after install does — the next sweep logs in with the pending
+value, confirms it and keeps it (<code>admin password rotation confirmed from the
+pending value</code>). Earlier builds recorded the password only after a success
+answer; in that case nothing was kept and the product's admin password was
+known to no one.</p>
+<p>The credential fields (<code>adminPassword</code>, <code>adminOtok</code>, the pending value) are
+also protected from long-running operations that rewrite the whole cluster
+record from a copy read before the sweep ran: such a write keeps the newer
+credentials rather than the ones in its copy.</p>
+</div>
 <p>Election uses Curator's <code>LeaderSelector</code> against <code>/chango/master-leader</code>. The last leader's <code>nodeId</code> is recorded under <code>/chango/master-leader-id</code> (persistent znode) so a restarted master can defer briefly and let its predecessor reclaim leadership — this is the "sticky leader" pattern. It prevents flap during a rolling restart.</p>
 <h2 id="followers">Followers</h2>
 <p>Followers exist for HA — they hold a hot copy of every store and can take over leadership in sub-second. They serve read-only REST routes (auth, list, status, metrics) at full speed; they refuse mutating routes with <code>421</code>.</p>

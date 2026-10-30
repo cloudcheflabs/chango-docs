@@ -1888,6 +1888,40 @@ node manager only:</p>
 </ul>
 <p>Logs are kept. Before these were added, a removed host kept root rights for the
 <code>chango</code> user and kept trusting the private CA.</p>
+<p>What else stays on the host — none of it grants access or runs anything, and
+removing it is left to the operator because other software may share it:</p>
+<table>
+<thead>
+<tr>
+<th>Stays</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>the JDKs under <code>/opt/openlogic-openjdk-*</code></td>
+<td>other software on the host may use them</td>
+</tr>
+<tr>
+<td>the OS users <code>chango</code> and the component users (<code>spark</code>, <code>flink</code>, …) — no sudo rights, no processes</td>
+<td>removing a user also decides what happens to files it owns</td>
+</tr>
+<tr>
+<td><code>/etc/security/limits.d/chango.conf</code>, <code>/etc/sysctl.d/99-chango.conf</code> (file limits, reserved port band)</td>
+<td>host tuning, harmless without the platform</td>
+</tr>
+<tr>
+<td>empty <code>/opt/components</code> and <code>/etc/chango</code></td>
+<td></td>
+</tr>
+<tr>
+<td>the log directory (<code>chango_log_dir</code>)</td>
+<td>kept on purpose, for after-the-fact review</td>
+</tr>
+</tbody>
+</table>
+<p>Re-running <code>add-nodemanager.yml</code> on such a host works — it was verified by
+adding, removing, re-adding and removing the same node again.</p>
 <h2 id="uninstall-uninstallyml">Uninstall — <code>uninstall.yml</code></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;bundle&gt;/chango-3.0.0/ansible<span class="w">          </span><span class="c1"># the copy in the delivered bundle — not /opt/chango/ansible</span>
 <a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>ansible-playbook<span class="w"> </span>-i<span class="w"> </span>inventory.yml<span class="w"> </span>uninstall.yml
