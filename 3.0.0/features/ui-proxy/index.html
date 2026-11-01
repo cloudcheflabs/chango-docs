@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://cloudcheflabs.github.io/chango-private-docs/3.0.0/features/ui-proxy/">
       
       
-        <link rel="prev" href="../hosts-sync/">
+        <link rel="prev" href="../port-allocator/">
       
       
         <link rel="next" href="../gateway-routing/">
@@ -771,20 +771,6 @@
     <li class="md-nav__item">
       <a href="../port-allocator/" class="md-nav__link">
         Port Allocator
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../hosts-sync/" class="md-nav__link">
-        Hosts Sync
       </a>
     </li>
   
@@ -1673,7 +1659,7 @@ nothing about which one they had landed on.</p>
 <ul>
 <li><strong>Add an upstream</strong> — open the Configure panel, edit upstreams, save. The change rewrites the proxy config on every instance and the routing applies on the next request (no restart needed).</li>
 <li><strong>Rotate the Ontul service token</strong> — Configure → "Ontul Authz" tab → update endpoint / token. Chango re-renders the proxy config on every instance and restarts them.</li>
-<li><strong>Scale</strong> — install another proxy instance on a different host through the Scale panel. Hostnames in front of the proxies are resolved by your DNS or by chango's <a href="../hosts-sync/">Hosts Sync</a> — load-balancing across multiple proxies is your DNS / LB layer's job.</li>
+<li><strong>Scale</strong> — install another proxy instance on a different host through the Scale panel. Hostnames in front of the proxies are resolved by your DNS (or hosts files you maintain) — load-balancing across multiple proxies is your DNS / LB layer's job.</li>
 </ul>
 
 

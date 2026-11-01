@@ -873,20 +873,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/hosts-sync/" class="md-nav__link">
-        Hosts Sync
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../features/ui-proxy/" class="md-nav__link">
         UI Proxy
       </a>
@@ -1538,20 +1524,24 @@
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>sudo<span class="w"> </span>mount<span class="w"> </span>/dev/xvdb<span class="w"> </span>/opt
 </code></pre></div>
 <h2 id="hostnames">hostnames</h2>
-<p>Chango supports two hostname models:</p>
-<ul>
-<li><strong>Real FQDNs already in DNS</strong> (AWS Private DNS, your corporate DNS, …) — chango registers the OS canonical hostname (<code>hostname -f</code>) as the node's FQHN and <strong>does not</strong> rewrite <code>/etc/hosts</code>. Component-to-component connections use those FQDNs directly.</li>
-<li><strong>Short hostnames only</strong> — chango synthesizes <code>&lt;short&gt;.&lt;chango.cluster.domain&gt;</code> (default <code>chango.private</code>) for every node and keeps a managed block in <code>/etc/hosts</code> on every host in sync with cluster membership.</li>
-</ul>
-<p>Either model works; nothing to configure beforehand. See <a href="../../features/hosts-sync/">Hosts Sync</a> for details.</p>
+<p>Set each node's OS hostname to its FQDN (<code>sudo hostnamectl set-hostname cp-1.chango.private</code>) — chango
+registers that name and builds every console URL and internal connection from it.</p>
+<p>Every node must then resolve every node's FQDN, either through DNS (AWS Private DNS, corporate DNS, …) or
+through the same <code>/etc/hosts</code> entries on every node:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">for</span><span class="w"> </span>h<span class="w"> </span><span class="k">in</span><span class="w"> </span>cp-1.chango.private<span class="w"> </span>cp-2.chango.private<span class="w"> </span>cp-3.chango.private<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>getent<span class="w"> </span>hosts<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$h</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;MISSING: </span><span class="nv">$h</span><span class="s2">&quot;</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">done</span>
+</code></pre></div>
+<p>Chango never writes <code>/etc/hosts</code>; resolution is part of node preparation. The installer runs the same check
+on every node and stops before changing anything if a name does not resolve.</p>
 <h2 id="verifying-prep">Verifying prep</h2>
 <p>Quick sanity check before running the playbook:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># On every host</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>getenforce<span class="w">                       </span><span class="c1"># → Permissive or Disabled</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nb">ulimit</span><span class="w"> </span>-n<span class="w">                         </span><span class="c1"># → 131072</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nb">ulimit</span><span class="w"> </span>-u<span class="w">                         </span><span class="c1"># → 128000</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>sysctl<span class="w"> </span>vm.max_map_count<span class="w">           </span><span class="c1"># → 262144</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>df<span class="w"> </span>-h<span class="w"> </span>/opt<span class="w">                        </span><span class="c1"># → dedicated volume mounted</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># On every host</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>getenforce<span class="w">                       </span><span class="c1"># → Permissive or Disabled</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nb">ulimit</span><span class="w"> </span>-n<span class="w">                         </span><span class="c1"># → 131072</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="nb">ulimit</span><span class="w"> </span>-u<span class="w">                         </span><span class="c1"># → 128000</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>sysctl<span class="w"> </span>vm.max_map_count<span class="w">           </span><span class="c1"># → 262144</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>df<span class="w"> </span>-h<span class="w"> </span>/opt<span class="w">                        </span><span class="c1"># → dedicated volume mounted</span>
 </code></pre></div>
 <p>Once every host clears these, pick your install path — <a href="../manual/">Manual Install</a> for a step-by-step shell-driven bring-up, or <a href="../automated/">Automated Install (Ansible)</a> for a multi-host repeatable install.</p>
 

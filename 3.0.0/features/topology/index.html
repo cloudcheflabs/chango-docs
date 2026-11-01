@@ -886,20 +886,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../hosts-sync/" class="md-nav__link">
-        Hosts Sync
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../ui-proxy/" class="md-nav__link">
         UI Proxy
       </a>
@@ -1495,26 +1481,31 @@
 </ul>
 <p>Both are overridable via <code>chango.master.nodeId</code> / <code>chango.nodemanager.nodeId</code> in <code>chango.properties</code> for environments that need explicit naming.</p>
 <h2 id="hostname-model">Hostname model</h2>
-<p>Chango registers each node by its OS canonical hostname. There are two cases:</p>
+<p>Chango registers each node by its OS canonical hostname:</p>
 <table>
 <thead>
 <tr>
 <th>OS hostname looks like</th>
-<th>Chango behaviour</th>
+<th>Registered name</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Real FQDN (<code>host1.example.com</code>, <code>ip-10-0-0-11.region.compute.internal</code>, …)</td>
-<td>Use it as-is. <code>/etc/hosts</code> is not modified — your DNS already resolves it.</td>
+<td>Real FQDN (<code>host1.example.com</code>, <code>cp-1.chango.private</code>, …)</td>
+<td>Used as-is.</td>
 </tr>
 <tr>
-<td>Short (<code>host1</code>, <code>ip-10-0-0-11</code>, …)</td>
-<td>Synthesize <code>&lt;short&gt;.&lt;chango.cluster.domain&gt;</code> (default <code>chango.private</code>) and keep <code>/etc/hosts</code> in sync across all hosts with a managed <code># BEGIN chango … # END chango</code> block.</td>
+<td>Short (<code>host1</code>, …)</td>
+<td><code>&lt;short&gt;.&lt;chango.cluster.domain&gt;</code> (default <code>chango.private</code>).</td>
 </tr>
 </tbody>
 </table>
-<p>See <a href="../hosts-sync/">Hosts Sync</a> for the sync details.</p>
+<p><strong>Name resolution is yours.</strong> Every node must resolve every node's FQDN — through your DNS or through
+<code>/etc/hosts</code> entries you prepare on every node before installing. Chango only reads names; it never writes
+<code>/etc/hosts</code>. The installer checks resolution on every node (<code>getent hosts</code>) and stops before changing
+anything if a peer does not resolve. Set the OS hostname to the FQDN first (<code>hostnamectl set-hostname</code>).</p>
+<p>Older releases kept a <code># BEGIN chango … # END chango</code> block in <code>/etc/hosts</code>. The <code>install.yml</code>, <code>start.yml</code>
+and <code>uninstall.yml</code> playbooks remove that block if they find it; lines outside it are left as they are.</p>
 <h2 id="adding-removing-hosts">Adding / removing hosts</h2>
 <ul>
 <li><strong>Adding</strong> a node manager — prepare the host, add it to the inventory, re-run the install playbook with <code>--limit &lt;new-host&gt;</code>. The new NM registers in ZooKeeper, the leader picks it up, and component install panels in the admin UI start offering it as a target.</li>

@@ -781,20 +781,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/hosts-sync/" class="md-nav__link">
-        Hosts Sync
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../features/ui-proxy/" class="md-nav__link">
         UI Proxy
       </a>
@@ -1183,6 +1169,13 @@
           <li class="md-nav__item">
   <a href="#the-heap-floor" class="md-nav__link">
     The heap floor
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#query-memory-the-four-properties" class="md-nav__link">
+    Query memory — the four properties
   </a>
   
 </li>
@@ -1619,6 +1612,107 @@ instance's actual <code>-Xmx</code> against the others rather than against the U
 <p>30% is bounded, node-proportional, scales predictably across heterogeneous hosts, and is version-stable. An operator who <em>does</em> have a dedicated Trino node should raise it — either with a higher <code>MaxRAMPercentage</code> via <code>extra</code>, or with an explicit <code>-Xmx</code>.</p>
 <h3 id="the-heap-floor">The heap floor</h3>
 <p>Trino refuses to start if the heap is below <code>query.max-memory-per-node + memory.heap-headroom-per-node</code>. Chango's defaults are <code>1GB</code> and <code>512MB</code>, so the floor is <strong>1.5 GB</strong> — meaning 30% of RAM clears it on a node of roughly 5 GB or more. On a smaller node you must either lower those two properties on the <em>Properties</em> tab or set an explicit <code>-Xmx</code> above the floor. A Trino instance that dies immediately after <code>start</code> with a memory-configuration error is almost always this.</p>
+<h3 id="query-memory-the-four-properties">Query memory — the four properties</h3>
+<p>Four <code>config.properties</code> keys decide how much memory a query may use (definitions and defaults from the
+<a href="https://trino.io/docs/479/admin/properties-resource-management.html">Trino 479 reference</a>):</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Meaning</th>
+<th>Trino default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>query.max-memory-per-node</code></td>
+<td>User memory one query may use on one node</td>
+<td>30% of max heap</td>
+</tr>
+<tr>
+<td><code>memory.heap-headroom-per-node</code></td>
+<td>Heap set aside for allocations Trino does not track</td>
+<td>30% of max heap</td>
+</tr>
+<tr>
+<td><code>query.max-memory</code></td>
+<td>User memory one query may use across the cluster</td>
+<td><code>20GB</code></td>
+</tr>
+<tr>
+<td><code>query.max-total-memory</code></td>
+<td>Same, including revocable memory</td>
+<td><code>query.max-memory</code> × 2</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>query.max-memory-per-node</code> + <code>memory.heap-headroom-per-node</code> must be <strong>less than</strong> <code>-Xmx</code>, or the node refuses to start.</li>
+<li><code>query.max-total-memory</code> must be greater than <code>query.max-memory</code>.</li>
+<li>With <code>retry-policy=TASK</code> the three query limits do <strong>not</strong> apply to queries; the headroom still sizes each node's memory pool (heap − headroom).</li>
+</ul>
+<p><strong>Chango writes fixed values at install</strong> — the install panel's <em>config.properties</em> tab is prefilled with
+<code>query.max-memory=4GB</code>, <code>query.max-memory-per-node=1GB</code> and <code>memory.heap-headroom-per-node=512MB</code>. They do not
+follow the heap, so set all four whenever you size the heap. Starting points at Trino's own 30% ratio, with
+<code>query.max-memory</code> at its ceiling of <code>per-node × workers</code> for <strong>4 workers</strong> (lower it to leave room for concurrent large queries):</p>
+<table>
+<thead>
+<tr>
+<th>Node RAM (example)</th>
+<th><code>-Xmx</code> (~80% of RAM)</th>
+<th><code>query.max-memory-per-node</code></th>
+<th><code>memory.heap-headroom-per-node</code></th>
+<th><code>query.max-memory</code> (4 workers)</th>
+<th><code>query.max-total-memory</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>40 GB</td>
+<td><code>32G</code></td>
+<td><code>9GB</code></td>
+<td><code>9GB</code></td>
+<td><code>36GB</code></td>
+<td><code>72GB</code></td>
+</tr>
+<tr>
+<td>80 GB</td>
+<td><code>64G</code></td>
+<td><code>19GB</code></td>
+<td><code>19GB</code></td>
+<td><code>76GB</code></td>
+<td><code>152GB</code></td>
+</tr>
+<tr>
+<td>120 GB</td>
+<td><code>96G</code></td>
+<td><code>28GB</code></td>
+<td><code>28GB</code></td>
+<td><code>112GB</code></td>
+<td><code>224GB</code></td>
+</tr>
+<tr>
+<td>160 GB</td>
+<td><code>128G</code></td>
+<td><code>38GB</code></td>
+<td><code>38GB</code></td>
+<td><code>152GB</code></td>
+<td><code>304GB</code></td>
+</tr>
+</tbody>
+</table>
+<p>For a different worker count recompute only <code>query.max-memory</code> (e.g. <code>128G</code> heap, 8 workers → <code>304GB</code>, total <code>608GB</code>).
+The 70–85% <code>-Xmx</code> guidance is Trino's (<a href="https://trino.io/docs/479/installation/deployment.html">deployment</a>); on a shared chango host keep the 30% default above.</p>
+<p><strong>Admin UI</strong> — <em>Trino</em> → cluster row → <strong>Configure</strong> → <strong>config.properties</strong> tab → search each key → value →
+<strong>Apply &amp; Restart Cluster</strong>. The response comes back after the coordinator logs <code>SERVER STARTED</code>; a value that
+breaks startup is rejected with Trino's own sentence in a red banner (e.g. <code>Invalid memory configuration. The sum of
+max query memory per node … cannot be larger than the available heap memory</code>). Fix it in the same panel.</p>
+<p><strong>Check the running cluster, not the panel:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">-- each node&#39;s memory pool = max heap − headroom</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">maxbytes</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">jmx</span><span class="p">.</span><span class="k">current</span><span class="p">.</span><span class="ss">&quot;trino.memory:name=general,type=memorypool&quot;</span><span class="p">;</span>
+</code></pre></div>
+<p>and the configuration table each node prints at startup (<code>io.trino.bootstrap.engine</code> lines in <code>server.log</code>, columns
+PROPERTY · DEFAULT · RUNTIME) shows the value the JVM actually bound.</p>
 <h3 id="how-an-explicit-heap-override-is-merged">How an explicit heap override is merged</h3>
 <p>When you set <code>heapMin</code> and/or <code>heapMax</code> for Trino, chango does <strong>not</strong> simply append your lines to the default file. It merges, with three rules:</p>
 <ol>
@@ -1637,14 +1731,14 @@ instance's actual <code>-Xmx</code> against the others rather than against the U
 <p>The edit is refused only while an instance is <code>STARTING</code> or <code>STOPPING</code>; a stopped or failed cluster accepts it and reads it at the next start — see <a href="../../features/config-runtime-only/">Config Change Gate</a>.</p>
 <h2 id="verifying-on-the-host">Verifying on the host</h2>
 <p>Read the rendered file:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Trino</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>sudo<span class="w"> </span>cat<span class="w"> </span>/opt/components/&lt;instanceId&gt;/etc/jvm.config
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Most other components</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>sudo<span class="w"> </span>cat<span class="w"> </span>/opt/components/&lt;instanceId&gt;/conf/jvm.conf
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Trino</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>sudo<span class="w"> </span>cat<span class="w"> </span>/opt/components/&lt;instanceId&gt;/etc/jvm.config
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Most other components</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>sudo<span class="w"> </span>cat<span class="w"> </span>/opt/components/&lt;instanceId&gt;/conf/jvm.conf
 </code></pre></div>
 <p>Then confirm the running process actually picked it up — the file on disk is what chango <em>intends</em>, the command line is what the JVM <em>got</em>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ps<span class="w"> </span>-eo<span class="w"> </span>comm,args<span class="w"> </span>--no-headers<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;$1==&quot;java&quot;&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-F<span class="w"> </span><span class="s2">&quot;&lt;instanceId&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39; &#39;</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;^-X&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ps<span class="w"> </span>-eo<span class="w"> </span>comm,args<span class="w"> </span>--no-headers<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;$1==&quot;java&quot;&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-F<span class="w"> </span><span class="s2">&quot;&lt;instanceId&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39; &#39;</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;^-X&#39;</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Filter to <code>java</code> first</p>
@@ -1655,10 +1749,10 @@ and "the restart did not happen" conclusions that were simply wrong.
 Filtering on the command name removes the whole class.</p>
 </div>
 <p>And check the heap the JVM resolved, which is the only number that settles a <code>RAMPercentage</code> question:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># JDK 25 is extracted under /opt by the java25 ansible role —</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># /opt/openlogic-openjdk-25.0.3+9-linux-x64 for the shipped build.</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>sudo<span class="w"> </span>-u<span class="w"> </span>trino<span class="w"> </span>/opt/openlogic-openjdk-25*/bin/jcmd<span class="w"> </span>&lt;pid&gt;<span class="w"> </span>VM.flags<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39; &#39;</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;MaxHeapSize|InitialHeapSize&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># JDK 25 is extracted under /opt by the java25 ansible role —</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># /opt/openlogic-openjdk-25.0.3+9-linux-x64 for the shipped build.</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>sudo<span class="w"> </span>-u<span class="w"> </span>trino<span class="w"> </span>/opt/openlogic-openjdk-25*/bin/jcmd<span class="w"> </span>&lt;pid&gt;<span class="w"> </span>VM.flags<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39; &#39;</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;MaxHeapSize|InitialHeapSize&#39;</span>
 </code></pre></div>
 <p><code>MaxHeapSize</code> is in bytes — divide by 1024³ for GB. On a 16 GB node with the 30% default you should see roughly 4.8 GB.</p>
 <h2 id="sizing-guidance">Sizing guidance</h2>

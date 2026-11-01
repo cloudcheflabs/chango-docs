@@ -781,20 +781,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/hosts-sync/" class="md-nav__link">
-        Hosts Sync
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../features/ui-proxy/" class="md-nav__link">
         UI Proxy
       </a>
@@ -2099,7 +2085,7 @@
 <p><strong><code>createTemporaryView(rows, Schema)</code> fails with <code>Unable to find a field named 'order_id' in the physical data type derived from the given type information</code> (available fields: <code>[f0]</code>)</strong> — <code>DataStream&lt;RowData&gt;</code> produced by a raw <code>MapFunction&lt;String, RowData&gt;</code> does not carry field-name type information; Flink 1.19's <code>SchemaTranslator</code> then refuses the declared schema. The recipe in §3 sidesteps this entirely by reading the topic through the SQL <code>kafka</code> connector with <code>format='json'</code> — the connector deserializes AND declares the schema in one place.</p>
 </li>
 <li>
-<p><strong>JobManager UI shows <code>0 TaskManagers</code></strong> — TaskManager couldn't reach the JobManager's RPC port. Check <code>/admin/api/flink/flink-main | jq '.instances[].host'</code> resolves on the TaskManager host (<code>/etc/hosts</code> from the chango hosts-sync); the chango installer sets <code>jobmanager.rpc.address</code> to the JM's FQHN.</p>
+<p><strong>JobManager UI shows <code>0 TaskManagers</code></strong> — TaskManager couldn't reach the JobManager's RPC port. Check <code>/admin/api/flink/flink-main | jq '.instances[].host'</code> resolves on the TaskManager host (through your DNS or the <code>/etc/hosts</code> entries prepared on every node); the chango installer sets <code>jobmanager.rpc.address</code> to the JM's FQHN.</p>
 </li>
 <li><strong>Iceberg sink throws <code>Failed to refresh token …</code></strong> — the <code>--polaris-cred</code> value (<code>client_id:client_secret</code>) is wrong. The credential comes from <code>GET /admin/api/polaris/polaris-main/credentials</code> and must be re-fetched after a Polaris re-install.</li>
 <li><strong><code>chango-flink-authz: DENY</code> for a user you intended to allow</strong> — the policy is missing <code>data:Create</code> or <code>data:CreateSchema</code> for the first job submission (the sink calls <code>CREATE TABLE IF NOT EXISTS</code>). Once the table exists, only <code>data:Insert</code> is needed; before then you also need <code>data:Create</code> + <code>data:CreateSchema</code>. The §4.2 policy includes all three.</li>

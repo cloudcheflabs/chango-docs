@@ -886,20 +886,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../hosts-sync/" class="md-nav__link">
-        Hosts Sync
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../ui-proxy/" class="md-nav__link">
         UI Proxy
       </a>
@@ -1477,7 +1463,7 @@ pressure; the default session timeout is 30 s. Curator reconnects, but the new
 session has no ephemeral node, so the node used to stay <strong>missing from the
 registry for the rest of its life</strong> while it kept running. Everything the leader
 does to the rest of the cluster — component dispatch, patch fan-out, cluster
-sync, <code>/etc/hosts</code> sync, the topology screen — walks that registry and skips an
+sync, the topology screen — walks that registry and skips an
 absent node without an error. A node manager in that state answered component
 calls with <code>400 no registered node manager with id: …</code> although all its
 instances were RUNNING.</p>
