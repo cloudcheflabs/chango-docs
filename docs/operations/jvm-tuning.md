@@ -110,6 +110,52 @@ Rather than a fixed `-Xmx`. The reasoning, in order:
 
 Trino refuses to start if the heap is below `query.max-memory-per-node + memory.heap-headroom-per-node`. Chango's defaults are `1GB` and `512MB`, so the floor is **1.5 GB** — meaning 30% of RAM clears it on a node of roughly 5 GB or more. On a smaller node you must either lower those two properties on the *Properties* tab or set an explicit `-Xmx` above the floor. A Trino instance that dies immediately after `start` with a memory-configuration error is almost always this.
 
+### Query memory — the four properties
+
+Four `config.properties` keys decide how much memory a query may use (definitions and defaults from the
+[Trino 479 reference](https://trino.io/docs/479/admin/properties-resource-management.html)):
+
+| Key | Meaning | Trino default |
+|---|---|---|
+| `query.max-memory-per-node` | User memory one query may use on one node | 30% of max heap |
+| `memory.heap-headroom-per-node` | Heap set aside for allocations Trino does not track | 30% of max heap |
+| `query.max-memory` | User memory one query may use across the cluster | `20GB` |
+| `query.max-total-memory` | Same, including revocable memory | `query.max-memory` × 2 |
+
+- `query.max-memory-per-node` + `memory.heap-headroom-per-node` must be **less than** `-Xmx`, or the node refuses to start.
+- `query.max-total-memory` must be greater than `query.max-memory`.
+- With `retry-policy=TASK` the three query limits do **not** apply to queries; the headroom still sizes each node's memory pool (heap − headroom).
+
+**Chango writes fixed values at install** — the install panel's *config.properties* tab is prefilled with
+`query.max-memory=4GB`, `query.max-memory-per-node=1GB` and `memory.heap-headroom-per-node=512MB`. They do not
+follow the heap, so set all four whenever you size the heap. Starting points at Trino's own 30% ratio, with
+`query.max-memory` at its ceiling of `per-node × workers` for **4 workers** (lower it to leave room for concurrent large queries):
+
+| Node RAM (example) | `-Xmx` (~80% of RAM) | `query.max-memory-per-node` | `memory.heap-headroom-per-node` | `query.max-memory` (4 workers) | `query.max-total-memory` |
+|---|---|---|---|---|---|
+| 40 GB | `32G` | `9GB` | `9GB` | `36GB` | `72GB` |
+| 80 GB | `64G` | `19GB` | `19GB` | `76GB` | `152GB` |
+| 120 GB | `96G` | `28GB` | `28GB` | `112GB` | `224GB` |
+| 160 GB | `128G` | `38GB` | `38GB` | `152GB` | `304GB` |
+
+For a different worker count recompute only `query.max-memory` (e.g. `128G` heap, 8 workers → `304GB`, total `608GB`).
+The 70–85% `-Xmx` guidance is Trino's ([deployment](https://trino.io/docs/479/installation/deployment.html)); on a shared chango host keep the 30% default above.
+
+**Admin UI** — *Trino* → cluster row → **Configure** → **config.properties** tab → search each key → value →
+**Apply & Restart Cluster**. The response comes back after the coordinator logs `SERVER STARTED`; a value that
+breaks startup is rejected with Trino's own sentence in a red banner (e.g. `Invalid memory configuration. The sum of
+max query memory per node … cannot be larger than the available heap memory`). Fix it in the same panel.
+
+**Check the running cluster, not the panel:**
+
+```sql
+-- each node's memory pool = max heap − headroom
+SELECT node, maxbytes FROM jmx.current."trino.memory:name=general,type=memorypool";
+```
+
+and the configuration table each node prints at startup (`io.trino.bootstrap.engine` lines in `server.log`, columns
+PROPERTY · DEFAULT · RUNTIME) shows the value the JVM actually bound.
+
 ### How an explicit heap override is merged
 
 When you set `heapMin` and/or `heapMax` for Trino, chango does **not** simply append your lines to the default file. It merges, with three rules:

@@ -59,7 +59,6 @@ nav:
       - "Product Master Keys": features/product-master-keys.md
       - "Trust Store (private CA)": features/trust-store.md
       - "Port Allocator": features/port-allocator.md
-      - "Hosts Sync": features/hosts-sync.md
       - "UI Proxy": features/ui-proxy.md
       - "Trino Gateway Routing": features/gateway-routing.md
       - "Kafka Connect & Topics": features/kafka-connect.md

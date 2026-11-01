@@ -99,12 +99,20 @@ sudo mount /dev/xvdb /opt
 
 ## hostnames
 
-Chango supports two hostname models:
+Set each node's OS hostname to its FQDN (`sudo hostnamectl set-hostname cp-1.chango.private`) — chango
+registers that name and builds every console URL and internal connection from it.
 
-- **Real FQDNs already in DNS** (AWS Private DNS, your corporate DNS, …) — chango registers the OS canonical hostname (`hostname -f`) as the node's FQHN and **does not** rewrite `/etc/hosts`. Component-to-component connections use those FQDNs directly.
-- **Short hostnames only** — chango synthesizes `<short>.<chango.cluster.domain>` (default `chango.private`) for every node and keeps a managed block in `/etc/hosts` on every host in sync with cluster membership.
+Every node must then resolve every node's FQDN, either through DNS (AWS Private DNS, corporate DNS, …) or
+through the same `/etc/hosts` entries on every node:
 
-Either model works; nothing to configure beforehand. See [Hosts Sync](../features/hosts-sync.md) for details.
+```bash
+for h in cp-1.chango.private cp-2.chango.private cp-3.chango.private; do
+  getent hosts "$h" || echo "MISSING: $h"
+done
+```
+
+Chango never writes `/etc/hosts`; resolution is part of node preparation. The installer runs the same check
+on every node and stops before changing anything if a name does not resolve.
 
 ## Verifying prep
 

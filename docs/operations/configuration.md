@@ -207,8 +207,6 @@ Master only — a node manager has no metadata RocksDB.
 |---|---|---|
 | `chango.cluster.min.nodemanagers.ready` | `0` | Node managers that must register before the master reports ready. `0` means do not wait |
 | `chango.cluster.peers.ready.timeout.ms` | `60000` | |
-| `chango.cluster.hosts.sync.enabled` | `true` | Each node rewrites a chango-managed block in `/etc/hosts` with every cluster node's `<private-ip> <fqhn>`, so hostname-based connections resolve without DNS. Entries outside the block are untouched — see [Hosts Sync](../features/hosts-sync.md) |
-| `chango.cluster.hosts.sync.interval.ms` | `30000` | |
 | `chango.cluster.domain` | `chango.private` | Internal DNS domain; every node's FQHN is `<short-hostname>.<domain>` |
 | `chango.cluster.nginx.reconcile.interval.ms` | `15000` | How often the leader reconciles each ShannonStore cluster's nginx upstream against the live API servers |
 

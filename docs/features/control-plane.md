@@ -20,7 +20,7 @@ pressure; the default session timeout is 30 s. Curator reconnects, but the new
 session has no ephemeral node, so the node used to stay **missing from the
 registry for the rest of its life** while it kept running. Everything the leader
 does to the rest of the cluster — component dispatch, patch fan-out, cluster
-sync, `/etc/hosts` sync, the topology screen — walks that registry and skips an
+sync, the topology screen — walks that registry and skips an
 absent node without an error. A node manager in that state answered component
 calls with `400 no registered node manager with id: …` although all its
 instances were RUNNING.

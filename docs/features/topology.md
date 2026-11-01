@@ -73,14 +73,20 @@ Both are overridable via `chango.master.nodeId` / `chango.nodemanager.nodeId` in
 
 ## Hostname model
 
-Chango registers each node by its OS canonical hostname. There are two cases:
+Chango registers each node by its OS canonical hostname:
 
-| OS hostname looks like | Chango behaviour |
+| OS hostname looks like | Registered name |
 |---|---|
-| Real FQDN (`host1.example.com`, `ip-10-0-0-11.region.compute.internal`, …) | Use it as-is. `/etc/hosts` is not modified — your DNS already resolves it. |
-| Short (`host1`, `ip-10-0-0-11`, …) | Synthesize `<short>.<chango.cluster.domain>` (default `chango.private`) and keep `/etc/hosts` in sync across all hosts with a managed `# BEGIN chango … # END chango` block. |
+| Real FQDN (`host1.example.com`, `cp-1.chango.private`, …) | Used as-is. |
+| Short (`host1`, …) | `<short>.<chango.cluster.domain>` (default `chango.private`). |
 
-See [Hosts Sync](hosts-sync.md) for the sync details.
+**Name resolution is yours.** Every node must resolve every node's FQDN — through your DNS or through
+`/etc/hosts` entries you prepare on every node before installing. Chango only reads names; it never writes
+`/etc/hosts`. The installer checks resolution on every node (`getent hosts`) and stops before changing
+anything if a peer does not resolve. Set the OS hostname to the FQDN first (`hostnamectl set-hostname`).
+
+Older releases kept a `# BEGIN chango … # END chango` block in `/etc/hosts`. The `install.yml`, `start.yml`
+and `uninstall.yml` playbooks remove that block if they find it; lines outside it are left as they are.
 
 ## Adding / removing hosts
 

@@ -173,4 +173,4 @@ Behind several proxy instances, the login state — including the PKCE verifier 
 
 - **Add an upstream** — open the Configure panel, edit upstreams, save. The change rewrites the proxy config on every instance and the routing applies on the next request (no restart needed).
 - **Rotate the Ontul service token** — Configure → "Ontul Authz" tab → update endpoint / token. Chango re-renders the proxy config on every instance and restarts them.
-- **Scale** — install another proxy instance on a different host through the Scale panel. Hostnames in front of the proxies are resolved by your DNS or by chango's [Hosts Sync](hosts-sync.md) — load-balancing across multiple proxies is your DNS / LB layer's job.
+- **Scale** — install another proxy instance on a different host through the Scale panel. Hostnames in front of the proxies are resolved by your DNS (or hosts files you maintain) — load-balancing across multiple proxies is your DNS / LB layer's job.
