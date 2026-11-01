@@ -907,7 +907,7 @@ curl -sS -u admin: "http://$NGX_HOST:$NGX_PORT/v1/info" | jq .nodeVersion
 # "<trino-version>"
 ```
 
-> **Hostname reachability** — `chango-n1.chango.private` is the FQHN chango writes into `/etc/hosts` on every node. From an analyst laptop outside the chango network, either add the entry to the laptop's hosts file or substitute the raw IP / public DNS that maps to the nginx host. DBeaver does not care which form, but the host segment must resolve from where DBeaver runs.
+> **Hostname reachability** — `chango-n1.chango.private` is the node FQDN that the cluster resolves through your DNS or the `/etc/hosts` entries prepared on every node. From an analyst laptop outside the chango network, either add the entry to the laptop's hosts file or substitute the raw IP / public DNS that maps to the nginx host. DBeaver does not care which form, but the host segment must resolve from where DBeaver runs.
 
 ### 6.3 Configure DBeaver
 
