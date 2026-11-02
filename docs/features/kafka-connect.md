@@ -65,6 +65,17 @@ schema shape nobody tested.
 It is a plugin like any other, which is the point: it goes through the same store,
 so a worker added later gets it the same way it gets Debezium.
 
+The Confluent package stores most of those jars as **tar links** to a shared
+directory, and a few under names longer than the 100 bytes a plain tar header
+holds. Extraction follows the links and reads the long-name records (GNU and
+pax), so the plugin holds all 178 jars of `kafka-serde-tools` 7.7.1. Clusters
+installed before the 3.0.0 build of 2026-11-02 got only the 87 regular files —
+`avro` and `guava` among the missing — and every connector left on the default
+Avro converter failed its task with
+`NoClassDefFoundError: com/google/common/base/Ticker`. Clicking **Install bundled
+Debezium** once on such a cluster detects the incomplete converter and installs it
+again; restart the failed tasks afterwards.
+
 ## Plugins
 
 **The master holds the authoritative copy; the workers get pushed copies.**
@@ -117,7 +128,7 @@ The brokers are not involved; only the Connect workers restart.
 ### Bundled Debezium
 
 Debezium **2.6.2.Final** ships in the chango bundle, for MySQL, PostgreSQL,
-SQL Server and MongoDB. One click installs it with no internet access — the
+SQL Server, MongoDB and Oracle. One click installs it with no internet access — the
 deployments that most need change data capture are the air-gapped ones, and
 Confluent Hub is not reachable from them.
 
@@ -130,13 +141,22 @@ It installs with the Connect role when *Install the bundled Debezium connectors*
 is left ticked, and afterwards from the Plugins tab:
 
 ```bash
-# all four
+# all five
 curl -X POST "http://master:8080/admin/api/kafka/<id>/connect/plugins/default" \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{}'
 
 # or name the ones you want
 … -d '{"connectors":["postgres","mysql"]}'
 ```
+
+The Oracle connector carries its JDBC driver (`ojdbc8-21.11.0.0.jar`) and reads
+changes through LogMiner, its default. Preparing the source database is the DBA's
+work, not chango's — `ARCHIVELOG` mode, supplemental logging and a LogMiner user,
+as in Debezium 2.6's *Setting up Oracle*. Connect connects to the database when a
+connector is saved, so an unreachable one is refused with Connect's own reason
+(`Connector configuration is invalid … Unable to connect: Failed to resolve Oracle
+database version`) and no connector is created. A cluster whose Connect role was
+installed before Oracle joined the bundle gets it from **Install bundled Debezium**.
 
 ### Uploading your own
 

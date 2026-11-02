@@ -48,6 +48,9 @@ When more than one chango master is running, exactly one is elected leader. Only
 - Drives component install / start / stop / restart. Followers refuse mutating REST routes with HTTP `421 Misdirected Request` and the leader's address in the body — clients can follow that to retry against the leader.
 - Pulls per-component CPU / memory samples from every node manager on a fixed interval.
 - Runs the periodic nginx reconciler that re-applies component nginx configs after instance changes.
+  A backend whose node manager does not answer is kept for 120 seconds before it is dropped, so the
+  few seconds a node manager restarts for (during a patch) never empty a front; one that answers
+  "not alive" is dropped at once.
 - Sweeps the managed products' admin credentials: rotates the default password, stashes the result KMS-encrypted, and mints the service token where the product offers one.
 
 !!! warning "The credential sweep is leader-only on purpose"
