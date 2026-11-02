@@ -1525,6 +1525,16 @@ three jars that happen to work today are how a converter starts failing on a
 schema shape nobody tested.</p>
 <p>It is a plugin like any other, which is the point: it goes through the same store,
 so a worker added later gets it the same way it gets Debezium.</p>
+<p>The Confluent package stores most of those jars as <strong>tar links</strong> to a shared
+directory, and a few under names longer than the 100 bytes a plain tar header
+holds. Extraction follows the links and reads the long-name records (GNU and
+pax), so the plugin holds all 178 jars of <code>kafka-serde-tools</code> 7.7.1. Clusters
+installed before the 3.0.0 build of 2026-11-02 got only the 87 regular files —
+<code>avro</code> and <code>guava</code> among the missing — and every connector left on the default
+Avro converter failed its task with
+<code>NoClassDefFoundError: com/google/common/base/Ticker</code>. Clicking <strong>Install bundled
+Debezium</strong> once on such a cluster detects the incomplete converter and installs it
+again; restart the failed tasks afterwards.</p>
 <h2 id="plugins">Plugins</h2>
 <p><strong>The master holds the authoritative copy; the workers get pushed copies.</strong></p>
 <p>Pushing an upload straight at the workers and keeping nothing is the obvious
@@ -1561,7 +1571,7 @@ and the console says so before you click.</p>
 <p>The brokers are not involved; only the Connect workers restart.</p>
 <h3 id="bundled-debezium">Bundled Debezium</h3>
 <p>Debezium <strong>2.6.2.Final</strong> ships in the chango bundle, for MySQL, PostgreSQL,
-SQL Server and MongoDB. One click installs it with no internet access — the
+SQL Server, MongoDB and Oracle. One click installs it with no internet access — the
 deployments that most need change data capture are the air-gapped ones, and
 Confluent Hub is not reachable from them.</p>
 <p>The version is pinned to the one Ontul's flow embeds (<code>debezium-embedded
@@ -1570,13 +1580,21 @@ assembled inside Ontul produce the same records. A different connector version
 would not fail; it would quietly change the envelope, which is worse.</p>
 <p>It installs with the Connect role when <em>Install the bundled Debezium connectors</em>
 is left ticked, and afterwards from the Plugins tab:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># all four</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># all five</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://master:8080/admin/api/kafka/&lt;id&gt;/connect/plugins/default&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{}&#39;</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># or name the ones you want</span>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>…<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;connectors&quot;:[&quot;postgres&quot;,&quot;mysql&quot;]}&#39;</span>
 </code></pre></div>
+<p>The Oracle connector carries its JDBC driver (<code>ojdbc8-21.11.0.0.jar</code>) and reads
+changes through LogMiner, its default. Preparing the source database is the DBA's
+work, not chango's — <code>ARCHIVELOG</code> mode, supplemental logging and a LogMiner user,
+as in Debezium 2.6's <em>Setting up Oracle</em>. Connect connects to the database when a
+connector is saved, so an unreachable one is refused with Connect's own reason
+(<code>Connector configuration is invalid … Unable to connect: Failed to resolve Oracle
+database version</code>) and no connector is created. A cluster whose Connect role was
+installed before Oracle joined the bundle gets it from <strong>Install bundled Debezium</strong>.</p>
 <h3 id="uploading-your-own">Uploading your own</h3>
 <p>The console accepts a <code>.zip</code>, a <code>.tar.gz</code> or a bare <code>.jar</code>. The archive is
 unpacked on the master, checked to contain at least one jar, and pushed to every

@@ -1635,7 +1635,7 @@ dropped into each install's <code>jars/</code> (Spark) or <code>lib/</code> (Fli
 </table>
 <h2 id="kafka-connect-plugins-shipped-in-the-bundle">Kafka Connect plugins shipped in the bundle</h2>
 <p>Connect is useless without a plugin, and an air-gapped Connect worker cannot
-download one. These four travel in the bundle and are installed into a cluster's
+download one. These five travel in the bundle and are installed into a cluster's
 plugin store on demand from the console — see
 <a href="../../features/kafka-connect/">Kafka Connect &amp; Topics</a>.</p>
 <p>The version is pinned to the <code>debezium-embedded</code> that Ontul's CDC already runs, so
@@ -1670,12 +1670,17 @@ read by identical code.</p>
 <td>2.6.2.Final</td>
 <td>MongoDB change streams</td>
 </tr>
+<tr>
+<td>debezium-connector-oracle</td>
+<td>2.6.2.Final</td>
+<td>Oracle redo logs via LogMiner (<code>ojdbc8</code> 21.11 included)</td>
+</tr>
 </tbody>
 </table>
 <p>Any other Connect plugin — a sink, a transform, a third-party connector — is
 uploaded from the console as a zip, a tar.gz or a bare jar. Nothing about the
-bundled four is privileged; they are simply the ones already on the host.</p>
-<p>A fifth plugin, <code>confluent-avro-converter</code> 7.7.1, is installed automatically on a
+bundled five is privileged; they are simply the ones already on the host.</p>
+<p>A sixth plugin, <code>confluent-avro-converter</code> 7.7.1, is installed automatically on a
 Kafka cluster that has a Schema Registry. It is extracted from the Confluent
 Community package the registry already needs rather than downloaded separately —
 see <a href="../../features/kafka-connect/#converters">Kafka Connect &amp; Topics</a>.</p>
