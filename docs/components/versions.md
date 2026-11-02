@@ -69,7 +69,7 @@ dropped into each install's `jars/` (Spark) or `lib/` (Flink) directory.
 ## Kafka Connect plugins shipped in the bundle
 
 Connect is useless without a plugin, and an air-gapped Connect worker cannot
-download one. These four travel in the bundle and are installed into a cluster's
+download one. These five travel in the bundle and are installed into a cluster's
 plugin store on demand from the console — see
 [Kafka Connect & Topics](../features/kafka-connect.md).
 
@@ -83,12 +83,13 @@ read by identical code.
 | debezium-connector-mysql | 2.6.2.Final | MySQL / MariaDB binlog |
 | debezium-connector-sqlserver | 2.6.2.Final | SQL Server CDC tables |
 | debezium-connector-mongodb | 2.6.2.Final | MongoDB change streams |
+| debezium-connector-oracle | 2.6.2.Final | Oracle redo logs via LogMiner (`ojdbc8` 21.11 included) |
 
 Any other Connect plugin — a sink, a transform, a third-party connector — is
 uploaded from the console as a zip, a tar.gz or a bare jar. Nothing about the
-bundled four is privileged; they are simply the ones already on the host.
+bundled five is privileged; they are simply the ones already on the host.
 
-A fifth plugin, `confluent-avro-converter` 7.7.1, is installed automatically on a
+A sixth plugin, `confluent-avro-converter` 7.7.1, is installed automatically on a
 Kafka cluster that has a Schema Registry. It is extracted from the Confluent
 Community package the registry already needs rather than downloaded separately —
 see [Kafka Connect & Topics](../features/kafka-connect.md#converters).
