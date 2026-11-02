@@ -51,6 +51,8 @@ When you scale the cluster (add or remove an instance), the leader's periodic ng
 
 If you stop or delete an instance manually, the reconciler removes it from the upstream within the next tick.
 
+Each component's proxy is reconciled as its own step. If the host of one component's proxy cannot be reached (node down, network partition), only that step fails — the leader log shows `nginx reconcile failed (<component> nginx): …` — and every other proxy, UI Proxy upstream and gateway route keeps being updated on the same tick. An instance whose node manager stops answering is kept in its upstream for a grace period (120 s) before it is dropped, so a node-manager restart does not empty a proxy.
+
 ## Trino Gateway — TLS and the public endpoint
 
 The Trino Gateway nginx is a special case: it is **always TLS**. Clients reach the gateway over `https://<nginxHost>:<nginxPort>`, and nginx terminates TLS in front of the gateway's plain-HTTP listener.
@@ -83,9 +85,12 @@ NeoRunBase splits across `http {}` (admin REST) and `stream {}` (pgwire) — two
 
 Ontul similarly uses two server blocks because its Arrow Flight SQL surface is gRPC (HTTP/2) which cannot share a server block with its HTTP/1.1 admin surface.
 
+Both Ontul upstreams are pinned per client address (`ip_hash`). Ontul issues login tokens and Flight SQL bearer tokens per master, so a client that logs in on one master must keep talking to it — a JDBC/ADBC session over the Flight SQL port sends several RPCs per statement. Earlier 3.0.0 builds pinned only the admin upstream, and Flight SQL clients through the proxy failed with `Bearer credentials were not valid` as soon as two masters were running.
+
 ## Troubleshooting
 
 - **nginx fails to start with `bind() to 0.0.0.0:19200 failed (13: Permission denied)`** — SELinux is enforcing and does not allow nginx to bind that port. See [Node Preparation](../installation/node-preparation.md) — SELinux should be disabled on chango hosts.
 - **`semanage: command not found`** when chango tries to add an http_port_t label — install `policycoreutils-python-utils`, but the preferred answer is to disable SELinux entirely per node prep.
 - **Stale upstream in nginx config** after deleting an instance — wait for the next reconciliation tick (≤30 s), or click Apply on the Nginx panel to force an immediate re-render.
+- **Flight SQL (JDBC/ADBC) through the Ontul proxy fails with `Bearer credentials were not valid`** while connecting to a master directly works — the Flight upstream is not pinned. Apply the current 3.0.0 patch; the leader re-renders the conf with `ip_hash` on its next reconcile.
 - **`/etc/nginx/conf.d/chango_*.conf` was hand-edited** — chango will overwrite it on the next Apply. The chango-managed surface is the source of truth; if you need extra directives, layer them in a separately-named conf file under `conf.d/`.

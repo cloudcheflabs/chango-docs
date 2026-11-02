@@ -35,6 +35,12 @@ sudo sed -i 's/^SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config        
 
 `setenforce 0` takes effect immediately, which is enough to get chango installed and running. The `SELINUX=disabled` line in `/etc/selinux/config` makes it permanent — you should reboot the host at the next convenient maintenance window so the kernel reloads in disabled mode.
 
+## firewalld and umask
+
+firewalld is **optional**. On sites that run without it (stopped/disabled or not installed), security groups or network firewalls do the filtering and the installers skip their firewall steps. When firewalld is running, the installers open the platform's port bands for the node subnet.
+
+The operator shell's umask may be hardened (`027`, `077`). Platform processes set their own umask (`0022`) when they start, so shared directories such as `/opt/components` and `/etc/chango/certs` stay readable by components that run as other users; secret files are still created `0600`. Builds of 3.0.0 before this change inherited the shell's umask — if a component install failed with `tar extract failed (exit=2)` and `Permission denied`, check those directories with `stat -c '%a %n'` and `chmod 755` them once after patching.
+
 ## ulimit (applied by `node-prep`)
 
 JVM components (Trino, Spark, Flink, ZooKeeper, NeoRunBase, kiok, …) open many file descriptors and threads. `node-prep` writes a single drop-in:
