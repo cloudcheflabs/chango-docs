@@ -537,6 +537,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#firewalld-and-umask" class="md-nav__link">
+    firewalld and umask
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#ulimit-applied-by-node-prep" class="md-nav__link">
     ulimit (applied by node-prep)
   </a>
@@ -1455,6 +1462,9 @@
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>sudo<span class="w"> </span>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;s/^SELINUX=enforcing/SELINUX=disabled/&#39;</span><span class="w"> </span>/etc/selinux/config<span class="w">         </span><span class="c1"># persist across reboots</span>
 </code></pre></div>
 <p><code>setenforce 0</code> takes effect immediately, which is enough to get chango installed and running. The <code>SELINUX=disabled</code> line in <code>/etc/selinux/config</code> makes it permanent — you should reboot the host at the next convenient maintenance window so the kernel reloads in disabled mode.</p>
+<h2 id="firewalld-and-umask">firewalld and umask</h2>
+<p>firewalld is <strong>optional</strong>. On sites that run without it (stopped/disabled or not installed), security groups or network firewalls do the filtering and the installers skip their firewall steps. When firewalld is running, the installers open the platform's port bands for the node subnet.</p>
+<p>The operator shell's umask may be hardened (<code>027</code>, <code>077</code>). Platform processes set their own umask (<code>0022</code>) when they start, so shared directories such as <code>/opt/components</code> and <code>/etc/chango/certs</code> stay readable by components that run as other users; secret files are still created <code>0600</code>. Builds of 3.0.0 before this change inherited the shell's umask — if a component install failed with <code>tar extract failed (exit=2)</code> and <code>Permission denied</code>, check those directories with <code>stat -c '%a %n'</code> and <code>chmod 755</code> them once after patching.</p>
 <h2 id="ulimit-applied-by-node-prep">ulimit (applied by <code>node-prep</code>)</h2>
 <p>JVM components (Trino, Spark, Flink, ZooKeeper, NeoRunBase, kiok, …) open many file descriptors and threads. <code>node-prep</code> writes a single drop-in:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/security/limits.d/chango.conf<span class="w"> </span>&gt;<span class="w"> </span>/dev/null<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
