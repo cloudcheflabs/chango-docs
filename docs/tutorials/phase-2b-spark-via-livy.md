@@ -98,7 +98,8 @@ Livy interactive sessions are the cheapest way to verify the catalog + plugin wi
 ```bash
 SID=$(curl -sS -X POST $LIVY/sessions \
   -H 'Content-Type: application/json' \
-  -d '{"kind":"spark","name":"phase2b-scala"}' | jq -r .id)
+  -d '{"kind":"spark","name":"phase2b-scala",
+       "conf":{"spark.chango.authz.user":"<ontul-user>"}}' | jq -r .id)
 echo "session: $SID"
 
 while true; do
@@ -109,6 +110,8 @@ while true; do
   sleep 5
 done
 ```
+
+Livy `proxyUser` does not change the identity the plugin checks (`livy.impersonation.enabled=false`); pass the Ontul user as `spark.chango.authz.user` in `conf`. Without it the plugin uses the Spark user of the Livy process.
 
 Healthy progression: `starting` for ~20–30 s while spark-submit forks + the Livy RSC driver registers back, then `idle`. `dead` within ~5 s is almost always a `chango-spark-authz` class-version mismatch (the plugin jar was compiled against Java 17; rebuild with `targetCompatibility = 11`).
 
@@ -194,6 +197,7 @@ BATCH_ID=$(curl -sS -X POST $LIVY/batches \
     \"args\":      [],
     \"name\":      \"phase2b-batch\",
     \"conf\": {
+      \"spark.chango.authz.user\":         \"<ontul-user>\",
       \"spark.hadoop.fs.s3a.endpoint\":     \"$SS_ENDPOINT\",
       \"spark.hadoop.fs.s3a.access.key\":   \"$SS_AK\",
       \"spark.hadoop.fs.s3a.secret.key\":   \"$SS_SK\",
@@ -213,6 +217,8 @@ while true; do
   sleep 5
 done
 ```
+
+If the job sets `spark.sql.extensions` (in `conf` or in code), it must list both extensions — `org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension`. Iceberg's extension alone replaces the platform's value and silently disables authorization.
 
 Expected: `starting` (~20 s) → `running` (~15 s while spark-submit + executors run + Iceberg commits) → `success`. The output of the Java main lives at `GET /batches/<id>/log`.
 
@@ -257,7 +263,7 @@ The same SQL works for the `IcebergTest` table from the batch path.
 - **Session goes `dead` immediately + `livy-spark-server.out` shows `UnsupportedClassVersionError ... only recognizes class file versions up to 55.0`.** `chango-spark-authz` was compiled with `targetCompatibility = 17`; rebuild against 11 (chango Spark daemons run on JDK 11).
 - **`POST /sessions` returns 200 but state stays `starting` for >2 min.** Spark master + worker reachable from the Livy host? `livy.spark.master` URL valid? Check `Connecting to master spark://...` in `livy-spark-server.out`; a `Connection refused` here means the master is on a different host or hasn't come up.
 - **`POST /batches` returns `Local path ... cannot be added to user sessions`.** You passed `file:///...`; Livy whitelists local paths only via `livy.file.local-dir-whitelist`. The safe answer is to stage the jar in S3 and pass `s3a://`.
-- **Batch `dead` with `IcebergSparkSessionExtensions ClassNotFoundException`.** The jar didn't pick up the chango-managed `spark-defaults.conf` `spark.sql.extensions` entry. Add it explicitly to the `/batches` `conf` map.
+- **Batch `dead` with `IcebergSparkSessionExtensions ClassNotFoundException`.** Add `spark.sql.extensions` to the `/batches` `conf` map with both extensions: `org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension` (Iceberg's alone disables authorization).
 
 ## Next
 

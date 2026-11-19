@@ -8,7 +8,7 @@ Chango installs onto a fleet of **Rocky Linux 9** hosts (master + node managers)
 |---|---|---|
 | SELinux → `disabled` | `/etc/selinux/config` (+ immediate `setenforce 0`) | Permissive now, fully disabled after the next reboot |
 | ulimit (nofile / nproc) | `/etc/security/limits.d/chango.conf` | New login sessions / service starts |
-| sysctl (mmap / somaxconn / file-max) | `/etc/sysctl.d/99-chango.conf` (+ `sysctl --system`) | Immediate |
+| sysctl (mmap / somaxconn / file-max / reserved ports) | `/etc/sysctl.d/99-chango.conf` (+ `sysctl --system`) | Immediate |
 
 The role is idempotent — re-running `install.yml` is safe.
 
@@ -65,6 +65,7 @@ sudo tee /etc/sysctl.d/99-chango.conf > /dev/null <<'EOF'
 vm.max_map_count = 262144
 net.core.somaxconn = 4096
 fs.file-max = 2000000
+net.ipv4.ip_local_reserved_ports = 2181-2380,2888-3087,3888-4087,5432-5631,8080-8379,8480-9379,18080-18699,18890,19081-19519,19998-19999,20000-20399
 EOF
 sudo sysctl --system
 ```
@@ -72,6 +73,19 @@ sudo sysctl --system
 - `vm.max_map_count` — RocksDB / Iceberg use mmap heavily.
 - `net.core.somaxconn` — nginx + Trino HTTP backlog.
 - `fs.file-max` — system-wide FD ceiling for many JVMs on one host.
+- `net.ipv4.ip_local_reserved_ports` — keeps the platform's port bands out of the kernel's ephemeral source-port pool (ansible variable `chango_node_prep_reserved_ports`). `20000-20399` are the [Spark job ports](../features/port-allocator.md#spark-job-ports). The kernel shows adjacent ranges merged, ending in `...,19998-20399`. See [Port Allocator](../features/port-allocator.md#the-kernel-can-hand-out-a-band-port-as-an-ephemeral-one).
+
+### Adding the Spark job ports to an existing install
+
+Installs prepared before `20000-20399` was in the list can add it without re-running `node-prep`. From the install's ansible directory (where `inventory.yml` is):
+
+```bash
+ansible -i inventory.yml all -b -m replace -a "path=/etc/sysctl.d/99-chango.conf regexp='^(net.ipv4.ip_local_reserved_ports = (?!.*20000-20399).*)$' replace='\1,20000-20399'"
+ansible -i inventory.yml all -b -m command -a "sysctl --system"
+ansible -i inventory.yml all -b -m command -a "sysctl -n net.ipv4.ip_local_reserved_ports"
+```
+
+The first command appends the range only where it is missing, so it is safe to repeat. The last one should end in `19998-20399` on every host.
 
 ## Disk layout
 
@@ -130,6 +144,7 @@ getenforce                       # → Permissive or Disabled
 ulimit -n                         # → 131072
 ulimit -u                         # → 128000
 sysctl vm.max_map_count           # → 262144
+sysctl -n net.ipv4.ip_local_reserved_ports   # → ends in 19998-20399
 df -h /opt                        # → dedicated volume mounted
 ```
 

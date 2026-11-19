@@ -162,7 +162,8 @@ spark-submit \
   --class com.chango.test.IcebergTest \
   --driver-java-options "$ADDOPENS" \
   --conf "spark.executor.extraJavaOptions=$ADDOPENS" \
-  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
+  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension \
+  --conf spark.chango.authz.user=<ontul-user> \
   --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog \
   --conf spark.sql.catalog.iceberg.type=rest \
   --conf spark.sql.catalog.iceberg.uri=$POLARIS_EP \
@@ -177,6 +178,10 @@ spark-submit \
   --conf spark.sql.catalog.iceberg.s3.region=us-east-1 \
   file:///path/to/iceberg-test.jar
 ```
+
+> **Keep the authz extension in `spark.sql.extensions`.** The platform sets `spark.sql.extensions = com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension` in `spark-defaults.conf`. A job that sets `spark.sql.extensions` to Iceberg's extension alone **replaces** that value and silently turns authorization off — a user without any policy can then read the table. Always list both: `org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension`.
+>
+> The user the policies are evaluated for is `spark.chango.authz.user`; when it is not set, the plugin uses the Spark user (`sparkUser`). The service token (`spark.chango.authz.ontul.token`) is already in `spark-defaults.conf`. The driver log confirms the plugin is active: `chango-spark-authz: table-level authorization check rule installed` and `chango-spark-authz active: user=…`.
 
 `spark-submit` does not block in cluster mode — it returns once the driver is registered. The driver writes to a worker-side staging directory:
 
@@ -228,7 +233,8 @@ spark-submit \
   --driver-java-options "$ADDOPENS" \
   --conf "spark.executor.extraJavaOptions=$ADDOPENS" \
   --conf spark.local.dir=/tmp/spark-driver-local \
-  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
+  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension \
+  --conf spark.chango.authz.user=<ontul-user> \
   --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog \
   --conf spark.sql.catalog.iceberg.type=rest \
   --conf spark.sql.catalog.iceberg.uri=$POLARIS_EP \

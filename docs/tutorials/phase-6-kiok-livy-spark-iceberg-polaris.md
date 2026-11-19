@@ -174,7 +174,9 @@ from pyspark.sql import SparkSession
 
 spark = (SparkSession.builder
     .appName("kiok-livy-iceberg-polaris-python")
-    .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
+    # Both extensions: Iceberg's alone replaces the platform value and disables authorization.
+    .config("spark.sql.extensions",
+            "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension")
     .config("spark.sql.catalog.lakehouse", "org.apache.iceberg.spark.SparkCatalog")
     .config("spark.sql.catalog.lakehouse.type", "rest")
     .config("spark.sql.catalog.lakehouse.uri", "<POLARIS_REST>")
@@ -330,8 +332,9 @@ public class LivyIcebergJavaDag implements KiokDag {
            // Polaris REST catalog wiring (driver builds SparkSession without
            // these — they come via --conf so the same jar can target any
            // catalog without a rebuild).
+           // Both extensions: Iceberg's alone replaces the platform value and disables authorization.
            .livyConf("spark.sql.extensions",
-                     "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
+                     "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension")
            .livyConf("spark.sql.catalog.lakehouse",            "org.apache.iceberg.spark.SparkCatalog")
            .livyConf("spark.sql.catalog.lakehouse.type",       "rest")
            .livyConf("spark.sql.catalog.lakehouse.uri",        "<POLARIS_REST>")

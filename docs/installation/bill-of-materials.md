@@ -101,7 +101,7 @@ One entry is worth flagging before a review rather than during one:
 
     It places no restriction on internal use of the kind chango deployments make. What it prohibits is offering the software itself as a service to third parties. If it is nonetheless a blocker, the component can be excluded from the bundle.
 
-Everything else falls into ordinary categories: Apache-2.0 for the Apache engines and the Iceberg / Hadoop / AWS SDK libraries, GPL-2.0-with-classpath-exception for the OpenLogic JDKs, PostgreSQL for PostgreSQL, GPL-3.0-or-later for ansible-core, MIT for SLF4J, and a Cloud Chef Labs commercial licence for the first-party products.
+Everything else falls into ordinary categories: Apache-2.0 for the Apache engines and the Iceberg / Hadoop / AWS SDK libraries, GPL-2.0-with-classpath-exception for the OpenLogic JDKs (and for the Microsoft Build of OpenJDK 17 / 25 that the `chango-3.0.0-fix-java4shell` fix bundle puts in their place — see [Versions](../components/versions.md#jdks)), PostgreSQL for PostgreSQL, GPL-3.0-or-later for ansible-core, MIT for SLF4J, and a Cloud Chef Labs commercial licence for the first-party products.
 
 ### What is deliberately absent
 

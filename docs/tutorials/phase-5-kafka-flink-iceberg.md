@@ -8,7 +8,7 @@ By the end of Phase 5 you will have:
 2. A Confluent **Schema Registry** running alongside that broker (optional; this tutorial uses plain JSON to keep the surface small).
 3. A 1+1 Apache **Flink** standalone session cluster with the `chango-flink-authz` plugin wired in.
 4. A **streaming job** (Flink Java uberjar) that consumes from `orders.raw`, parses each JSON record, and `INSERT`s into `iceberg.streaming.orders` via the same Polaris REST catalog the earlier phases used.
-5. Ontul **RBAC**: a `flink-streamer` user in a `flink-writers` group with one policy allowing `data:Insert` on the streaming namespace. Submitting the same job as a different user fails fast with `Access Denied`.
+5. Ontul **RBAC**: a `flink-streamer` user in a `flink-writers` group with one policy allowing `data:Insert` on the streaming namespace. A job whose Iceberg sink is wrapped with `ChangoAuthzTableLoader` is refused for any other user with a `SecurityException`.
 
 ## Topology
 
@@ -45,7 +45,9 @@ N2=nm-chango-n2-19998
 # Ontul (Phase 0)
 ONTUL_HOST=<chango-n1>
 ONTUL_PORT=<ontul-master adminPort>
-ADMIN_OTOK=<admin user OTOK from Ontul>
+ONTUL=http://$ONTUL_HOST:$ONTUL_PORT
+ONTUL_TOK=$(curl -sS -X POST $ONTUL/admin/auth/login \
+  -H 'Content-Type: application/json' -d '{"username":"admin","password":"<ontul-admin-pw>"}' | jq -r .accessToken)
 
 # ShannonStore (Phase 0)
 SS_AK=<access key>
@@ -132,19 +134,22 @@ The records sit on `orders.raw` until a consumer drains them. The Flink job in �
 
 ## 2. Install Flink with Ontul authz
 
-### 2.1 Mint a long-lived Ontul service token for chango-flink-authz
+### 2.1 Mint an Ontul service token for chango-flink-authz
 
-The `chango-flink-authz` plugin calls Ontul's `/admin/iam/check` on every table the job touches. It needs a long-lived bearer token issued by Ontul:
+`chango-flink-authz` is a library the job calls, not a cluster-side hook. When a wrapped Iceberg table is opened, it calls Ontul's `POST /v1/api/authz/check-batch` with `Authorization: Token <OTOK>`. Any valid OTOK works; this tutorial issues one for a dedicated service user:
 
 ```bash
-FLINK_OTOK=$(curl -sS -X POST http://$ONTUL_HOST:$ONTUL_PORT/admin/iam/keys \
-  -H "Authorization: Bearer $ADMIN_OTOK" -H 'Content-Type: application/json' \
-  -d '{"userId":"flink-system","comment":"chango-flink-authz service token"}' \
-  | jq -r .token)
+curl -sS -X POST $ONTUL/admin/iam/users \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"username":"flink-system","password":"<flink-system-pw>"}'
+
+FLINK_OTOK=$(curl -sS -X POST $ONTUL/admin/iam/keys \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"username":"flink-system"}' | jq -r .token)
 echo "$FLINK_OTOK" > ~/chango-secrets/ontul-otok-flink
 ```
 
-This is the **service principal** for the plugin, not the user submitting the job. The plugin sends it as `Authorization: Token <FLINK_OTOK>` and Ontul resolves the *job-submitting user* from the request payload — exactly the same pattern Trino + Spark use.
+The token only authenticates the check call. The user whose policies are evaluated is the `user` the job passes in `OntulAuthzConfig` (§3.1) — not the token's owner and not the OS user that runs `flink run`.
 
 ### 2.2 Install the Flink cluster
 
@@ -155,8 +160,8 @@ This is the **service principal** for the plugin, not the user submitting the jo
     - **Cluster ID** — `flink-main`
     - **JobManager nodes** — `chango-n1`
     - **TaskManager nodes** — `chango-n2`
-    - **Ontul authz endpoint** — `http://chango-n1.chango.private:18080` (the Ontul master adminPort).
-    - **Ontul authz token** — paste `$FLINK_OTOK`.
+    - **Ontul Authz Endpoint (optional)** — `http://chango-n1.chango.private:18080` (the Ontul master adminPort).
+    - **Ontul Authz Token (optional)** — paste `$FLINK_OTOK`.
 3. Click **Install** then **Start**. The cluster card flips to `RUNNING` within ~30 seconds.
 
 #### Via REST
@@ -175,7 +180,8 @@ curl -sS -X POST -H "Authorization: Bearer $TOK" $BASE/admin/api/flink/flink-mai
 
 The chango installer auto-wires:
 
-- The `chango-flink-authz` jar into `lib/` on every JobManager + TaskManager (table-level Allow/Deny against Ontul IAM).
+- The `chango-flink-authz` jar into `lib/` on every JobManager + TaskManager, so jobs compile against it with `provided` scope.
+- The endpoint and token under `chango.authz.*` in `conf/config.yaml`. The plugin does **not** read these keys — the job passes the endpoint, token and user itself (§3.1).
 - Flink 1.19 JVM `--add-opens` defaults for Java 17.
 - A `conf/config.yaml` that binds rest + RPC on `0.0.0.0` and advertises the FQHN — UI Proxy auto-discovers the JobManager UI via the cluster registry.
 
@@ -344,9 +350,71 @@ public class OrdersStream {
 }
 ```
 
-> The `--user` parameter shown in earlier drafts of this tutorial belonged to a `chango-flink-authz` `chango.authz.user` global-parameter wiring. The current plugin reads the submitting user from the Flink submission context — no in-job wiring needed.
+> **This SQL `INSERT` is not authorization-checked.** `chango-flink-authz` only acts on an Iceberg `TableLoader` that the job wraps with `ChangoAuthzTableLoader`. Flink SQL / Table API writes (`executeSql("INSERT ...")`) and unwrapped loaders reach the table without any Ontul check. Use §3 to see the pipeline work; use §3.1 for a write that Ontul RBAC gates.
 
 Build the uberjar (Maven shade) the same way Phase 2 does — `mvn package` yields `target/orders-stream-1.0.0.jar`.
+
+### 3.1 Authorized write: wrap the Iceberg sink
+
+For an authorized write, write through the DataStream `FlinkSink` and hand it a `TableLoader` wrapped by `ChangoAuthzTableLoader`:
+
+- `ChangoAuthzTableLoader.forSink(base, "<catalog alias>", TableIdentifier, OntulAuthzConfig)` checks `data:Insert`; `forSource(...)` checks `data:Select`.
+- The resource is `data:table:<catalog alias>.<schema>.<table>`. Use the catalog name the query engines use (`iceberg` here) so the same policy matches.
+- The check runs once when the table is opened (once per loader instance on each TaskManager, and in `main()` if the job opens the table there).
+- `new OntulAuthzConfig(ontulUrl, ontulToken, user, timeoutMs, failOpen)` — the Ontul master admin URL, the service OTOK from §2.1, and the user whose policies are evaluated. `failOpen=false` denies when Ontul cannot be reached.
+
+Add the plugin to `pom.xml` with `provided` scope (the jar is already in Flink's `lib/`; install `<flink>/lib/chango-flink-authz-3.0.0.jar` into the local Maven repository with `mvn install:install-file`):
+
+```xml
+<dependency>
+  <groupId>com.cloudcheflabs.chango</groupId>
+  <artifactId>chango-flink-authz</artifactId>
+  <version>3.0.0</version>
+  <scope>provided</scope>
+</dependency>
+```
+
+Sink wiring in `OrdersStreamAuthz.java` (main class `com.chango.test.OrdersStreamAuthz`; the Kafka source and JSON → `RowData` mapping are ordinary DataStream code):
+
+```java
+import org.apache.iceberg.catalog.TableIdentifier;
+import org.apache.iceberg.flink.CatalogLoader;
+import org.apache.iceberg.flink.TableLoader;
+import org.apache.iceberg.flink.sink.FlinkSink;
+import com.cloudcheflabs.chango.flink.authz.ChangoAuthzTableLoader;
+import com.cloudcheflabs.chango.flink.authz.OntulAuthzConfig;
+
+// props: the same REST catalog settings as the CREATE CATALOG in §3
+// (uri, warehouse, credential, scope, io-impl, s3.*).
+CatalogLoader catalogLoader = CatalogLoader.custom("iceberg", props,
+        new org.apache.hadoop.conf.Configuration(), "org.apache.iceberg.rest.RESTCatalog");
+TableIdentifier id = TableIdentifier.of("streaming", "orders");
+
+OntulAuthzConfig authz = new OntulAuthzConfig(
+        req(args, "--authz-url"),     // http://<ontul-master>:<adminPort>
+        req(args, "--authz-token"),   // service OTOK (§2.1)
+        req(args, "--authz-user"),    // user whose policies are evaluated
+        5000, false);                 // timeout ms, fail closed
+
+TableLoader sinkLoader = ChangoAuthzTableLoader.forSink(
+        TableLoader.fromCatalog(catalogLoader, id), "iceberg", id, authz);
+
+// Optional: open the table in main() so a denied user fails at submission
+// instead of on the TaskManager.
+try (TableLoader probe = ChangoAuthzTableLoader.forSink(
+        TableLoader.fromCatalog(catalogLoader, id), "iceberg", id, authz)) {
+    probe.open();
+}
+
+FlinkSink.forRowData(rows)          // DataStream<RowData> parsed from orders.raw
+        .tableLoader(sinkLoader)
+        .append();
+env.execute("orders-stream-authz");
+```
+
+The plugin uses Flink's shaded Jackson (`org.apache.flink.shaded.jackson2...`), which Flink's `lib/` provides; the job needs no extra Jackson for it.
+
+A complete reference job — Kafka source, JSON → `RowData` against the table schema, upsert / write-parallelism options and the `--authz-url --authz-token --authz-user` arguments — is `example/flink/src/main/java/com/example/stream/IcebergSinkJob.java` in the chango examples (`example/flink/submit.py` passes `AUTHZ_USER` / `AUTHZ_TOKEN`).
 
 ## 4. Wire Ontul RBAC for the streaming write
 
@@ -354,23 +422,23 @@ Build the uberjar (Maven shade) the same way Phase 2 does — `mvn package` yiel
 
 ```bash
 # Create the operator who will submit the job.
-curl -sS -X POST http://$ONTUL_HOST:$ONTUL_PORT/admin/iam/users \
-  -H "Authorization: Bearer $ADMIN_OTOK" -H 'Content-Type: application/json' \
-  -d '{"userId":"flink-streamer","password":"Stream2026Pw!","email":"flink-streamer@example"}'
+curl -sS -X POST $ONTUL/admin/iam/users \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"username":"flink-streamer","password":"Stream2026Pw!"}'
 
 # Create the group that will hold the policy.
-curl -sS -X POST http://$ONTUL_HOST:$ONTUL_PORT/admin/iam/groups \
-  -H "Authorization: Bearer $ADMIN_OTOK" -H 'Content-Type: application/json' \
-  -d '{"groupName":"flink-writers","description":"Streaming writers"}'
-
-curl -sS -X POST http://$ONTUL_HOST:$ONTUL_PORT/admin/iam/users/flink-streamer/groups \
-  -H "Authorization: Bearer $ADMIN_OTOK" -H 'Content-Type: application/json' \
+curl -sS -X POST $ONTUL/admin/iam/groups \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
   -d '{"groupName":"flink-writers"}'
+
+curl -sS -X POST $ONTUL/admin/iam/add-user-to-group \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"username":"flink-streamer","groupName":"flink-writers"}'
 ```
 
 ### 4.2 Attach a policy that allows INSERT on the streaming namespace
 
-`chango-flink-authz` checks every read with `data:Select` and every write with `data:Insert`, scoped to `data:table:<catalog>.<schema>.<table>`. The Flink job in §3 reads from Kafka (not gated by Ontul) and writes to `iceberg.streaming.orders` (gated). The minimum policy is:
+A wrapped sink loader checks `data:Insert` and a wrapped source loader `data:Select`, on `data:table:<catalog>.<schema>.<table>`. The §3.1 job reads from Kafka (not gated by Ontul) and writes to `iceberg.streaming.orders` (gated). The policy below also allows `data:Create` / `data:CreateSchema` for engines that create the table (Trino, Spark); the Flink sink itself only asks for `data:Insert`:
 
 ```bash
 cat > /tmp/iceberg-streaming-write.json <<'EOF'
@@ -396,13 +464,13 @@ cat > /tmp/iceberg-streaming-write.json <<'EOF'
 }
 EOF
 
-curl -sS -X POST http://$ONTUL_HOST:$ONTUL_PORT/admin/iam/policies \
-  -H "Authorization: Bearer $ADMIN_OTOK" -H 'Content-Type: application/json' \
+curl -sS -X POST $ONTUL/admin/iam/policies \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
   --data @/tmp/iceberg-streaming-write.json
 
-curl -sS -X POST http://$ONTUL_HOST:$ONTUL_PORT/admin/iam/groups/flink-writers/policies \
-  -H "Authorization: Bearer $ADMIN_OTOK" -H 'Content-Type: application/json' \
-  -d '{"policyName":"iceberg-streaming-write"}'
+curl -sS -X POST $ONTUL/admin/iam/attach-group-policy \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"groupName":"flink-writers","policyName":"iceberg-streaming-write"}'
 ```
 
 > **No row-filter / column-mask for Flink.** The same `Condition` / `Columns` fields Phase 1 used for Trino are ignored by `chango-flink-authz` — the engine's table API does not expose a plan rewrite hook the plugin can use without re-implementing Calcite. The deliberate scope decision is recorded in [the engine-coverage memo](../features/iam.md#engine-coverage); for fine-grained policy on streaming reads you must filter at the source side (e.g. a topic-per-tenant + ACL).
@@ -431,6 +499,14 @@ ssh chango-n1 'sudo -u flink env JAVA_HOME=/opt/openlogic-openjdk-17.0.7+7-linux
 # Job has been submitted with JobID 86fa5e3b…
 ```
 
+This submits the §3 SQL job (no authorization check). For the §3.1 job, pass `--class com.chango.test.OrdersStreamAuthz` and add the three authz arguments:
+
+```bash
+      --authz-url    http://$ONTUL_HOST:$ONTUL_PORT \
+      --authz-token  "$FLINK_OTOK" \
+      --authz-user   flink-streamer
+```
+
 The job parses the three test records from §1.2, transforms them, and writes them into `iceberg.streaming.orders`. Because checkpointing is set to 10 s, the **first Iceberg commit lands ~10 s after job start**. Subsequent records from the same Kafka topic land in the next commit.
 
 ### 5.1 Monitor
@@ -448,7 +524,7 @@ ssh chango-n2 'sudo journalctl -u flink-main-taskmanager-1 --since "5 min ago"' 
 Look for two key lines:
 
 - `iceberg.streaming.orders ← committed snapshot <id>` (Iceberg sink commit).
-- `chango-flink-authz: ALLOW user=flink-streamer action=data:Insert resource=data:table:iceberg.streaming.orders` (plugin authz log).
+- `chango-flink-authz: data:Insert data:table:iceberg.streaming.orders authorized for user flink-streamer` (plugin authz log, §3.1 job only).
 
 ## 6. Verify the write through Trino
 
@@ -480,15 +556,16 @@ Run the producer from §1.2 again with `order_id` values `1004 / 1005`, wait one
 
 ## 7. Verify the DENY path
 
-Submit the same job as a user that lacks the `iceberg-streaming-write` policy:
+Submit the §3.1 job (wrapped sink) with a user that lacks the `iceberg-streaming-write` policy:
 
 ```bash
-curl -sS -X POST http://$ONTUL_HOST:$ONTUL_PORT/admin/iam/users \
-  -H "Authorization: Bearer $ADMIN_OTOK" -H 'Content-Type: application/json' \
-  -d '{"userId":"flink-nobody","password":"Pw2026!","email":"flink-nobody@example"}'
+curl -sS -X POST $ONTUL/admin/iam/users \
+  -H "Authorization: Bearer $ONTUL_TOK" -H 'Content-Type: application/json' \
+  -d '{"username":"flink-nobody","password":"Pw2026!"}'
 
 ssh chango-n1 'sudo -u flink bash -lc "
 /opt/components/flink-main-jobmanager-1/bin/flink run --jobmanager '$JM_HOST:$JM_PORT' \
+  --class com.chango.test.OrdersStreamAuthz \
   /tmp/orders-stream-1.0.0.jar \
     --bootstrap     '$BOOTSTRAP' \
     --topic         orders.raw \
@@ -498,22 +575,21 @@ ssh chango-n1 'sudo -u flink bash -lc "
     --s3-endpoint   '$SS_ENDPOINT' \
     --s3-ak         '$SS_AK' \
     --s3-sk         '$SS_SK' \
-    --user          flink-nobody
+    --authz-url     http://'$ONTUL_HOST:$ONTUL_PORT' \
+    --authz-token   '$FLINK_OTOK' \
+    --authz-user    flink-nobody
 "'
 ```
 
-The job is accepted by the JobManager (chango-flink-authz runs at table-load time, not submit time), but the first checkpoint logs:
+The check runs when the table is opened. Because the §3.1 job opens the sink table in `main()`, the submission itself fails and no job is started; the last `Caused by` is:
 
 ```
-chango-flink-authz: DENY user=flink-nobody action=data:Insert
-                    resource=data:table:iceberg.streaming.orders reason=ABSTAIN
-org.apache.flink.runtime.JobException: Recovery is suppressed by NoRestartBackoffTimeStrategy
-Caused by: com.cloudcheflabs.chango.flink.authz.AuthzException:
-  Access Denied: user flink-nobody not authorized for data:Insert on
-  data:table:iceberg.streaming.orders (ontul decision: ABSTAIN — fail-closed)
+java.lang.SecurityException: user 'flink-nobody' is not allowed to data:Insert data:table:iceberg.streaming.orders (decision=ABSTAIN)
 ```
 
-The job transitions to `FAILED`, with no data appended to the Iceberg table. **Fail-closed** is the only mode `chango-flink-authz` supports — `fail-open: false` is hard-coded in the chango installer's rendered `config.yaml` so a misconfigured Ontul never silently allows writes.
+Submitted through the JobManager REST API (`POST /jars/<id>/run`), the same failure returns HTTP 400 with this line as the last `Caused by`. Without the `main()` probe, the job is accepted and fails on the TaskManager when the sink opens the table. Either way no data is appended. Whether an unreachable Ontul denies or allows is the job's choice — the `failOpen` argument of `OntulAuthzConfig` (`false` in §3.1).
+
+Submitting the §3 SQL job instead succeeds for any user: it is not checked.
 
 ## Phase 5 exit checklist
 
@@ -521,7 +597,7 @@ The job transitions to `FAILED`, with no data appended to the Iceberg table. **F
 - [ ] `curl /admin/api/flink/flink-main | jq .status` returns `RUNNING`; JobManager UI reachable through UI Proxy.
 - [ ] `flink-streamer` job stays `RUNNING` after submission; TaskManager log shows `committed snapshot <id>`.
 - [ ] Trino `SELECT … FROM iceberg.streaming.orders` returns the three test rows; producing a fourth record adds it within one checkpoint.
-- [ ] `flink-nobody` submission fails with `chango-flink-authz: DENY … data:Insert` and no rows appear in the table.
+- [ ] The §3.1 job with `--authz-user flink-nobody` fails with `SecurityException: user 'flink-nobody' is not allowed to data:Insert …` and no rows appear in the table.
 - [ ] Ontul **Iceberg Maintenance** page (Phase 4) lists `iceberg.streaming.orders` as a candidate — the 6-hour cycle will now run `expire_snapshots` + `rewrite_data_files` against this streaming output too.
 
 ## Stop the streaming engines before the next phase
@@ -564,6 +640,8 @@ curl -sS -X POST -H "Authorization: Bearer $TOK" $BASE/admin/api/kafka/kafka-mai
 
 - **JobManager UI shows `0 TaskManagers`** — TaskManager couldn't reach the JobManager's RPC port. Check `/admin/api/flink/flink-main | jq '.instances[].host'` resolves on the TaskManager host (through your DNS or the `/etc/hosts` entries prepared on every node); the chango installer sets `jobmanager.rpc.address` to the JM's FQHN.
 - **Iceberg sink throws `Failed to refresh token …`** — the `--polaris-cred` value (`client_id:client_secret`) is wrong. The credential comes from `GET /admin/api/polaris/polaris-main/credentials` and must be re-fetched after a Polaris re-install.
-- **`chango-flink-authz: DENY` for a user you intended to allow** — the policy is missing `data:Create` or `data:CreateSchema` for the first job submission (the sink calls `CREATE TABLE IF NOT EXISTS`). Once the table exists, only `data:Insert` is needed; before then you also need `data:Create` + `data:CreateSchema`. The §4.2 policy includes all three.
+- **`SecurityException … is not allowed to data:Insert` for a user you intended to allow** — the resource in the message must match the policy: the catalog alias passed to `forSink` (`iceberg`) plus the table identifier. Check the user is in the group and the group has the policy attached (`GET /admin/iam/policies`).
+- **`ClassNotFoundException` for `com.fasterxml.jackson...` from `chango-flink-authz`** — an older plugin jar that used unshaded Jackson, which Flink's `lib/` does not contain. The current jar uses Flink's shaded Jackson; replace the jar in `lib/` with the current release.
+- **A user without a policy can still write** — the write did not go through a wrapped loader (SQL `INSERT`, Table API, or a plain `TableLoader`). Only `ChangoAuthzTableLoader` is checked.
 - **First snapshot never lands** — either checkpointing didn't fire (TM log shows no `Triggering checkpoint`) or the Iceberg sink couldn't reach S3 (look for `S3 endpoint` errors). Verify `--s3-endpoint` reaches ShannonStore from the TM host; the chango admin's Network panel for `shannon-main` lists the live S3 endpoint.
-- **DENY message says `reason=ABSTAIN` even though I attached a policy** — the policy didn't deserialize (PascalCase field-name pitfall from Phase 1 §5.2.1 applies to every Ontul policy). Re-read the policy via `GET /admin/iam/policies` and confirm `Statement` is populated.
+- **Denial says `decision=ABSTAIN` even though I attached a policy** — the policy didn't deserialize (PascalCase field-name pitfall from Phase 1 §5.2.1 applies to every Ontul policy). Re-read the policy via `GET /admin/iam/policies` and confirm `Statement` is populated.

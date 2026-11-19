@@ -98,6 +98,41 @@ amending a port document already handed to customers.
 Clusters installed before these changes keep the ports recorded at install.
 Only a fresh install or a scale-out moves.
 
+## Spark job ports {#spark-job-ports}
+
+Spark drivers and executors are started per application, outside the
+allocator. Left unset, they bind random ports that a firewall cannot allow, and
+the driver UI's default `4040` falls inside the `*-zk-leader` band (3888-4087).
+The platform therefore writes fixed bases into every Spark cluster's
+`spark-defaults.conf`:
+
+```
+spark.driver.port               20000
+spark.driver.blockManager.port  20100
+spark.blockManager.port         20200
+spark.ui.port                   20300
+spark.port.maxRetries           99
+```
+
+| Range | Socket | Direction |
+|---|---|---|
+| 20000-20099 | driver RPC | server ↔ server, both directions |
+| 20100-20199 | driver BlockManager | server ↔ server, both directions |
+| 20200-20299 | executor BlockManager | server ↔ server, both directions |
+| 20300-20399 | driver web UI | operator |
+
+Each application takes the next free port from the base; `spark.port.maxRetries 99`
+keeps it inside the 100-port range. The Spark daemons (master, worker, history
+server, Livy) are started with `-Dspark.port.maxRetries=0`, which overrides the
+file, so their own allocated ports are unaffected. `node-prep` reserves
+`20000-20399` from the ephemeral pool.
+
+**Existing clusters.** Spark page → `Configure` → `spark-defaults.conf` tab →
+`Add a key that is not listed` for each of the five keys → `Apply & Restart Cluster`.
+The REST equivalent is `POST /admin/api/spark/<id>/config` with
+`{"properties":{...}}`. The values are kept in the cluster record. Livy sessions
+opened before the restart keep their random ports — recreate them.
+
 ## Host-awareness
 
 Two instances on **different** hosts can have the same port. The allocator scope is per-host — every host has its own occupied-port set. This is what makes the small-cluster layout (master + NM + several components on a single host) work: ports collide within a host but not across hosts.
@@ -144,8 +179,14 @@ behaved here until the ephemeral range was the thing someone looked at.
 ```bash
 cat /proc/sys/net/ipv4/ip_local_reserved_ports
 #   2181-2380,2888-3087,3888-4087,5432-5631,8080-8379,8480-9379,
-#   18080-18699,18890,19081-19519,19998-19999
+#   18080-18699,18890,19081-19519,19998-20399
 ```
+
+`19998-20399` is `19998-19999` (platform internal) and `20000-20399`
+([Spark job ports](#spark-job-ports)) merged by the kernel. The list is the
+ansible variable `chango_node_prep_reserved_ports`, written to
+`/etc/sysctl.d/99-chango.conf`. To add `20000-20399` on an existing install, see
+[Node Preparation](../installation/node-preparation.md#adding-the-spark-job-ports-to-an-existing-install).
 
 A reservation blocks **automatic** allocation only; an explicit bind still
 works, which is what components do. The role reads the value back from `/proc`
