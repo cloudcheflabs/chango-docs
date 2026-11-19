@@ -183,7 +183,7 @@ Trino distributed SQL. Chango ships a `SystemAccessControl` plugin (`chango-trin
 The HTTP gateway in front of one or more Trino clusters — for blue / green upgrades and routing.
 
 ### Flink
-Apache Flink standalone session cluster, with a first-party `chango-flink-authz` plugin that wires the same Ontul authz model into Flink SQL.
+Apache Flink standalone session cluster, with the first-party `chango-flink-authz` library in `lib/`: a job that wraps its Iceberg `TableLoader` with `ChangoAuthzTableLoader` gets the same Ontul table-level checks. Flink SQL / Table API writes are not checked.
 
 - Topology: JobManager + TaskManager.
 

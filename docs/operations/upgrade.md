@@ -68,3 +68,15 @@ The chango install ships its own JDKs under `/opt/openlogic-openjdk-*`. To insta
 1. Add the new JDK tarball to `ansible/roles/java<version>/files/` and bump the role's `java_version` variable.
 2. Re-run the install playbook — the role installs the new JDK alongside existing ones.
 3. Restart any component cluster that should use the new JDK (the engine's `javaVersion` in its install request controls which JDK its launcher picks).
+
+### Replace the bundled JDK in place (fix bundle) {#replace-the-bundled-jdk-in-place-fix-bundle}
+
+The [`chango-3.0.0-fix-java4shell`](https://github.com/cloudcheflabs/chango-pack/releases/tag/chango-3.0.0-fix-java4shell) fix bundle (CVE-2026-114938) replaces the bundled OpenLogic JDK 17.0.7 / 25.0.3 with Microsoft Build of OpenJDK 17.0.21.1 / 25.0.5.1 **in the same directories**, so no configuration changes.
+
+- `jdk-swap.sh swap | rollback | status` — replace, restore, or show the current state.
+- `jdk-check.sh` — the actual Java version of each running process.
+- Every JVM must be stopped first: all components (including UI Proxy), then `stop.yml`. A leftover `java` process makes the swap refuse.
+- `chango-*` entries in the old `cacerts` are carried over to the new JDK.
+- JDK 11 (Spark, Livy) is not affected.
+
+After the swap the directory names still read `17.0.7` / `25.0.3`. Check versions with `jdk-check.sh` or `java -version`, not by the path.

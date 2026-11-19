@@ -286,6 +286,6 @@ Each query returns 3.
 ## Troubleshooting
 
 - **`curl: (7) Failed to connect to … port 30000: Connection refused`** — Livy down. Restart it via chango admin (`POST /admin/api/spark/spark-main/restart`) or check the spark cluster status; the install may have skipped Livy if `livyNodes` was empty.
-- **DAG run `SUCCESS` but Iceberg table is empty.** The batch jar didn't pick up the catalog config. Add `spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions` to the `/batches` `conf` map, or rebuild the uberjar with the Iceberg extension hard-coded in the `SparkSession.builder`.
+- **DAG run `SUCCESS` but Iceberg table is empty.** The batch jar didn't pick up the catalog config. Add `spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension` to the `/batches` `conf` map (both extensions — Iceberg's alone silently disables authorization), or rebuild the uberjar with the Iceberg extension hard-coded in the `SparkSession.builder`.
 - **`/batches` returns `Local path … cannot be added to user sessions`.** The `file` field must be `s3a://`, not `file:///`. Phase 3b is the path that forces every artifact into S3 by design.
 - **Connection ref `${conn.livy-spark.url}` resolves to literal text.** kiok older than the Connection-resolver patch didn't substitute generic-typed connection properties; bump to the build that ships `src/main/{java,python,script,yaml}` convention (see kiok-gitsync) and re-trigger.
