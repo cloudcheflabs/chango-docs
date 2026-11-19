@@ -1476,6 +1476,9 @@
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>After the <code>chango-3.0.0-fix-java4shell</code> fix bundle</strong> (CVE-2026-114938): the Java 17 and Java 25 runtimes above are replaced <strong>in place</strong> by Microsoft Build of OpenJDK 17.0.21.1 and 25.0.5.1. The directory names stay the same (<code>/opt/openlogic-openjdk-17.0.7+7-linux-x64</code>, <code>/opt/openlogic-openjdk-25.0.3+9-linux-x64</code>), so no configuration changes — but the names no longer tell the version; check with <code>jdk-check.sh</code> or <code>&lt;dir&gt;/bin/java -version</code>. Java 11 (Spark, Livy) is not affected. Release: <a href="https://github.com/cloudcheflabs/chango-pack/releases/tag/chango-3.0.0-fix-java4shell">chango-3.0.0-fix-java4shell</a>; procedure in <a href="../../operations/upgrade/#replace-the-bundled-jdk-in-place-fix-bundle">Upgrade — Replace the bundled JDK in place</a>.</p>
+</blockquote>
 <p>Three, not two. Livy 0.8 was built against Java 8/11 and breaks on the Java 17
 module system, and Spark 3.5 standalone is most stable on the same runtime — so
 they keep their own JDK rather than being forced onto chango's.</p>

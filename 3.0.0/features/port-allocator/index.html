@@ -824,6 +824,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#spark-job-ports" class="md-nav__link">
+    Spark job ports
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#host-awareness" class="md-nav__link">
     Host-awareness
   </a>
@@ -1643,6 +1650,59 @@ against the two the master itself takes. Declaring new bands would have meant
 amending a port document already handed to customers.</p>
 <p>Clusters installed before these changes keep the ports recorded at install.
 Only a fresh install or a scale-out moves.</p>
+<h2 id="spark-job-ports">Spark job ports</h2>
+<p>Spark drivers and executors are started per application, outside the
+allocator. Left unset, they bind random ports that a firewall cannot allow, and
+the driver UI's default <code>4040</code> falls inside the <code>*-zk-leader</code> band (3888-4087).
+The platform therefore writes fixed bases into every Spark cluster's
+<code>spark-defaults.conf</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>spark.driver.port               20000
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>spark.driver.blockManager.port  20100
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>spark.blockManager.port         20200
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>spark.ui.port                   20300
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>spark.port.maxRetries           99
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Range</th>
+<th>Socket</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>20000-20099</td>
+<td>driver RPC</td>
+<td>server ↔ server, both directions</td>
+</tr>
+<tr>
+<td>20100-20199</td>
+<td>driver BlockManager</td>
+<td>server ↔ server, both directions</td>
+</tr>
+<tr>
+<td>20200-20299</td>
+<td>executor BlockManager</td>
+<td>server ↔ server, both directions</td>
+</tr>
+<tr>
+<td>20300-20399</td>
+<td>driver web UI</td>
+<td>operator</td>
+</tr>
+</tbody>
+</table>
+<p>Each application takes the next free port from the base; <code>spark.port.maxRetries 99</code>
+keeps it inside the 100-port range. The Spark daemons (master, worker, history
+server, Livy) are started with <code>-Dspark.port.maxRetries=0</code>, which overrides the
+file, so their own allocated ports are unaffected. <code>node-prep</code> reserves
+<code>20000-20399</code> from the ephemeral pool.</p>
+<p><strong>Existing clusters.</strong> Spark page → <code>Configure</code> → <code>spark-defaults.conf</code> tab →
+<code>Add a key that is not listed</code> for each of the five keys → <code>Apply &amp; Restart Cluster</code>.
+The REST equivalent is <code>POST /admin/api/spark/&lt;id&gt;/config</code> with
+<code>{"properties":{...}}</code>. The values are kept in the cluster record. Livy sessions
+opened before the restart keep their random ports — recreate them.</p>
 <h2 id="host-awareness">Host-awareness</h2>
 <p>Two instances on <strong>different</strong> hosts can have the same port. The allocator scope is per-host — every host has its own occupied-port set. This is what makes the small-cluster layout (master + NM + several components on a single host) work: ports collide within a host but not across hosts.</p>
 <p>Occupancy of a host comes from three sources:</p>
@@ -1659,22 +1719,27 @@ Only a fresh install or a scale-out moves.</p>
 kernel from handing one of those ports to an <strong>outbound connection</strong> as its
 source port.</p>
 <p>Storage tuning commonly widens the ephemeral range to the whole space:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>net.ipv4.ip_local_port_range = 1024 65535      # what the MinIO guide recommends
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>net.ipv4.ip_local_port_range = 1024 65535      # what the MinIO guide recommends
 </code></pre></div>
 <p>On a host shared with components, every port chango hands out is then eligible.
 When the kernel picks one, the component that owns it fails to bind:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>java.net.BindException: Address already in use                    ← Flink JobManager, 8980
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>ERROR Leaving listener thread for address cp-1:3890 after 3 errors ← ZooKeeper election
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>java.net.BindException: Address already in use                    ← Flink JobManager, 8980
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>ERROR Leaving listener thread for address cp-1:3890 after 3 errors ← ZooKeeper election
 </code></pre></div>
 <p>And <code>ss -ltnp</code> is <strong>empty</strong> seconds later, because the squatter was a transient
 client socket. Restarting works. So it reads as an environment flake, gets
 written off, and comes back at the next cluster start — which is exactly how it
 behaved here until the ephemeral range was the thing someone looked at.</p>
 <p><code>node-prep</code> reserves the bands from the port table:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cat<span class="w"> </span>/proc/sys/net/ipv4/ip_local_reserved_ports
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1">#   2181-2380,2888-3087,3888-4087,5432-5631,8080-8379,8480-9379,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1">#   18080-18699,18890,19081-19519,19998-19999</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cat<span class="w"> </span>/proc/sys/net/ipv4/ip_local_reserved_ports
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1">#   2181-2380,2888-3087,3888-4087,5432-5631,8080-8379,8480-9379,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1">#   18080-18699,18890,19081-19519,19998-20399</span>
 </code></pre></div>
+<p><code>19998-20399</code> is <code>19998-19999</code> (platform internal) and <code>20000-20399</code>
+(<a href="#spark-job-ports">Spark job ports</a>) merged by the kernel. The list is the
+ansible variable <code>chango_node_prep_reserved_ports</code>, written to
+<code>/etc/sysctl.d/99-chango.conf</code>. To add <code>20000-20399</code> on an existing install, see
+<a href="../../installation/node-preparation/#adding-the-spark-job-ports-to-an-existing-install">Node Preparation</a>.</p>
 <p>A reservation blocks <strong>automatic</strong> allocation only; an explicit bind still
 works, which is what components do. The role reads the value back from <code>/proc</code>
 and asserts, because a rejected value leaves the file on disk and the play
@@ -1684,7 +1749,7 @@ things and both are needed. The firewall decides what may come in; this decides
 what this host will not use on its way out.</p>
 <h2 id="failure-mode">Failure mode</h2>
 <p>If a band is fully exhausted on a host the allocator throws <code>IllegalStateException</code> with a message like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>no free 3-port block for band &#39;ontul-master&#39; on host 10.0.0.11 within [18080, 18280)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>no free 3-port block for band &#39;ontul-master&#39; on host 10.0.0.11 within [18080, 18280)
 </code></pre></div>
 <p>This is a deliberately loud failure — collapsing into "let's overlap" silently is much worse. The fix is either:</p>
 <ul>
@@ -1706,9 +1771,9 @@ place is reported in the instance's status and log; taking a neighbour's port
 surfaces as a different component's outage, which is much harder to trace.</p>
 <p>When a port looks wrong, compare the assignment with the actual bind rather than
 trusting either alone:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/components<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.[] | select(.clusterId|startswith(&quot;spark&quot;)) | &quot;\(.instanceId) \(.config)&quot;&#39;</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>sudo<span class="w"> </span>ss<span class="w"> </span>-ltnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:3000[01]&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="nv">$BASE</span>/admin/api/components<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.[] | select(.clusterId|startswith(&quot;spark&quot;)) | &quot;\(.instanceId) \(.config)&quot;&#39;</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>sudo<span class="w"> </span>ss<span class="w"> </span>-ltnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:3000[01]&#39;</span>
 </code></pre></div>
 <h2 id="component-nginx-ports">Component nginx ports</h2>
 <p>The <code>*-nginx</code> bands start at 19200 and their bases are spaced 20 apart, so each component's proxy has a predictable place to look for.</p>
@@ -1718,8 +1783,8 @@ trusting either alone:</p>
 <li>Open each band from its base for the full range (<code>19200–19399</code> for ShannonStore's). Wide, but no re-request when a component is added.</li>
 <li>
 <p>Pin the windows first, by narrowing the range so they really are disjoint:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="na">chango.component.port.shannonstore-nginx.range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="na">chango.component.port.ontul-nginx.range</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="na">chango.component.port.shannonstore-nginx.range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">chango.component.port.ontul-nginx.range</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">20</span>
 </code></pre></div>
 <p>Then the band is exactly the stretch the rule names, and an exhausted band fails loudly at install time instead of quietly using a port nobody opened.</p>
 </li>

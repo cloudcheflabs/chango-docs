@@ -1370,8 +1370,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#21-mint-a-long-lived-ontul-service-token-for-chango-flink-authz" class="md-nav__link">
-    2.1 Mint a long-lived Ontul service token for chango-flink-authz
+  <a href="#21-mint-an-ontul-service-token-for-chango-flink-authz" class="md-nav__link">
+    2.1 Mint an Ontul service token for chango-flink-authz
   </a>
   
 </li>
@@ -1419,6 +1419,19 @@
   <a href="#3-build-the-flink-kafka-iceberg-job" class="md-nav__link">
     3. Build the Flink Kafka → Iceberg job
   </a>
+  
+    <nav class="md-nav" aria-label="3. Build the Flink Kafka → Iceberg job">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-authorized-write-wrap-the-iceberg-sink" class="md-nav__link">
+    3.1 Authorized write: wrap the Iceberg sink
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1570,7 +1583,7 @@
 <li>A Confluent <strong>Schema Registry</strong> running alongside that broker (optional; this tutorial uses plain JSON to keep the surface small).</li>
 <li>A 1+1 Apache <strong>Flink</strong> standalone session cluster with the <code>chango-flink-authz</code> plugin wired in.</li>
 <li>A <strong>streaming job</strong> (Flink Java uberjar) that consumes from <code>orders.raw</code>, parses each JSON record, and <code>INSERT</code>s into <code>iceberg.streaming.orders</code> via the same Polaris REST catalog the earlier phases used.</li>
-<li>Ontul <strong>RBAC</strong>: a <code>flink-streamer</code> user in a <code>flink-writers</code> group with one policy allowing <code>data:Insert</code> on the streaming namespace. Submitting the same job as a different user fails fast with <code>Access Denied</code>.</li>
+<li>Ontul <strong>RBAC</strong>: a <code>flink-streamer</code> user in a <code>flink-writers</code> group with one policy allowing <code>data:Insert</code> on the streaming namespace. A job whose Iceberg sink is wrapped with <code>ChangoAuthzTableLoader</code> is refused for any other user with a <code>SecurityException</code>.</li>
 </ol>
 <h2 id="topology">Topology</h2>
 <table>
@@ -1628,17 +1641,19 @@
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># Ontul (Phase 0)</span>
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nv">ONTUL_HOST</span><span class="o">=</span>&lt;chango-n1&gt;
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nv">ONTUL_PORT</span><span class="o">=</span>&lt;ontul-master<span class="w"> </span>adminPort&gt;
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nv">ADMIN_OTOK</span><span class="o">=</span>&lt;admin<span class="w"> </span>user<span class="w"> </span>OTOK<span class="w"> </span>from<span class="w"> </span>Ontul&gt;
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># ShannonStore (Phase 0)</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="nv">SS_AK</span><span class="o">=</span>&lt;access<span class="w"> </span>key&gt;
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="nv">SS_SK</span><span class="o">=</span>&lt;secret<span class="w"> </span>key&gt;
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="nv">SS_ENDPOINT</span><span class="o">=</span>http://chango-n2.chango.private:8080
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Polaris (Phase 1)</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nv">POLARIS_REST</span><span class="o">=</span>http://chango-n2.chango.private:8180/api/catalog
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="nv">CLIENT_SECRET</span><span class="o">=</span>&lt;polaris-root<span class="w"> </span>client<span class="w"> </span>secret&gt;
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="nv">POLARIS_CRED</span><span class="o">=</span><span class="s2">&quot;polaris-root:</span><span class="nv">$CLIENT_SECRET</span><span class="s2">&quot;</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nv">ONTUL</span><span class="o">=</span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nv">ONTUL_TOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$ONTUL</span>/admin/auth/login<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;ontul-admin-pw&gt;&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.accessToken<span class="k">)</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># ShannonStore (Phase 0)</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="nv">SS_AK</span><span class="o">=</span>&lt;access<span class="w"> </span>key&gt;
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="nv">SS_SK</span><span class="o">=</span>&lt;secret<span class="w"> </span>key&gt;
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="nv">SS_ENDPOINT</span><span class="o">=</span>http://chango-n2.chango.private:8080
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="c1"># Polaris (Phase 1)</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="nv">POLARIS_REST</span><span class="o">=</span>http://chango-n2.chango.private:8180/api/catalog
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="nv">CLIENT_SECRET</span><span class="o">=</span>&lt;polaris-root<span class="w"> </span>client<span class="w"> </span>secret&gt;
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="nv">POLARIS_CRED</span><span class="o">=</span><span class="s2">&quot;polaris-root:</span><span class="nv">$CLIENT_SECRET</span><span class="s2">&quot;</span>
 </code></pre></div>
 <h2 id="1-install-kafka-zookeeper-mode">1. Install Kafka (ZooKeeper mode)</h2>
 <h3 id="via-the-chango-admin-ui">Via the chango admin UI</h3>
@@ -1701,15 +1716,18 @@
 </code></pre></div>
 <p>The records sit on <code>orders.raw</code> until a consumer drains them. The Flink job in §3 will be that consumer.</p>
 <h2 id="2-install-flink-with-ontul-authz">2. Install Flink with Ontul authz</h2>
-<h3 id="21-mint-a-long-lived-ontul-service-token-for-chango-flink-authz">2.1 Mint a long-lived Ontul service token for chango-flink-authz</h3>
-<p>The <code>chango-flink-authz</code> plugin calls Ontul's <code>/admin/iam/check</code> on every table the job touches. It needs a long-lived bearer token issued by Ontul:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">FLINK_OTOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/iam/keys<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;userId&quot;:&quot;flink-system&quot;,&quot;comment&quot;:&quot;chango-flink-authz service token&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.token<span class="k">)</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$FLINK_OTOK</span><span class="s2">&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>~/chango-secrets/ontul-otok-flink
+<h3 id="21-mint-an-ontul-service-token-for-chango-flink-authz">2.1 Mint an Ontul service token for chango-flink-authz</h3>
+<p><code>chango-flink-authz</code> is a library the job calls, not a cluster-side hook. When a wrapped Iceberg table is opened, it calls Ontul's <code>POST /v1/api/authz/check-batch</code> with <code>Authorization: Token &lt;OTOK&gt;</code>. Any valid OTOK works; this tutorial issues one for a dedicated service user:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$ONTUL</span>/admin/iam/users<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ONTUL_TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;flink-system&quot;,&quot;password&quot;:&quot;&lt;flink-system-pw&gt;&quot;}&#39;</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nv">FLINK_OTOK</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$ONTUL</span>/admin/iam/keys<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ONTUL_TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;flink-system&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.token<span class="k">)</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$FLINK_OTOK</span><span class="s2">&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>~/chango-secrets/ontul-otok-flink
 </code></pre></div>
-<p>This is the <strong>service principal</strong> for the plugin, not the user submitting the job. The plugin sends it as <code>Authorization: Token &lt;FLINK_OTOK&gt;</code> and Ontul resolves the <em>job-submitting user</em> from the request payload — exactly the same pattern Trino + Spark use.</p>
+<p>The token only authenticates the check call. The user whose policies are evaluated is the <code>user</code> the job passes in <code>OntulAuthzConfig</code> (§3.1) — not the token's owner and not the OS user that runs <code>flink run</code>.</p>
 <h3 id="22-install-the-flink-cluster">2.2 Install the Flink cluster</h3>
 <h4 id="via-the-chango-admin-ui_1">Via the chango admin UI</h4>
 <ol>
@@ -1718,8 +1736,8 @@
 <li><strong>Cluster ID</strong> — <code>flink-main</code></li>
 <li><strong>JobManager nodes</strong> — <code>chango-n1</code></li>
 <li><strong>TaskManager nodes</strong> — <code>chango-n2</code></li>
-<li><strong>Ontul authz endpoint</strong> — <code>http://chango-n1.chango.private:18080</code> (the Ontul master adminPort).</li>
-<li><strong>Ontul authz token</strong> — paste <code>$FLINK_OTOK</code>.</li>
+<li><strong>Ontul Authz Endpoint (optional)</strong> — <code>http://chango-n1.chango.private:18080</code> (the Ontul master adminPort).</li>
+<li><strong>Ontul Authz Token (optional)</strong> — paste <code>$FLINK_OTOK</code>.</li>
 </ul>
 </li>
 <li>Click <strong>Install</strong> then <strong>Start</strong>. The cluster card flips to <code>RUNNING</code> within ~30 seconds.</li>
@@ -1737,7 +1755,8 @@
 </code></pre></div>
 <p>The chango installer auto-wires:</p>
 <ul>
-<li>The <code>chango-flink-authz</code> jar into <code>lib/</code> on every JobManager + TaskManager (table-level Allow/Deny against Ontul IAM).</li>
+<li>The <code>chango-flink-authz</code> jar into <code>lib/</code> on every JobManager + TaskManager, so jobs compile against it with <code>provided</code> scope.</li>
+<li>The endpoint and token under <code>chango.authz.*</code> in <code>conf/config.yaml</code>. The plugin does <strong>not</strong> read these keys — the job passes the endpoint, token and user itself (§3.1).</li>
 <li>Flink 1.19 JVM <code>--add-opens</code> defaults for Java 17.</li>
 <li>A <code>conf/config.yaml</code> that binds rest + RPC on <code>0.0.0.0</code> and advertises the FQHN — UI Proxy auto-discovers the JobManager UI via the cluster registry.</li>
 </ul>
@@ -1897,80 +1916,138 @@
 <a id="__codelineno-10-85" name="__codelineno-10-85" href="#__codelineno-10-85"></a><span class="p">}</span>
 </code></pre></div></p>
 <blockquote>
-<p>The <code>--user</code> parameter shown in earlier drafts of this tutorial belonged to a <code>chango-flink-authz</code> <code>chango.authz.user</code> global-parameter wiring. The current plugin reads the submitting user from the Flink submission context — no in-job wiring needed.</p>
+<p><strong>This SQL <code>INSERT</code> is not authorization-checked.</strong> <code>chango-flink-authz</code> only acts on an Iceberg <code>TableLoader</code> that the job wraps with <code>ChangoAuthzTableLoader</code>. Flink SQL / Table API writes (<code>executeSql("INSERT ...")</code>) and unwrapped loaders reach the table without any Ontul check. Use §3 to see the pipeline work; use §3.1 for a write that Ontul RBAC gates.</p>
 </blockquote>
 <p>Build the uberjar (Maven shade) the same way Phase 2 does — <code>mvn package</code> yields <code>target/orders-stream-1.0.0.jar</code>.</p>
+<h3 id="31-authorized-write-wrap-the-iceberg-sink">3.1 Authorized write: wrap the Iceberg sink</h3>
+<p>For an authorized write, write through the DataStream <code>FlinkSink</code> and hand it a <code>TableLoader</code> wrapped by <code>ChangoAuthzTableLoader</code>:</p>
+<ul>
+<li><code>ChangoAuthzTableLoader.forSink(base, "&lt;catalog alias&gt;", TableIdentifier, OntulAuthzConfig)</code> checks <code>data:Insert</code>; <code>forSource(...)</code> checks <code>data:Select</code>.</li>
+<li>The resource is <code>data:table:&lt;catalog alias&gt;.&lt;schema&gt;.&lt;table&gt;</code>. Use the catalog name the query engines use (<code>iceberg</code> here) so the same policy matches.</li>
+<li>The check runs once when the table is opened (once per loader instance on each TaskManager, and in <code>main()</code> if the job opens the table there).</li>
+<li><code>new OntulAuthzConfig(ontulUrl, ontulToken, user, timeoutMs, failOpen)</code> — the Ontul master admin URL, the service OTOK from §2.1, and the user whose policies are evaluated. <code>failOpen=false</code> denies when Ontul cannot be reached.</li>
+</ul>
+<p>Add the plugin to <code>pom.xml</code> with <code>provided</code> scope (the jar is already in Flink's <code>lib/</code>; install <code>&lt;flink&gt;/lib/chango-flink-authz-3.0.0.jar</code> into the local Maven repository with <code>mvn install:install-file</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">&lt;dependency&gt;</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">&lt;groupId&gt;</span>com.cloudcheflabs.chango<span class="nt">&lt;/groupId&gt;</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">&lt;artifactId&gt;</span>chango-flink-authz<span class="nt">&lt;/artifactId&gt;</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">&lt;version&gt;</span>3.0.0<span class="nt">&lt;/version&gt;</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nt">&lt;scope&gt;</span>provided<span class="nt">&lt;/scope&gt;</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nt">&lt;/dependency&gt;</span>
+</code></pre></div>
+<p>Sink wiring in <code>OrdersStreamAuthz.java</code> (main class <code>com.chango.test.OrdersStreamAuthz</code>; the Kafka source and JSON → <code>RowData</code> mapping are ordinary DataStream code):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.apache.iceberg.catalog.TableIdentifier</span><span class="p">;</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.apache.iceberg.flink.CatalogLoader</span><span class="p">;</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.apache.iceberg.flink.TableLoader</span><span class="p">;</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">org.apache.iceberg.flink.sink.FlinkSink</span><span class="p">;</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">com.cloudcheflabs.chango.flink.authz.ChangoAuthzTableLoader</span><span class="p">;</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">com.cloudcheflabs.chango.flink.authz.OntulAuthzConfig</span><span class="p">;</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="c1">// props: the same REST catalog settings as the CREATE CATALOG in §3</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="c1">// (uri, warehouse, credential, scope, io-impl, s3.*).</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="n">CatalogLoader</span><span class="w"> </span><span class="n">catalogLoader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CatalogLoader</span><span class="p">.</span><span class="na">custom</span><span class="p">(</span><span class="s">&quot;iceberg&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">props</span><span class="p">,</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">        </span><span class="k">new</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="na">apache</span><span class="p">.</span><span class="na">hadoop</span><span class="p">.</span><span class="na">conf</span><span class="p">.</span><span class="na">Configuration</span><span class="p">(),</span><span class="w"> </span><span class="s">&quot;org.apache.iceberg.rest.RESTCatalog&quot;</span><span class="p">);</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="n">TableIdentifier</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TableIdentifier</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;streaming&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;orders&quot;</span><span class="p">);</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="n">OntulAuthzConfig</span><span class="w"> </span><span class="n">authz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">OntulAuthzConfig</span><span class="p">(</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">        </span><span class="n">req</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;--authz-url&quot;</span><span class="p">),</span><span class="w">     </span><span class="c1">// http://&lt;ontul-master&gt;:&lt;adminPort&gt;</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="w">        </span><span class="n">req</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;--authz-token&quot;</span><span class="p">),</span><span class="w">   </span><span class="c1">// service OTOK (§2.1)</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">        </span><span class="n">req</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;--authz-user&quot;</span><span class="p">),</span><span class="w">    </span><span class="c1">// user whose policies are evaluated</span>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="w">        </span><span class="mi">5000</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">);</span><span class="w">                 </span><span class="c1">// timeout ms, fail closed</span>
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>
+<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="n">TableLoader</span><span class="w"> </span><span class="n">sinkLoader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ChangoAuthzTableLoader</span><span class="p">.</span><span class="na">forSink</span><span class="p">(</span>
+<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="w">        </span><span class="n">TableLoader</span><span class="p">.</span><span class="na">fromCatalog</span><span class="p">(</span><span class="n">catalogLoader</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;iceberg&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">authz</span><span class="p">);</span>
+<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>
+<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="c1">// Optional: open the table in main() so a denied user fails at submission</span>
+<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="c1">// instead of on the TaskManager.</span>
+<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a><span class="k">try</span><span class="w"> </span><span class="p">(</span><span class="n">TableLoader</span><span class="w"> </span><span class="n">probe</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ChangoAuthzTableLoader</span><span class="p">.</span><span class="na">forSink</span><span class="p">(</span>
+<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a><span class="w">        </span><span class="n">TableLoader</span><span class="p">.</span><span class="na">fromCatalog</span><span class="p">(</span><span class="n">catalogLoader</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;iceberg&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">authz</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a><span class="w">    </span><span class="n">probe</span><span class="p">.</span><span class="na">open</span><span class="p">();</span>
+<a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a><span class="p">}</span>
+<a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>
+<a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a><span class="n">FlinkSink</span><span class="p">.</span><span class="na">forRowData</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span><span class="w">          </span><span class="c1">// DataStream&lt;RowData&gt; parsed from orders.raw</span>
+<a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a><span class="w">        </span><span class="p">.</span><span class="na">tableLoader</span><span class="p">(</span><span class="n">sinkLoader</span><span class="p">)</span>
+<a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a><span class="w">        </span><span class="p">.</span><span class="na">append</span><span class="p">();</span>
+<a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a><span class="n">env</span><span class="p">.</span><span class="na">execute</span><span class="p">(</span><span class="s">&quot;orders-stream-authz&quot;</span><span class="p">);</span>
+</code></pre></div>
+<p>The plugin uses Flink's shaded Jackson (<code>org.apache.flink.shaded.jackson2...</code>), which Flink's <code>lib/</code> provides; the job needs no extra Jackson for it.</p>
+<p>A complete reference job — Kafka source, JSON → <code>RowData</code> against the table schema, upsert / write-parallelism options and the <code>--authz-url --authz-token --authz-user</code> arguments — is <code>example/flink/src/main/java/com/example/stream/IcebergSinkJob.java</code> in the chango examples (<code>example/flink/submit.py</code> passes <code>AUTHZ_USER</code> / <code>AUTHZ_TOKEN</code>).</p>
 <h2 id="4-wire-ontul-rbac-for-the-streaming-write">4. Wire Ontul RBAC for the streaming write</h2>
 <h3 id="41-create-the-user-group">4.1 Create the user + group</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Create the operator who will submit the job.</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/iam/users<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;userId&quot;:&quot;flink-streamer&quot;,&quot;password&quot;:&quot;Stream2026Pw!&quot;,&quot;email&quot;:&quot;flink-streamer@example&quot;}&#39;</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="c1"># Create the group that will hold the policy.</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/iam/groups<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;groupName&quot;:&quot;flink-writers&quot;,&quot;description&quot;:&quot;Streaming writers&quot;}&#39;</span>
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
-<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/iam/users/flink-streamer/groups<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;groupName&quot;:&quot;flink-writers&quot;}&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Create the operator who will submit the job.</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$ONTUL</span>/admin/iam/users<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ONTUL_TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;flink-streamer&quot;,&quot;password&quot;:&quot;Stream2026Pw!&quot;}&#39;</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="c1"># Create the group that will hold the policy.</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$ONTUL</span>/admin/iam/groups<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ONTUL_TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;groupName&quot;:&quot;flink-writers&quot;}&#39;</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$ONTUL</span>/admin/iam/add-user-to-group<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ONTUL_TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;flink-streamer&quot;,&quot;groupName&quot;:&quot;flink-writers&quot;}&#39;</span>
 </code></pre></div>
 <h3 id="42-attach-a-policy-that-allows-insert-on-the-streaming-namespace">4.2 Attach a policy that allows INSERT on the streaming namespace</h3>
-<p><code>chango-flink-authz</code> checks every read with <code>data:Select</code> and every write with <code>data:Insert</code>, scoped to <code>data:table:&lt;catalog&gt;.&lt;schema&gt;.&lt;table&gt;</code>. The Flink job in §3 reads from Kafka (not gated by Ontul) and writes to <code>iceberg.streaming.orders</code> (gated). The minimum policy is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>/tmp/iceberg-streaming-write.json<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="s">{</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="s">  &quot;name&quot;: &quot;iceberg-streaming-write&quot;,</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="s">  &quot;document&quot;: {</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="s">    &quot;Version&quot;: &quot;2024-01-01&quot;,</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="s">    &quot;Statement&quot;: [</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="s">      {</span>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="s">        &quot;Sid&quot;:      &quot;StreamingInsert&quot;,</span>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="s">        &quot;Effect&quot;:   &quot;Allow&quot;,</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="s">        &quot;Action&quot;:   [&quot;data:Insert&quot;, &quot;data:Select&quot;, &quot;data:Create&quot;],</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="s">        &quot;Resource&quot;: &quot;data:table:iceberg.streaming.*&quot;</span>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="s">      },</span>
-<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="s">      {</span>
-<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="s">        &quot;Sid&quot;:      &quot;StreamingSchemaDdl&quot;,</span>
-<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="s">        &quot;Effect&quot;:   &quot;Allow&quot;,</span>
-<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="s">        &quot;Action&quot;:   [&quot;data:CreateSchema&quot;],</span>
-<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="s">        &quot;Resource&quot;: &quot;data:schema:iceberg.streaming&quot;</span>
-<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="s">      }</span>
-<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="s">    ]</span>
-<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="s">  }</span>
-<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="s">}</span>
-<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="s">EOF</span>
-<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>
-<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/iam/policies<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a><span class="w">  </span>--data<span class="w"> </span>@/tmp/iceberg-streaming-write.json
-<a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>
-<a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/iam/groups/flink-writers/policies<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;policyName&quot;:&quot;iceberg-streaming-write&quot;}&#39;</span>
+<p>A wrapped sink loader checks <code>data:Insert</code> and a wrapped source loader <code>data:Select</code>, on <code>data:table:&lt;catalog&gt;.&lt;schema&gt;.&lt;table&gt;</code>. The §3.1 job reads from Kafka (not gated by Ontul) and writes to <code>iceberg.streaming.orders</code> (gated). The policy below also allows <code>data:Create</code> / <code>data:CreateSchema</code> for engines that create the table (Trino, Spark); the Flink sink itself only asks for <code>data:Insert</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>/tmp/iceberg-streaming-write.json<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="s">{</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="s">  &quot;name&quot;: &quot;iceberg-streaming-write&quot;,</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="s">  &quot;document&quot;: {</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="s">    &quot;Version&quot;: &quot;2024-01-01&quot;,</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="s">    &quot;Statement&quot;: [</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="s">      {</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="s">        &quot;Sid&quot;:      &quot;StreamingInsert&quot;,</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="s">        &quot;Effect&quot;:   &quot;Allow&quot;,</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="s">        &quot;Action&quot;:   [&quot;data:Insert&quot;, &quot;data:Select&quot;, &quot;data:Create&quot;],</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="s">        &quot;Resource&quot;: &quot;data:table:iceberg.streaming.*&quot;</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="s">      },</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="s">      {</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="s">        &quot;Sid&quot;:      &quot;StreamingSchemaDdl&quot;,</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="s">        &quot;Effect&quot;:   &quot;Allow&quot;,</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="s">        &quot;Action&quot;:   [&quot;data:CreateSchema&quot;],</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="s">        &quot;Resource&quot;: &quot;data:schema:iceberg.streaming&quot;</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="s">      }</span>
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a><span class="s">    ]</span>
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="s">  }</span>
+<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="s">}</span>
+<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a><span class="s">EOF</span>
+<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a>
+<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$ONTUL</span>/admin/iam/policies<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ONTUL_TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a><span class="w">  </span>--data<span class="w"> </span>@/tmp/iceberg-streaming-write.json
+<a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a>
+<a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$ONTUL</span>/admin/iam/attach-group-policy<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ONTUL_TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-30" name="__codelineno-14-30" href="#__codelineno-14-30"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;groupName&quot;:&quot;flink-writers&quot;,&quot;policyName&quot;:&quot;iceberg-streaming-write&quot;}&#39;</span>
 </code></pre></div>
 <blockquote>
 <p><strong>No row-filter / column-mask for Flink.</strong> The same <code>Condition</code> / <code>Columns</code> fields Phase 1 used for Trino are ignored by <code>chango-flink-authz</code> — the engine's table API does not expose a plan rewrite hook the plugin can use without re-implementing Calcite. The deliberate scope decision is recorded in <a href="../../features/iam/#engine-coverage">the engine-coverage memo</a>; for fine-grained policy on streaming reads you must filter at the source side (e.g. a topic-per-tenant + ACL).</p>
 </blockquote>
 <h2 id="5-submit-the-streaming-job">5. Submit the streaming job</h2>
 <p>Run from any host that has the Flink CLI binary — chango Flink's JobManager install dir ships one:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>ssh<span class="w"> </span>chango-n1<span class="w"> </span><span class="s1">&#39;sudo -u flink env JAVA_HOME=/opt/openlogic-openjdk-17.0.7+7-linux-x64 \</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="s1">    PATH=/opt/openlogic-openjdk-17.0.7+7-linux-x64/bin:/usr/bin \</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="s1">  /opt/components/flink-main-jobmanager-1/bin/flink run \</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="s1">    --jobmanager &#39;</span><span class="nv">$JM_HOST</span>:<span class="nv">$JM_PORT</span><span class="s1">&#39; \</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="s1">    --detached \</span>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="s1">    --class com.chango.test.OrdersStream \</span>
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="s1">    /tmp/orders-stream-1.0.0.jar \</span>
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="s1">      --bootstrap     &#39;</span><span class="nv">$BOOTSTRAP</span><span class="s1">&#39; \</span>
-<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="s1">      --topic         orders.raw \</span>
-<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="s1">      --polaris-rest  &#39;</span><span class="nv">$POLARIS_REST</span><span class="s1">&#39; \</span>
-<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="s1">      --polaris-cred  &#39;</span><span class="nv">$POLARIS_CRED</span><span class="s1">&#39; \</span>
-<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="s1">      --warehouse     lakehouse \</span>
-<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="s1">      --s3-endpoint   &#39;</span><span class="nv">$SS_ENDPOINT</span><span class="s1">&#39; \</span>
-<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="s1">      --s3-ak         &#39;</span><span class="nv">$SS_AK</span><span class="s1">&#39; \</span>
-<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="s1">      --s3-sk         &#39;</span><span class="nv">$SS_SK</span><span class="s1">&#39;</span>
-<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="s1">&#39;</span>
-<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="c1"># Job has been submitted with JobID 86fa5e3b…</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>ssh<span class="w"> </span>chango-n1<span class="w"> </span><span class="s1">&#39;sudo -u flink env JAVA_HOME=/opt/openlogic-openjdk-17.0.7+7-linux-x64 \</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="s1">    PATH=/opt/openlogic-openjdk-17.0.7+7-linux-x64/bin:/usr/bin \</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="s1">  /opt/components/flink-main-jobmanager-1/bin/flink run \</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="s1">    --jobmanager &#39;</span><span class="nv">$JM_HOST</span>:<span class="nv">$JM_PORT</span><span class="s1">&#39; \</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="s1">    --detached \</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="s1">    --class com.chango.test.OrdersStream \</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="s1">    /tmp/orders-stream-1.0.0.jar \</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="s1">      --bootstrap     &#39;</span><span class="nv">$BOOTSTRAP</span><span class="s1">&#39; \</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="s1">      --topic         orders.raw \</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="s1">      --polaris-rest  &#39;</span><span class="nv">$POLARIS_REST</span><span class="s1">&#39; \</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="s1">      --polaris-cred  &#39;</span><span class="nv">$POLARIS_CRED</span><span class="s1">&#39; \</span>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="s1">      --warehouse     lakehouse \</span>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="s1">      --s3-endpoint   &#39;</span><span class="nv">$SS_ENDPOINT</span><span class="s1">&#39; \</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="s1">      --s3-ak         &#39;</span><span class="nv">$SS_AK</span><span class="s1">&#39; \</span>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="s1">      --s3-sk         &#39;</span><span class="nv">$SS_SK</span><span class="s1">&#39;</span>
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="s1">&#39;</span>
+<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="c1"># Job has been submitted with JobID 86fa5e3b…</span>
+</code></pre></div>
+<p>This submits the §3 SQL job (no authorization check). For the §3.1 job, pass <code>--class com.chango.test.OrdersStreamAuthz</code> and add the three authz arguments:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="w">      </span>--authz-url<span class="w">    </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">      </span>--authz-token<span class="w">  </span><span class="s2">&quot;</span><span class="nv">$FLINK_OTOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">      </span>--authz-user<span class="w">   </span>flink-streamer
 </code></pre></div>
 <p>The job parses the three test records from §1.2, transforms them, and writes them into <code>iceberg.streaming.orders</code>. Because checkpointing is set to 10 s, the <strong>first Iceberg commit lands ~10 s after job start</strong>. Subsequent records from the same Kafka topic land in the next commit.</p>
 <h3 id="51-monitor">5.1 Monitor</h3>
@@ -1979,76 +2056,75 @@
 - <strong>Checkpoints</strong> — successive completed checkpoints with byte counts.
 - <strong>TaskManagers</strong> — slot usage on the worker.</p>
 <p>Logs from CLI:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>ssh<span class="w"> </span>chango-n2<span class="w"> </span><span class="s1">&#39;sudo journalctl -u flink-main-taskmanager-1 --since &quot;5 min ago&quot;&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;Committed|orders.raw|ontul&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>ssh<span class="w"> </span>chango-n2<span class="w"> </span><span class="s1">&#39;sudo journalctl -u flink-main-taskmanager-1 --since &quot;5 min ago&quot;&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;Committed|orders.raw|ontul&#39;</span>
 </code></pre></div></p>
 <p>Look for two key lines:</p>
 <ul>
 <li><code>iceberg.streaming.orders ← committed snapshot &lt;id&gt;</code> (Iceberg sink commit).</li>
-<li><code>chango-flink-authz: ALLOW user=flink-streamer action=data:Insert resource=data:table:iceberg.streaming.orders</code> (plugin authz log).</li>
+<li><code>chango-flink-authz: data:Insert data:table:iceberg.streaming.orders authorized for user flink-streamer</code> (plugin authz log, §3.1 job only).</li>
 </ul>
 <h2 id="6-verify-the-write-through-trino">6. Verify the write through Trino</h2>
 <p>Flip Trino back on briefly and read the same Iceberg table:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino/trino-main/start
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="c1"># (wait until READY)</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>trino<span class="w"> </span>--server<span class="w"> </span><span class="nv">$COORD_HOST</span>:<span class="nv">$COORD_PORT</span><span class="w"> </span>--user<span class="w"> </span>admin<span class="w"> </span>--catalog<span class="w"> </span>iceberg<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span>--execute<span class="w"> </span><span class="s1">&#39;SELECT order_id, country, total FROM streaming.orders ORDER BY order_id&#39;</span>
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="c1"># count = 3</span>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1">#</span>
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="c1"># country | c | s</span>
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="c1"># --------+---+-------</span>
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="c1"># JP      | 1 | 33.00</span>
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="c1"># KR      | 2 | 70.70</span>
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="c1">#</span>
-<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="c1"># order_id | customer_id | country | total</span>
-<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="c1"># ---------+-------------+---------+-------</span>
-<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="c1">#     1001 |          42 | KR      | 12.50</span>
-<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="c1">#     1002 |          17 | JP      | 33.00</span>
-<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="c1">#     1003 |          42 | KR      | 58.20</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/trino/trino-main/start
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="c1"># (wait until READY)</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>trino<span class="w"> </span>--server<span class="w"> </span><span class="nv">$COORD_HOST</span>:<span class="nv">$COORD_PORT</span><span class="w"> </span>--user<span class="w"> </span>admin<span class="w"> </span>--catalog<span class="w"> </span>iceberg<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">  </span>--execute<span class="w"> </span><span class="s1">&#39;SELECT order_id, country, total FROM streaming.orders ORDER BY order_id&#39;</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="c1"># count = 3</span>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="c1">#</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="c1"># country | c | s</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="c1"># --------+---+-------</span>
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="c1"># JP      | 1 | 33.00</span>
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="c1"># KR      | 2 | 70.70</span>
+<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="c1">#</span>
+<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="c1"># order_id | customer_id | country | total</span>
+<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="c1"># ---------+-------------+---------+-------</span>
+<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="c1">#     1001 |          42 | KR      | 12.50</span>
+<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="c1">#     1002 |          17 | JP      | 33.00</span>
+<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="c1">#     1003 |          42 | KR      | 58.20</span>
 </code></pre></div>
 <p>Three rows — one per Kafka message, partitioned by country, ready for ad-hoc SQL.</p>
 <p>Run the producer from §1.2 again with <code>order_id</code> values <code>1004 / 1005</code>, wait one checkpoint, and re-query — the new rows appear. The job stays up.</p>
 <h2 id="7-verify-the-deny-path">7. Verify the DENY path</h2>
-<p>Submit the same job as a user that lacks the <code>iceberg-streaming-write</code> policy:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://<span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span>/admin/iam/users<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ADMIN_OTOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;userId&quot;:&quot;flink-nobody&quot;,&quot;password&quot;:&quot;Pw2026!&quot;,&quot;email&quot;:&quot;flink-nobody@example&quot;}&#39;</span>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
-<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>ssh<span class="w"> </span>chango-n1<span class="w"> </span><span class="s1">&#39;sudo -u flink bash -lc &quot;</span>
-<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="s1">/opt/components/flink-main-jobmanager-1/bin/flink run --jobmanager &#39;</span><span class="nv">$JM_HOST</span>:<span class="nv">$JM_PORT</span><span class="s1">&#39; \</span>
-<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="s1">  /tmp/orders-stream-1.0.0.jar \</span>
-<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="s1">    --bootstrap     &#39;</span><span class="nv">$BOOTSTRAP</span><span class="s1">&#39; \</span>
-<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="s1">    --topic         orders.raw \</span>
-<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="s1">    --polaris-rest  &#39;</span><span class="nv">$POLARIS_REST</span><span class="s1">&#39; \</span>
-<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="s1">    --polaris-cred  &#39;</span><span class="nv">$POLARIS_CRED</span><span class="s1">&#39; \</span>
-<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="s1">    --warehouse     lakehouse \</span>
-<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="s1">    --s3-endpoint   &#39;</span><span class="nv">$SS_ENDPOINT</span><span class="s1">&#39; \</span>
-<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="s1">    --s3-ak         &#39;</span><span class="nv">$SS_AK</span><span class="s1">&#39; \</span>
-<a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="s1">    --s3-sk         &#39;</span><span class="nv">$SS_SK</span><span class="s1">&#39; \</span>
-<a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="s1">    --user          flink-nobody</span>
-<a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="s1">&quot;&#39;</span>
+<p>Submit the §3.1 job (wrapped sink) with a user that lacks the <code>iceberg-streaming-write</code> policy:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="nv">$ONTUL</span>/admin/iam/users<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$ONTUL_TOK</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;flink-nobody&quot;,&quot;password&quot;:&quot;Pw2026!&quot;}&#39;</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>ssh<span class="w"> </span>chango-n1<span class="w"> </span><span class="s1">&#39;sudo -u flink bash -lc &quot;</span>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="s1">/opt/components/flink-main-jobmanager-1/bin/flink run --jobmanager &#39;</span><span class="nv">$JM_HOST</span>:<span class="nv">$JM_PORT</span><span class="s1">&#39; \</span>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="s1">  --class com.chango.test.OrdersStreamAuthz \</span>
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="s1">  /tmp/orders-stream-1.0.0.jar \</span>
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="s1">    --bootstrap     &#39;</span><span class="nv">$BOOTSTRAP</span><span class="s1">&#39; \</span>
+<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="s1">    --topic         orders.raw \</span>
+<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="s1">    --polaris-rest  &#39;</span><span class="nv">$POLARIS_REST</span><span class="s1">&#39; \</span>
+<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="s1">    --polaris-cred  &#39;</span><span class="nv">$POLARIS_CRED</span><span class="s1">&#39; \</span>
+<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="s1">    --warehouse     lakehouse \</span>
+<a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a><span class="s1">    --s3-endpoint   &#39;</span><span class="nv">$SS_ENDPOINT</span><span class="s1">&#39; \</span>
+<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="s1">    --s3-ak         &#39;</span><span class="nv">$SS_AK</span><span class="s1">&#39; \</span>
+<a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a><span class="s1">    --s3-sk         &#39;</span><span class="nv">$SS_SK</span><span class="s1">&#39; \</span>
+<a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a><span class="s1">    --authz-url     http://&#39;</span><span class="nv">$ONTUL_HOST</span>:<span class="nv">$ONTUL_PORT</span><span class="s1">&#39; \</span>
+<a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a><span class="s1">    --authz-token   &#39;</span><span class="nv">$FLINK_OTOK</span><span class="s1">&#39; \</span>
+<a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a><span class="s1">    --authz-user    flink-nobody</span>
+<a id="__codelineno-19-20" name="__codelineno-19-20" href="#__codelineno-19-20"></a><span class="s1">&quot;&#39;</span>
 </code></pre></div>
-<p>The job is accepted by the JobManager (chango-flink-authz runs at table-load time, not submit time), but the first checkpoint logs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>chango-flink-authz: DENY user=flink-nobody action=data:Insert
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>                    resource=data:table:iceberg.streaming.orders reason=ABSTAIN
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>org.apache.flink.runtime.JobException: Recovery is suppressed by NoRestartBackoffTimeStrategy
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>Caused by: com.cloudcheflabs.chango.flink.authz.AuthzException:
-<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>  Access Denied: user flink-nobody not authorized for data:Insert on
-<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>  data:table:iceberg.streaming.orders (ontul decision: ABSTAIN — fail-closed)
+<p>The check runs when the table is opened. Because the §3.1 job opens the sink table in <code>main()</code>, the submission itself fails and no job is started; the last <code>Caused by</code> is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>java.lang.SecurityException: user &#39;flink-nobody&#39; is not allowed to data:Insert data:table:iceberg.streaming.orders (decision=ABSTAIN)
 </code></pre></div>
-<p>The job transitions to <code>FAILED</code>, with no data appended to the Iceberg table. <strong>Fail-closed</strong> is the only mode <code>chango-flink-authz</code> supports — <code>fail-open: false</code> is hard-coded in the chango installer's rendered <code>config.yaml</code> so a misconfigured Ontul never silently allows writes.</p>
+<p>Submitted through the JobManager REST API (<code>POST /jars/&lt;id&gt;/run</code>), the same failure returns HTTP 400 with this line as the last <code>Caused by</code>. Without the <code>main()</code> probe, the job is accepted and fails on the TaskManager when the sink opens the table. Either way no data is appended. Whether an unreachable Ontul denies or allows is the job's choice — the <code>failOpen</code> argument of <code>OntulAuthzConfig</code> (<code>false</code> in §3.1).</p>
+<p>Submitting the §3 SQL job instead succeeds for any user: it is not checked.</p>
 <h2 id="phase-5-exit-checklist">Phase 5 exit checklist</h2>
 <ul>
 <li>[ ] <code>curl /admin/api/kafka/kafka-main | jq .status</code> returns <code>RUNNING</code>; <code>kafka-topics.sh --list</code> shows <code>orders.raw</code>.</li>
 <li>[ ] <code>curl /admin/api/flink/flink-main | jq .status</code> returns <code>RUNNING</code>; JobManager UI reachable through UI Proxy.</li>
 <li>[ ] <code>flink-streamer</code> job stays <code>RUNNING</code> after submission; TaskManager log shows <code>committed snapshot &lt;id&gt;</code>.</li>
 <li>[ ] Trino <code>SELECT … FROM iceberg.streaming.orders</code> returns the three test rows; producing a fourth record adds it within one checkpoint.</li>
-<li>[ ] <code>flink-nobody</code> submission fails with <code>chango-flink-authz: DENY … data:Insert</code> and no rows appear in the table.</li>
+<li>[ ] The §3.1 job with <code>--authz-user flink-nobody</code> fails with <code>SecurityException: user 'flink-nobody' is not allowed to data:Insert …</code> and no rows appear in the table.</li>
 <li>[ ] Ontul <strong>Iceberg Maintenance</strong> page (Phase 4) lists <code>iceberg.streaming.orders</code> as a candidate — the 6-hour cycle will now run <code>expire_snapshots</code> + <code>rewrite_data_files</code> against this streaming output too.</li>
 </ul>
 <h2 id="stop-the-streaming-engines-before-the-next-phase">Stop the streaming engines before the next phase</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/flink/flink-main/stop
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/kafka/kafka-main/stop
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/flink/flink-main/stop
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOK</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BASE</span>/admin/api/kafka/kafka-main/stop
 </code></pre></div>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <ul>
@@ -2058,27 +2134,27 @@
 <li>Pass <code>--class com.chango.test.OrdersStream</code> to <code>flink run</code> (recommended — keeps the jar reusable across entry points).</li>
 <li>
 <p>Add a <code>ManifestResourceTransformer</code> to the shade plugin config in <code>pom.xml</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nt">&lt;configuration&gt;</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="nt">&lt;transformers&gt;</span>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="nt">&lt;transformer</span><span class="w"> </span><span class="na">implementation=</span><span class="s">&quot;org.apache.maven.plugins.shade.resource.ManifestResourceTransformer&quot;</span><span class="nt">&gt;</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">      </span><span class="nt">&lt;mainClass&gt;</span>com.chango.test.OrdersStream<span class="nt">&lt;/mainClass&gt;</span>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="nt">&lt;/transformer&gt;</span>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">  </span><span class="nt">&lt;/transformers&gt;</span>
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="nt">&lt;/configuration&gt;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="nt">&lt;configuration&gt;</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="nt">&lt;transformers&gt;</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">    </span><span class="nt">&lt;transformer</span><span class="w"> </span><span class="na">implementation=</span><span class="s">&quot;org.apache.maven.plugins.shade.resource.ManifestResourceTransformer&quot;</span><span class="nt">&gt;</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">      </span><span class="nt">&lt;mainClass&gt;</span>com.chango.test.OrdersStream<span class="nt">&lt;/mainClass&gt;</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">    </span><span class="nt">&lt;/transformer&gt;</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">  </span><span class="nt">&lt;/transformers&gt;</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="nt">&lt;/configuration&gt;</span>
 </code></pre></div>
 </li>
 </ul>
 </li>
 <li>
 <p><strong>Iceberg sink throws <code>java.lang.ClassNotFoundException: org.apache.hadoop.conf.Configuration</code></strong> — chango Flink's <code>lib/</code> ships <code>iceberg-flink-runtime</code> and <code>iceberg-aws-bundle</code> but <strong>not</strong> <code>hadoop-client-runtime</code> / <code>hadoop-client-api</code>. <code>iceberg-flink-runtime</code> requires hadoop's <code>Configuration</code> class at runtime. Until the chango installer emits them by default, copy the two jars from a chango Spark install (which already has them) into Flink's <code>lib/</code> on every JobManager + TaskManager host and restart:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="k">for</span><span class="w"> </span>INST<span class="w"> </span><span class="k">in</span><span class="w"> </span>jobmanager<span class="w"> </span>taskmanager<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span>sudo<span class="w"> </span>cp<span class="w"> </span>/opt/components/spark-livy-master-1/jars/hadoop-client-runtime-3.3.4.jar<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">          </span>/opt/components/flink-main-<span class="nv">$INST</span>-1/lib/
-<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">  </span>sudo<span class="w"> </span>cp<span class="w"> </span>/opt/components/spark-livy-master-1/jars/hadoop-client-api-3.3.4.jar<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">          </span>/opt/components/flink-main-<span class="nv">$INST</span>-1/lib/
-<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">  </span>sudo<span class="w"> </span>chown<span class="w"> </span>flink:flink<span class="w"> </span>/opt/components/flink-main-<span class="nv">$INST</span>-1/lib/hadoop-client-*.jar
-<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="k">done</span>
-<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="c1"># restart flink-main via chango admin</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">for</span><span class="w"> </span>INST<span class="w"> </span><span class="k">in</span><span class="w"> </span>jobmanager<span class="w"> </span>taskmanager<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">  </span>sudo<span class="w"> </span>cp<span class="w"> </span>/opt/components/spark-livy-master-1/jars/hadoop-client-runtime-3.3.4.jar<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">          </span>/opt/components/flink-main-<span class="nv">$INST</span>-1/lib/
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">  </span>sudo<span class="w"> </span>cp<span class="w"> </span>/opt/components/spark-livy-master-1/jars/hadoop-client-api-3.3.4.jar<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">          </span>/opt/components/flink-main-<span class="nv">$INST</span>-1/lib/
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">  </span>sudo<span class="w"> </span>chown<span class="w"> </span>flink:flink<span class="w"> </span>/opt/components/flink-main-<span class="nv">$INST</span>-1/lib/hadoop-client-*.jar
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="k">done</span>
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="c1"># restart flink-main via chango admin</span>
 </code></pre></div>
 </li>
 <li>
@@ -2088,9 +2164,11 @@
 <p><strong>JobManager UI shows <code>0 TaskManagers</code></strong> — TaskManager couldn't reach the JobManager's RPC port. Check <code>/admin/api/flink/flink-main | jq '.instances[].host'</code> resolves on the TaskManager host (through your DNS or the <code>/etc/hosts</code> entries prepared on every node); the chango installer sets <code>jobmanager.rpc.address</code> to the JM's FQHN.</p>
 </li>
 <li><strong>Iceberg sink throws <code>Failed to refresh token …</code></strong> — the <code>--polaris-cred</code> value (<code>client_id:client_secret</code>) is wrong. The credential comes from <code>GET /admin/api/polaris/polaris-main/credentials</code> and must be re-fetched after a Polaris re-install.</li>
-<li><strong><code>chango-flink-authz: DENY</code> for a user you intended to allow</strong> — the policy is missing <code>data:Create</code> or <code>data:CreateSchema</code> for the first job submission (the sink calls <code>CREATE TABLE IF NOT EXISTS</code>). Once the table exists, only <code>data:Insert</code> is needed; before then you also need <code>data:Create</code> + <code>data:CreateSchema</code>. The §4.2 policy includes all three.</li>
+<li><strong><code>SecurityException … is not allowed to data:Insert</code> for a user you intended to allow</strong> — the resource in the message must match the policy: the catalog alias passed to <code>forSink</code> (<code>iceberg</code>) plus the table identifier. Check the user is in the group and the group has the policy attached (<code>GET /admin/iam/policies</code>).</li>
+<li><strong><code>ClassNotFoundException</code> for <code>com.fasterxml.jackson...</code> from <code>chango-flink-authz</code></strong> — an older plugin jar that used unshaded Jackson, which Flink's <code>lib/</code> does not contain. The current jar uses Flink's shaded Jackson; replace the jar in <code>lib/</code> with the current release.</li>
+<li><strong>A user without a policy can still write</strong> — the write did not go through a wrapped loader (SQL <code>INSERT</code>, Table API, or a plain <code>TableLoader</code>). Only <code>ChangoAuthzTableLoader</code> is checked.</li>
 <li><strong>First snapshot never lands</strong> — either checkpointing didn't fire (TM log shows no <code>Triggering checkpoint</code>) or the Iceberg sink couldn't reach S3 (look for <code>S3 endpoint</code> errors). Verify <code>--s3-endpoint</code> reaches ShannonStore from the TM host; the chango admin's Network panel for <code>shannon-main</code> lists the live S3 endpoint.</li>
-<li><strong>DENY message says <code>reason=ABSTAIN</code> even though I attached a policy</strong> — the policy didn't deserialize (PascalCase field-name pitfall from Phase 1 §5.2.1 applies to every Ontul policy). Re-read the policy via <code>GET /admin/iam/policies</code> and confirm <code>Statement</code> is populated.</li>
+<li><strong>Denial says <code>decision=ABSTAIN</code> even though I attached a policy</strong> — the policy didn't deserialize (PascalCase field-name pitfall from Phase 1 §5.2.1 applies to every Ontul policy). Re-read the policy via <code>GET /admin/iam/policies</code> and confirm <code>Statement</code> is populated.</li>
 </ul>
 
 

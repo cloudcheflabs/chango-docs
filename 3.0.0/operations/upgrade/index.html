@@ -1177,6 +1177,19 @@
     Upgrade JDKs
   </a>
   
+    <nav class="md-nav" aria-label="Upgrade JDKs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#replace-the-bundled-jdk-in-place-fix-bundle" class="md-nav__link">
+    Replace the bundled JDK in place (fix bundle)
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1471,6 +1484,16 @@
 <li>Re-run the install playbook — the role installs the new JDK alongside existing ones.</li>
 <li>Restart any component cluster that should use the new JDK (the engine's <code>javaVersion</code> in its install request controls which JDK its launcher picks).</li>
 </ol>
+<h3 id="replace-the-bundled-jdk-in-place-fix-bundle">Replace the bundled JDK in place (fix bundle)</h3>
+<p>The <a href="https://github.com/cloudcheflabs/chango-pack/releases/tag/chango-3.0.0-fix-java4shell"><code>chango-3.0.0-fix-java4shell</code></a> fix bundle (CVE-2026-114938) replaces the bundled OpenLogic JDK 17.0.7 / 25.0.3 with Microsoft Build of OpenJDK 17.0.21.1 / 25.0.5.1 <strong>in the same directories</strong>, so no configuration changes.</p>
+<ul>
+<li><code>jdk-swap.sh swap | rollback | status</code> — replace, restore, or show the current state.</li>
+<li><code>jdk-check.sh</code> — the actual Java version of each running process.</li>
+<li>Every JVM must be stopped first: all components (including UI Proxy), then <code>stop.yml</code>. A leftover <code>java</code> process makes the swap refuse.</li>
+<li><code>chango-*</code> entries in the old <code>cacerts</code> are carried over to the new JDK.</li>
+<li>JDK 11 (Spark, Livy) is not affected.</li>
+</ul>
+<p>After the swap the directory names still read <code>17.0.7</code> / <code>25.0.3</code>. Check versions with <code>jdk-check.sh</code> or <code>java -version</code>, not by the path.</p>
 
 
 

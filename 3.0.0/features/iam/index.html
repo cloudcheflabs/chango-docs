@@ -1496,7 +1496,7 @@
 <p>Chango is the master copy of IAM state, but the actual data-plane components (Trino, Spark, Flink) delegate authorization to <strong>Ontul</strong> — Ontul is the IAM authority that holds the user / group / policy graph for query-time decisions.</p>
 <ul>
 <li>The chango installer wires every Trino / Spark / Flink cluster to an Ontul endpoint + a long-lived access key (OTOK).</li>
-<li>Inside the engine, the first-party authz plugin (<code>chango-trino-authz</code>, <code>chango-spark-authz</code>, <code>chango-flink-authz</code>) calls <code>POST &lt;ontul&gt;/v1/api/authz/check-batch</code> for every query, with <code>(user, action, resource)</code> tuples and gets back <code>ALLOW</code> / <code>DENY</code> / <code>ABSTAIN</code> decisions.</li>
+<li>Inside the engine, the first-party authz plugin (<code>chango-trino-authz</code>, <code>chango-spark-authz</code>, <code>chango-flink-authz</code>) calls <code>POST &lt;ontul&gt;/v1/api/authz/check-batch</code> for every query (Flink: for every wrapped Iceberg table the job opens — see <a href="#engine-coverage">Engine coverage</a>), with <code>(user, action, resource)</code> tuples and gets back <code>ALLOW</code> / <code>DENY</code> / <code>ABSTAIN</code> decisions.</li>
 <li>The same plugin then reports the outcome to Ontul's audit + lineage store (<code>POST &lt;ontul&gt;/v1/api/audit</code>, <code>/v1/api/lineage</code>) so activity from every engine is collected centrally. <strong>Both allowed and denied accesses are audited</strong> — a refused query is recorded with <code>decision=DENY</code> (and the refusal reason) before the plugin fails it, so a probing or misconfigured user leaves a trail. Lineage edges (<code>sources → target</code>) are emitted only for successful writes (CTAS / <code>INSERT</code>), never for a denied one. See <a href="../lineage-audit/">Data Lineage &amp; Audit</a> for what each event carries, the per-engine coverage differences, the <code>lineage.audit.enabled</code> switch, and how to verify it on a live cluster — and <a href="https://cloudcheflabs.github.io/ontul-docs/1.0.0/features/audit-log/">Ontul Audit Log</a> for the collected schema and the <code>decision</code> field.</li>
 </ul>
 <p>So chango's own IAM governs the admin UI and the REST API. Ontul's IAM governs query-time access to the data. Chango and Ontul are deliberately separate authorities — chango can be re-provisioned without invalidating Ontul tokens, and Ontul can be re-bootstrapped without re-issuing chango admin sessions.</p>
@@ -1577,12 +1577,12 @@ users need.</p>
 <tr>
 <td>Spark</td>
 <td><code>chango-spark-authz</code></td>
-<td>Table-level Allow / Deny on <code>data:Select</code> / <code>data:Insert</code>.</td>
+<td>Table-level Allow / Deny on <code>data:Select</code> / <code>data:Insert</code>. Active only while <code>spark.sql.extensions</code> contains <code>com.cloudcheflabs.chango.spark.authz.ChangoSparkAuthzExtension</code> — a job that sets it to Iceberg's extension alone disables the check. User: <code>spark.chango.authz.user</code>, else the Spark user.</td>
 </tr>
 <tr>
 <td>Flink</td>
 <td><code>chango-flink-authz</code></td>
-<td>Table-level Allow / Deny on <code>data:Select</code> / <code>data:Insert</code> — <strong>no</strong> row-filter or column-mask.</td>
+<td>Table-level Allow / Deny on <code>data:Select</code> / <code>data:Insert</code> — <strong>no</strong> row-filter or column-mask. Checked only for an Iceberg <code>TableLoader</code> the job wraps with <code>ChangoAuthzTableLoader</code> (<code>forSink</code> / <code>forSource</code>), once when the table is opened; the job passes the IAM URL, a service OTOK and the user in <code>OntulAuthzConfig</code>. Flink SQL / Table API writes and unwrapped loaders are <strong>not</strong> checked. See <a href="../../tutorials/phase-5-kafka-flink-iceberg/#31-authorized-write-wrap-the-iceberg-sink">Phase 5</a>.</td>
 </tr>
 </tbody>
 </table>

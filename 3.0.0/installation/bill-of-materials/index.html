@@ -1599,7 +1599,7 @@
 <p>Schema Registry ships under the <strong>Confluent Community License</strong>, which is source-available but <strong>not</strong> an OSI-approved open-source licence. It may not appear on a customer's approved-licence list.</p>
 <p>It places no restriction on internal use of the kind chango deployments make. What it prohibits is offering the software itself as a service to third parties. If it is nonetheless a blocker, the component can be excluded from the bundle.</p>
 </div>
-<p>Everything else falls into ordinary categories: Apache-2.0 for the Apache engines and the Iceberg / Hadoop / AWS SDK libraries, GPL-2.0-with-classpath-exception for the OpenLogic JDKs, PostgreSQL for PostgreSQL, GPL-3.0-or-later for ansible-core, MIT for SLF4J, and a Cloud Chef Labs commercial licence for the first-party products.</p>
+<p>Everything else falls into ordinary categories: Apache-2.0 for the Apache engines and the Iceberg / Hadoop / AWS SDK libraries, GPL-2.0-with-classpath-exception for the OpenLogic JDKs (and for the Microsoft Build of OpenJDK 17 / 25 that the <code>chango-3.0.0-fix-java4shell</code> fix bundle puts in their place — see <a href="../../components/versions/#jdks">Versions</a>), PostgreSQL for PostgreSQL, GPL-3.0-or-later for ansible-core, MIT for SLF4J, and a Cloud Chef Labs commercial licence for the first-party products.</p>
 <h3 id="what-is-deliberately-absent">What is deliberately absent</h3>
 <p>Support responsibility — who patches what, for how long, and how fast. That is a commitment rather than a fact about an artifact, it belongs in the contract, and a build script has no business asserting it. When an approval form asks, answer it from the agreement.</p>
 <h2 id="bundling-a-subset">Bundling a subset</h2>
