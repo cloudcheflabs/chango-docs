@@ -80,6 +80,28 @@ nav:
       - "Configuration Reference": operations/configuration.md
       - "JVM & Heap Tuning": operations/jvm-tuning.md
       - "Upgrade": operations/upgrade.md
+      - "Command Line (changoctl)": operations/cli.md
+  - "API Reference":
+      - "Overview": api/index.md
+      - "Control Plane": api/control-plane.md
+      - "Component Instances": api/components.md
+      - "Security": api/security.md
+      - "Patches & Backup": api/patch-backup.md
+      - "PostgreSQL": api/postgres.md
+      - "Polaris": api/polaris.md
+      - "Ontul": api/ontul.md
+      - "Trino": api/trino.md
+      - "Trino Gateway": api/trino-gateway.md
+      - "Spark": api/spark.md
+      - "Flink": api/flink.md
+      - "Kafka": api/kafka.md
+      - "Schema Registry": api/schema-registry.md
+      - "Kiok": api/kiok.md
+      - "UI Proxy": api/ui-proxy.md
+      - "Mium": api/mium.md
+      - "NeoRunBase": api/neorunbase.md
+      - "ItdaStream": api/itdastream.md
+      - "ShannonStore": api/shannonstore.md
   - "Tutorials":
       - "Overview": tutorials/index.md
       - "Phase 0 — Foundation Install": tutorials/phase-0-foundation.md
